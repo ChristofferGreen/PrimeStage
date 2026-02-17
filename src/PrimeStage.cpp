@@ -645,7 +645,10 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
   std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
 
   float lineHeight = resolve_line_height(frame(), token);
-  if (spec.autoHeight && bounds.height <= 0.0f) {
+  if (spec.autoHeight &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
     bounds.height = std::max(0.0f, lineHeight * static_cast<float>(lines.size()));
   }
 
@@ -1153,7 +1156,10 @@ SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view t
 
 UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  if (bounds.height <= 0.0f && !spec.rows.empty()) {
+  if (bounds.height <= 0.0f &&
+      !spec.rows.empty() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
     bounds.height = static_cast<float>(spec.rows.size()) * spec.rowHeight +
                     static_cast<float>(spec.rows.size() - 1) * spec.rowGap;
   }
