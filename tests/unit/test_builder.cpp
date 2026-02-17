@@ -94,7 +94,8 @@ TEST_CASE("PrimeStage tree view creates a node") {
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
 
   PrimeStage::TreeViewSpec spec;
-  spec.bounds = PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f};
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 120.0f;
   spec.nodes = {PrimeStage::TreeNode{"Root", {PrimeStage::TreeNode{"Child"}}, true, false}};
   PrimeStage::UiNode tree = root.createTreeView(spec);
   CHECK(frame.getNode(tree.nodeId()) != nullptr);
@@ -105,7 +106,10 @@ TEST_CASE("PrimeStage section header creates a node") {
   PrimeStage::applyStudioTheme(frame);
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 40.0f});
 
-  PrimeStage::UiNode header = root.createSectionHeader(PrimeStage::Bounds{4.0f, 4.0f, 100.0f, 20.0f},
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 100.0f;
+  size.preferredHeight = 20.0f;
+  PrimeStage::UiNode header = root.createSectionHeader(size,
                                                        "Header",
                                                        PrimeStage::TextRole::SmallBright);
   CHECK(frame.getNode(header.nodeId()) != nullptr);
@@ -117,10 +121,12 @@ TEST_CASE("PrimeStage section panel creates a node") {
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
 
   PrimeStage::SectionPanelSpec spec;
-  spec.bounds = PrimeStage::Bounds{10.0f, 10.0f, 180.0f, 80.0f};
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 80.0f;
   spec.title = "Section";
   PrimeStage::SectionPanel panel = root.createSectionPanel(spec);
   CHECK(frame.getNode(panel.panel.nodeId()) != nullptr);
+  CHECK(frame.getNode(panel.content.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage shell creates a layout") {
@@ -194,7 +200,7 @@ TEST_CASE("PrimeStage property list creates a node") {
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 80.0f});
 
   PrimeStage::PropertyListSpec spec;
-  spec.bounds = PrimeStage::Bounds{10.0f, 10.0f, 180.0f, 0.0f};
+  spec.size.preferredWidth = 180.0f;
   spec.rows = {
       {"Key", "Value"},
       {"Key2", "Value2"}
@@ -208,8 +214,11 @@ TEST_CASE("PrimeStage card grid creates a node") {
   PrimeStage::applyStudioTheme(frame);
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 300.0f, 200.0f});
 
-  PrimeStage::UiNode grid = root.createCardGrid(PrimeStage::Bounds{10.0f, 10.0f, 280.0f, 120.0f},
-                                                {{"Card", "Detail"}, {"Card", "Detail"}});
+  PrimeStage::CardGridSpec spec;
+  spec.size.preferredWidth = 280.0f;
+  spec.size.preferredHeight = 120.0f;
+  spec.cards = {{"Card", "Detail"}, {"Card", "Detail"}};
+  PrimeStage::UiNode grid = root.createCardGrid(spec);
   CHECK(frame.getNode(grid.nodeId()) != nullptr);
 }
 
@@ -219,7 +228,8 @@ TEST_CASE("PrimeStage progress bar creates a node") {
   PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 24.0f});
 
   PrimeStage::ProgressBarSpec spec;
-  spec.bounds = PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 10.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 10.0f;
   spec.value = 0.5f;
   PrimeStage::UiNode bar = root.createProgressBar(spec);
   CHECK(frame.getNode(bar.nodeId()) != nullptr);
