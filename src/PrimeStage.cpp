@@ -1653,6 +1653,18 @@ UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
       spec.size.stretchY <= 0.0f) {
     bounds.height = UiDefaults::StatusHeight;
   }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    float leftWidth = spec.leftText.empty()
+                          ? 0.0f
+                          : estimate_text_width(frame(), textToken(spec.leftRole), spec.leftText);
+    float rightWidth = spec.rightText.empty()
+                           ? 0.0f
+                           : estimate_text_width(frame(), textToken(spec.rightRole), spec.rightText);
+    float spacing = spec.rightText.empty() ? 0.0f : spec.paddingX;
+    bounds.width = spec.paddingX * 2.0f + leftWidth + spacing + rightWidth;
+  }
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
