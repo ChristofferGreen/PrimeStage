@@ -848,7 +848,7 @@ UiNode UiNode::createTable(TableSpec const& spec) {
                  static_cast<float>(rowCount - 1) * spec.rowGap;
   }
   float headerBlock = spec.headerHeight > 0.0f ? spec.headerInset + spec.headerHeight : 0.0f;
-  if (tableBounds.height <= 0.0f) {
+  if (tableBounds.height <= 0.0f && !spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
     tableBounds.height = headerBlock + rowsHeight;
   }
 

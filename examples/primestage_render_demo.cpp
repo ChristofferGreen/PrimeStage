@@ -243,20 +243,13 @@ int main(int argc, char** argv) {
     };
     column.createCardGrid(cardSpec);
 
-    float usedHeight = UiDefaults::SectionHeaderHeight +
-                       (UiDefaults::PanelHeightL + UiDefaults::ControlHeight + UiDefaults::PanelInset) +
-                       UiDefaults::HeaderHeight +
-                       UiDefaults::CardHeight;
-    float gaps = columnSpec.gap * 4.0f;
-    float availableTableH = contentH - columnSpec.padding.vertical() - usedHeight - gaps;
-
     float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
     float firstColWidth = contentW - UiDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
     tableSpec.size.preferredWidth = tableWidth;
-    tableSpec.size.preferredHeight = std::max(1.0f, availableTableH);
+    tableSpec.size.stretchY = 1.0f;
     tableSpec.showHeaderDividers = false;
     tableSpec.columns = {
         TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
