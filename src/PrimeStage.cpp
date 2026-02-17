@@ -600,6 +600,21 @@ UiNode UiNode::createPanel(RectRole role, SizeSpec const& size) {
 UiNode UiNode::createLabel(LabelSpec const& spec) {
   LabelSpec resolved = spec;
   resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((resolved.bounds.width <= 0.0f || resolved.bounds.height <= 0.0f) &&
+      !spec.text.empty() &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    float lineHeight = resolve_line_height(frame(), spec.textStyle);
+    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.text);
+    if (resolved.bounds.width <= 0.0f) {
+      resolved.bounds.width = (spec.maxWidth > 0.0f) ? spec.maxWidth : textWidth;
+    }
+    if (resolved.bounds.height <= 0.0f) {
+      resolved.bounds.height = lineHeight;
+    }
+  }
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
