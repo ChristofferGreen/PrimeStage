@@ -56,6 +56,17 @@ Bounds resolve_bounds(Bounds const& bounds, SizeSpec const& size) {
   return resolved;
 }
 
+SizeSpec size_from_bounds(Bounds const& bounds) {
+  SizeSpec size;
+  if (bounds.width > 0.0f) {
+    size.preferredWidth = bounds.width;
+  }
+  if (bounds.height > 0.0f) {
+    size.preferredHeight = bounds.height;
+  }
+  return size;
+}
+
 PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
                                PrimeFrame::NodeId parent,
                                Bounds const& bounds,
@@ -568,10 +579,7 @@ UiNode UiNode::createPanel(PanelSpec const& spec) {
 }
 
 UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds) {
-  PanelSpec spec;
-  spec.bounds = bounds;
-  spec.rectStyle = rectStyle;
-  return createPanel(spec);
+  return createPanel(rectStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
@@ -582,10 +590,7 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
 }
 
 UiNode UiNode::createPanel(RectRole role, Bounds const& bounds) {
-  PanelSpec spec;
-  spec.bounds = bounds;
-  spec.rectStyle = rectToken(role);
-  return createPanel(spec);
+  return createPanel(role, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createPanel(RectRole role, SizeSpec const& size) {
@@ -609,11 +614,7 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
 UiNode UiNode::createLabel(std::string_view text,
                            PrimeFrame::TextStyleToken textStyle,
                            Bounds const& bounds) {
-  LabelSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textStyle;
-  return createLabel(spec);
+  return createLabel(text, textStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createLabel(std::string_view text,
@@ -627,11 +628,7 @@ UiNode UiNode::createLabel(std::string_view text,
 }
 
 UiNode UiNode::createLabel(std::string_view text, TextRole role, Bounds const& bounds) {
-  LabelSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textToken(role);
-  return createLabel(spec);
+  return createLabel(text, role, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createLabel(std::string_view text, TextRole role, SizeSpec const& size) {
@@ -682,11 +679,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
 UiNode UiNode::createParagraph(Bounds const& bounds,
                                std::string_view text,
                                PrimeFrame::TextStyleToken textStyle) {
-  ParagraphSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textStyle;
-  return createParagraph(spec);
+  return createParagraph(text, textStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createParagraph(std::string_view text,
@@ -702,11 +695,7 @@ UiNode UiNode::createParagraph(std::string_view text,
 UiNode UiNode::createParagraph(Bounds const& bounds,
                                std::string_view text,
                                TextRole role) {
-  ParagraphSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textToken(role);
-  return createParagraph(spec);
+  return createParagraph(text, role, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createParagraph(std::string_view text,
@@ -765,12 +754,7 @@ UiNode UiNode::createTextLine(Bounds const& bounds,
                               std::string_view text,
                               PrimeFrame::TextStyleToken textStyle,
                               PrimeFrame::TextAlign align) {
-  TextLineSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textStyle;
-  spec.align = align;
-  return createTextLine(spec);
+  return createTextLine(text, textStyle, size_from_bounds(bounds), align);
 }
 
 UiNode UiNode::createTextLine(std::string_view text,
@@ -789,12 +773,7 @@ UiNode UiNode::createTextLine(Bounds const& bounds,
                               std::string_view text,
                               TextRole role,
                               PrimeFrame::TextAlign align) {
-  TextLineSpec spec;
-  spec.bounds = bounds;
-  spec.text = std::string(text);
-  spec.textStyle = textToken(role);
-  spec.align = align;
-  return createTextLine(spec);
+  return createTextLine(text, role, size_from_bounds(bounds), align);
 }
 
 UiNode UiNode::createTextLine(std::string_view text,
@@ -982,7 +961,7 @@ UiNode UiNode::createTable(Bounds const& bounds,
                            std::vector<TableColumn> columns,
                            std::vector<std::vector<std::string>> rows) {
   TableSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.columns = std::move(columns);
   spec.rows = std::move(rows);
   return createTable(spec);
@@ -1035,7 +1014,7 @@ UiNode UiNode::createSectionHeader(Bounds const& bounds,
                                    std::string_view title,
                                    TextRole role) {
   SectionHeaderSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.title = std::string(title);
   spec.textRole = role;
   return createSectionHeader(spec);
@@ -1047,7 +1026,7 @@ UiNode UiNode::createSectionHeader(Bounds const& bounds,
                                    bool addDivider,
                                    float dividerOffsetY) {
   SectionHeaderSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.title = std::string(title);
   spec.textRole = role;
   spec.addDivider = addDivider;
@@ -1142,7 +1121,7 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
 
 SectionPanel UiNode::createSectionPanel(Bounds const& bounds, std::string_view title) {
   SectionPanelSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.title = std::string(title);
   return createSectionPanel(spec);
 }
@@ -1217,7 +1196,7 @@ UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
 
 UiNode UiNode::createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows) {
   PropertyListSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.rows = std::move(rows);
   return createPropertyList(spec);
 }
@@ -1234,7 +1213,7 @@ UiNode UiNode::createPropertyRow(Bounds const& bounds,
                                  std::string_view value,
                                  TextRole role) {
   PropertyListSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   if (bounds.height > 0.0f) {
     spec.rowHeight = bounds.height;
   }
@@ -1280,10 +1259,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
 }
 
 UiNode UiNode::createProgressBar(Bounds const& bounds, float value) {
-  ProgressBarSpec spec;
-  spec.bounds = bounds;
-  spec.value = value;
-  return createProgressBar(spec);
+  return createProgressBar(size_from_bounds(bounds), value);
 }
 
 UiNode UiNode::createProgressBar(SizeSpec const& size, float value) {
@@ -1356,7 +1332,7 @@ UiNode UiNode::createCardGrid(CardGridSpec const& spec) {
 
 UiNode UiNode::createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards) {
   CardGridSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.cards = std::move(cards);
   return createCardGrid(spec);
 }
@@ -1411,17 +1387,7 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
 UiNode UiNode::createButton(Bounds const& bounds,
                             std::string_view label,
                             ButtonVariant variant) {
-  ButtonSpec spec;
-  spec.bounds = bounds;
-  spec.label = std::string(label);
-  if (variant == ButtonVariant::Primary) {
-    spec.backgroundStyle = rectToken(RectRole::Accent);
-    spec.textStyle = textToken(TextRole::BodyBright);
-  } else {
-    spec.backgroundStyle = rectToken(RectRole::Panel);
-    spec.textStyle = textToken(TextRole::BodyBright);
-  }
-  return createButton(spec);
+  return createButton(label, variant, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createButton(std::string_view label,
@@ -1477,13 +1443,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
 }
 
 UiNode UiNode::createTextField(Bounds const& bounds, std::string_view placeholder) {
-  TextFieldSpec spec;
-  spec.bounds = bounds;
-  spec.placeholder = std::string(placeholder);
-  spec.backgroundStyle = rectToken(RectRole::Panel);
-  spec.textStyle = textToken(TextRole::BodyBright);
-  spec.placeholderStyle = textToken(TextRole::BodyMuted);
-  return createTextField(spec);
+  return createTextField(placeholder, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createTextField(std::string_view placeholder, SizeSpec const& size) {
@@ -1555,7 +1515,7 @@ UiNode UiNode::createStatusBar(Bounds const& bounds,
                                std::string_view leftText,
                                std::string_view rightText) {
   StatusBarSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   spec.leftText = std::string(leftText);
   spec.rightText = std::string(rightText);
   return createStatusBar(spec);
@@ -1650,7 +1610,7 @@ UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
 
 UiNode UiNode::createScrollHints(Bounds const& bounds) {
   ScrollHintsSpec spec;
-  spec.bounds = bounds;
+  spec.size = size_from_bounds(bounds);
   return createScrollHints(spec);
 }
 
@@ -1831,14 +1791,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 }
 
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
-  SizeSpec size;
-  if (bounds.width > 0.0f) {
-    size.preferredWidth = bounds.width;
-  }
-  if (bounds.height > 0.0f) {
-    size.preferredHeight = bounds.height;
-  }
-  return createRoot(frame, size);
+  return createRoot(frame, size_from_bounds(bounds));
 }
 
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
@@ -1959,12 +1912,7 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
 
 ShellSpec makeShellSpec(Bounds const& bounds) {
   ShellSpec spec;
-  if (bounds.width > 0.0f) {
-    spec.size.preferredWidth = bounds.width;
-  }
-  if (bounds.height > 0.0f) {
-    spec.size.preferredHeight = bounds.height;
-  }
+  spec.size = size_from_bounds(bounds);
   return spec;
 }
 
