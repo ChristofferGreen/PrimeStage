@@ -1278,6 +1278,18 @@ UiNode UiNode::createPropertyRow(SizeSpec const& size,
 
 UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    if (bounds.width <= 0.0f) {
+      bounds.width = UiDefaults::ControlWidthL;
+    }
+    if (bounds.height <= 0.0f) {
+      bounds.height = UiDefaults::OpacityBarHeight;
+    }
+  }
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1311,6 +1323,25 @@ UiNode UiNode::createProgressBar(SizeSpec const& size, float value) {
 
 UiNode UiNode::createCardGrid(CardGridSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f &&
+      !spec.cards.empty()) {
+    if (bounds.width <= 0.0f) {
+      bounds.width = spec.cardWidth;
+    }
+    if (bounds.height <= 0.0f) {
+      size_t rows = spec.cards.size();
+      if (rows > 1 && spec.gapY > 0.0f) {
+        bounds.height = static_cast<float>(rows) * spec.cardHeight +
+                        static_cast<float>(rows - 1) * spec.gapY;
+      } else {
+        bounds.height = static_cast<float>(rows) * spec.cardHeight;
+      }
+    }
+  }
   PrimeFrame::NodeId gridId = create_node(frame(), id_, bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
