@@ -1712,6 +1712,13 @@ UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
   view.bounds = spec.bounds;
   view.size = spec.size;
+  if (!view.size.preferredWidth.has_value() &&
+      !view.size.preferredHeight.has_value() &&
+      view.size.stretchX <= 0.0f &&
+      view.size.stretchY <= 0.0f) {
+    view.size.preferredWidth = UiDefaults::FieldWidthL;
+    view.size.preferredHeight = UiDefaults::PanelHeightM;
+  }
   view.showVertical = spec.showVertical;
   view.showHorizontal = spec.showHorizontal;
   view.vertical.trackStyle = rectToken(RectRole::ScrollTrack);
