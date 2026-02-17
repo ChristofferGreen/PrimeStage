@@ -667,6 +667,12 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
+  if (maxWidth <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    maxWidth = UiDefaults::FieldWidthL;
+    bounds.width = maxWidth;
+  }
   std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
 
   float lineHeight = resolve_line_height(frame(), token);
