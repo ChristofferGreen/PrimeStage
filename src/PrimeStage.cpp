@@ -940,30 +940,35 @@ UiNode UiNode::createTable(Bounds const& bounds,
 }
 
 UiNode UiNode::createSectionHeader(SectionHeaderSpec const& spec) {
-  UiNode header = createPanel(spec.backgroundRole, spec.bounds);
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
+  PanelSpec panel;
+  panel.bounds = bounds;
+  panel.size = spec.size;
+  panel.rectStyle = rectToken(spec.backgroundRole);
+  UiNode header = createPanel(panel);
 
   if (spec.accentWidth > 0.0f) {
     header.createPanel(spec.accentRole,
-                       Bounds{0.0f, 0.0f, spec.accentWidth, spec.bounds.height});
+                       Bounds{0.0f, 0.0f, spec.accentWidth, bounds.height});
   }
 
   if (!spec.title.empty()) {
     float lineHeight = resolve_line_height(frame(), textToken(spec.textRole));
-    float textY = (spec.bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
+    float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
     header.createLabel(spec.title,
                        spec.textRole,
                        Bounds{spec.textInsetX,
                               textY,
-                              std::max(0.0f, spec.bounds.width - spec.textInsetX),
+                              std::max(0.0f, bounds.width - spec.textInsetX),
                               lineHeight});
   }
 
   if (spec.addDivider) {
     DividerSpec divider;
     divider.rectStyle = rectToken(spec.dividerRole);
-    divider.bounds = Bounds{spec.bounds.x,
-                            spec.bounds.y + spec.bounds.height + spec.dividerOffsetY,
-                            spec.bounds.width,
+    divider.bounds = Bounds{bounds.x,
+                            bounds.y + bounds.height + spec.dividerOffsetY,
+                            bounds.width,
                             1.0f};
     createDivider(divider);
   }
@@ -1012,9 +1017,14 @@ UiNode UiNode::createSectionHeader(SizeSpec const& size,
 }
 
 SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
-  SectionPanel out{createPanel(spec.panelRole, spec.bounds), UiNode(frame(), PrimeFrame::NodeId{}), {}, {}};
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
+  PanelSpec panel;
+  panel.bounds = bounds;
+  panel.size = spec.size;
+  panel.rectStyle = rectToken(spec.panelRole);
+  SectionPanel out{createPanel(panel), UiNode(frame(), PrimeFrame::NodeId{}), {}, {}};
 
-  float headerWidth = std::max(0.0f, spec.bounds.width - spec.headerInsetX - spec.headerInsetRight);
+  float headerWidth = std::max(0.0f, bounds.width - spec.headerInsetX - spec.headerInsetRight);
   Bounds headerBounds{spec.headerInsetX, spec.headerInsetY, headerWidth, spec.headerHeight};
   out.headerBounds = headerBounds;
 
@@ -1041,9 +1051,9 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
 
   float contentX = spec.contentInsetX;
   float contentY = headerBounds.y + headerBounds.height + spec.contentInsetY;
-  float contentW = std::max(0.0f, spec.bounds.width - spec.contentInsetX - spec.contentInsetRight);
+  float contentW = std::max(0.0f, bounds.width - spec.contentInsetX - spec.contentInsetRight);
   float contentH = std::max(0.0f,
-                            spec.bounds.height - (contentY + spec.contentInsetBottom));
+                            bounds.height - (contentY + spec.contentInsetBottom));
   out.contentBounds = Bounds{contentX, contentY, contentW, contentH};
   PrimeFrame::NodeId contentId = create_node(frame(), out.panel.nodeId(), out.contentBounds,
                                              nullptr,
@@ -1066,7 +1076,7 @@ SectionPanel UiNode::createSectionPanel(Bounds const& bounds, std::string_view t
 
 SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view title) {
   SectionPanelSpec spec;
-  spec.bounds = resolve_bounds(Bounds{}, size);
+  spec.size = size;
   spec.title = std::string(title);
   return createSectionPanel(spec);
 }

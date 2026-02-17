@@ -261,7 +261,6 @@ int main(int argc, char** argv) {
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
-    tableSpec.bounds = Bounds{};
     tableSpec.size.preferredWidth = tableWidth;
     tableSpec.size.preferredHeight = std::max(1.0f, availableTableH);
     tableSpec.showHeaderDividers = false;

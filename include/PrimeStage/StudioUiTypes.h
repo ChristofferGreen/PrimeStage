@@ -117,6 +117,7 @@ struct SectionHeaderSpec {
   TextRole textRole = TextRole::SmallBright;
   bool addDivider = false;
   float dividerOffsetY = 0.0f;
+  SizeSpec size;
 };
 
 struct SectionPanelSpec {
@@ -137,6 +138,7 @@ struct SectionPanelSpec {
   float contentInsetY = 12.0f;
   float contentInsetRight = 16.0f;
   float contentInsetBottom = 12.0f;
+  SizeSpec size;
 };
 
 struct PropertyRow {
