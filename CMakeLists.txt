@@ -36,6 +36,7 @@ endfunction()
 
 set(PRIMESTAGE_SOURCES
   src/PrimeStage.cpp
+  src/Render.cpp
 )
 
 add_library(PrimeStage ${PRIMESTAGE_SOURCES})
@@ -44,6 +45,8 @@ target_include_directories(PrimeStage
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 ps_require_cxx23(PrimeStage)
@@ -84,6 +87,11 @@ if(PRIMESTAGE_BUILD_EXAMPLES)
     GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
   )
   FetchContent_MakeAvailable(PrimeManifest)
+
+  if(TARGET PrimeManifest)
+    target_link_libraries(PrimeStage PUBLIC PrimeManifest)
+    target_compile_definitions(PrimeStage PUBLIC PRIMESTAGE_HAS_PRIMEMANIFEST=1)
+  endif()
 
   add_executable(primestage_render_demo examples/primestage_render_demo.cpp)
   target_link_libraries(primestage_render_demo PRIVATE PrimeStage PrimeFrame PrimeManifest)
