@@ -1838,7 +1838,10 @@ UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
                 is_default_theme(*theme))) {
     applyStudioTheme(frame);
   }
-  PrimeFrame::NodeId id = create_node(frame, PrimeFrame::NodeId{}, bounds,
+  Bounds rootBounds = bounds;
+  rootBounds.x = 0.0f;
+  rootBounds.y = 0.0f;
+  PrimeFrame::NodeId id = create_node(frame, PrimeFrame::NodeId{}, rootBounds,
                                       nullptr,
                                       PrimeFrame::LayoutType::None,
                                       PrimeFrame::Insets{},
