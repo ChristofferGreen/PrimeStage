@@ -555,7 +555,7 @@ UiNode UiNode::createOverlay(StackSpec const& spec) {
 }
 
 UiNode UiNode::createPanel(PanelSpec const& spec) {
-  Bounds bounds = sanitizeBounds(spec.bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
                                           &spec.size,
                                           spec.layout,
@@ -594,7 +594,7 @@ UiNode UiNode::createPanel(RectRole role, SizeSpec const& size) {
 
 UiNode UiNode::createLabel(LabelSpec const& spec) {
   LabelSpec resolved = spec;
-  resolved.bounds = sanitizeBounds(spec.bounds);
+  resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
@@ -803,7 +803,7 @@ UiNode UiNode::createTextLine(std::string_view text,
 
 UiNode UiNode::createDivider(DividerSpec const& spec) {
   DividerSpec resolved = spec;
-  resolved.bounds = sanitizeBounds(spec.bounds);
+  resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
@@ -823,7 +823,7 @@ UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec cons
 }
 
 UiNode UiNode::createSpacer(SpacerSpec const& spec) {
-  Bounds bounds = sanitizeBounds(spec.bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
