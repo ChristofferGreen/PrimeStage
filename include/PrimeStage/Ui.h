@@ -35,6 +35,53 @@ enum class TextRole : PrimeFrame::TextStyleToken {
   SmallMuted
 };
 
+struct UiDefaults {
+  static constexpr float CanvasWidth = 1100.0f;
+  static constexpr float CanvasHeight = 700.0f;
+  static constexpr float EdgeBarHeight = 56.0f;
+  static constexpr float StatusHeight = 24.0f;
+  static constexpr float PrimaryRailWidth = 240.0f;
+  static constexpr float SecondaryRailWidth = 260.0f;
+  static constexpr float SurfaceInset = 16.0f;
+  static constexpr float PanelInset = 12.0f;
+  static constexpr float PanelGap = 10.0f;
+  static constexpr float PanelGapLarge = 18.0f;
+  static constexpr float DividerThickness = 1.0f;
+  static constexpr float AccentThickness = 3.0f;
+  static constexpr float HeaderHeight = 20.0f;
+  static constexpr float TitleHeight = 28.0f;
+  static constexpr float SectionHeaderHeight = 32.0f;
+  static constexpr float SectionHeaderOffsetY = 14.0f;
+  static constexpr float SectionGap = 14.0f;
+  static constexpr float SectionGapSmall = 6.0f;
+  static constexpr float SectionGapLarge = 24.0f;
+  static constexpr float HeaderDividerOffset = 2.0f;
+  static constexpr float ControlHeight = 32.0f;
+  static constexpr float ControlWidthM = 88.0f;
+  static constexpr float ControlWidthL = 120.0f;
+  static constexpr float FieldWidthL = 360.0f;
+  static constexpr float TitleBlockWidth = 232.0f;
+  static constexpr float PanelHeightL = 110.0f;
+  static constexpr float PanelHeightM = 140.0f;
+  static constexpr float PanelHeightS = 90.0f;
+  static constexpr float CardWidth = 180.0f;
+  static constexpr float CardHeight = 120.0f;
+  static constexpr float TableHeaderOffset = 20.0f;
+  static constexpr float TableHeaderPadY = 6.0f;
+  static constexpr float TableRightInset = 48.0f;
+  static constexpr float TableStatusOffset = 200.0f;
+  static constexpr float LabelIndent = 28.0f;
+  static constexpr float LabelGap = 8.0f;
+  static constexpr float TreeHeaderDividerY = 30.0f;
+  static constexpr float ScrollThumbHeight = 90.0f;
+  static constexpr float ScrollThumbOffset = 60.0f;
+  static constexpr float OpacityBarHeight = 22.0f;
+  static constexpr float InlineRowOffset = 44.0f;
+  static constexpr float FooterInset = 24.0f;
+  static constexpr float TitleBaselineOffsetY = 14.0f;
+  static constexpr float BodyOffsetY = 36.0f;
+};
+
 PrimeFrame::RectStyleToken rectToken(RectRole role);
 PrimeFrame::TextStyleToken textToken(TextRole role);
 void applyStudioTheme(PrimeFrame::Frame& frame);
@@ -199,10 +246,10 @@ struct StatusBarSpec {
 
 struct ShellSpec {
   Bounds bounds;
-  float topbarHeight = 56.0f;
-  float statusHeight = 24.0f;
-  float sidebarWidth = 240.0f;
-  float inspectorWidth = 260.0f;
+  float topbarHeight = UiDefaults::EdgeBarHeight;
+  float statusHeight = UiDefaults::StatusHeight;
+  float sidebarWidth = UiDefaults::PrimaryRailWidth;
+  float inspectorWidth = UiDefaults::SecondaryRailWidth;
   RectRole backgroundRole = RectRole::Background;
   RectRole topbarRole = RectRole::Topbar;
   RectRole sidebarRole = RectRole::Sidebar;
@@ -296,10 +343,22 @@ Bounds insetBounds(Bounds const& bounds, float inset);
 Bounds insetBounds(Bounds const& bounds, float insetX, float insetY);
 Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom);
 Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY);
+Bounds alignCenterY(Bounds const& bounds, float height);
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
                              float thumbOffset);
+
+struct RowLayout {
+  Bounds bounds;
+  float gap = UiDefaults::PanelInset;
+  float cursorLeft = 0.0f;
+  float cursorRight = 0.0f;
+
+  RowLayout(Bounds const& bounds, float gap = UiDefaults::PanelInset);
+  Bounds takeLeft(float width, float height = 0.0f);
+  Bounds takeRight(float width, float height = 0.0f);
+};
 
 struct ScrollHintsSpec {
   Bounds bounds;
@@ -447,5 +506,6 @@ struct ShellLayout {
 
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds);
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec);
+ShellSpec makeShellSpec(Bounds const& bounds);
 
 } // namespace PrimeStage

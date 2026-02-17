@@ -327,6 +327,11 @@ Bounds alignBottomRight(Bounds const& bounds, float width, float height, float i
   return Bounds{x, y, width, height};
 }
 
+Bounds alignCenterY(Bounds const& bounds, float height) {
+  float y = bounds.y + (bounds.height - height) * 0.5f;
+  return Bounds{bounds.x, y, bounds.width, height};
+}
+
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
@@ -336,6 +341,30 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
   float maxOffset = std::max(1.0f, track - thumb);
   spec.thumbFraction = std::clamp(thumb / track, 0.0f, 1.0f);
   spec.thumbProgress = std::clamp(thumbOffset / maxOffset, 0.0f, 1.0f);
+}
+
+RowLayout::RowLayout(Bounds const& bounds, float gap)
+    : bounds(bounds),
+      gap(gap),
+      cursorLeft(bounds.x),
+      cursorRight(bounds.x + bounds.width) {}
+
+Bounds RowLayout::takeLeft(float width, float height) {
+  float h = height > 0.0f ? height : bounds.height;
+  Bounds out{cursorLeft, bounds.y, width, h};
+  cursorLeft += width + gap;
+  return out;
+}
+
+Bounds RowLayout::takeRight(float width, float height) {
+  float h = height > 0.0f ? height : bounds.height;
+  float x = cursorRight - width;
+  if (x < cursorLeft) {
+    x = cursorLeft;
+  }
+  Bounds out{x, bounds.y, width, h};
+  cursorRight = x - gap;
+  return out;
 }
 
 PrimeFrame::RectStyleToken rectToken(RectRole role) {
@@ -1397,6 +1426,12 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
       contentBounds,
       inspectorBounds
   };
+}
+
+ShellSpec makeShellSpec(Bounds const& bounds) {
+  ShellSpec spec;
+  spec.bounds = bounds;
+  return spec;
 }
 
 Version getVersion() {
