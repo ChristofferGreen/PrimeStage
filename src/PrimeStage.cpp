@@ -1953,7 +1953,12 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
 
 ShellSpec makeShellSpec(Bounds const& bounds) {
   ShellSpec spec;
-  spec.bounds = bounds;
+  if (bounds.width > 0.0f) {
+    spec.size.preferredWidth = bounds.width;
+  }
+  if (bounds.height > 0.0f) {
+    spec.size.preferredHeight = bounds.height;
+  }
   return spec;
 }
 
