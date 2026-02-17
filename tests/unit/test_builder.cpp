@@ -1,4 +1,4 @@
-#include "PrimeStage/PrimeStage.h"
+#include "PrimeStage/StudioUi.h"
 
 #include "third_party/doctest.h"
 
@@ -157,8 +157,8 @@ TEST_CASE("PrimeStage button creates a node") {
   PrimeStage::ButtonSpec spec;
   spec.bounds = PrimeStage::Bounds{8.0f, 8.0f, 80.0f, 24.0f};
   spec.label = "Click";
-  spec.backgroundRole = PrimeStage::RectRole::Accent;
-  spec.textRole = PrimeStage::TextRole::BodyBright;
+  spec.backgroundStyle = PrimeStage::rectToken(PrimeStage::RectRole::Accent);
+  spec.textStyle = PrimeStage::textToken(PrimeStage::TextRole::BodyBright);
   PrimeStage::UiNode button = root.createButton(spec);
   CHECK(frame.getNode(button.nodeId()) != nullptr);
 }

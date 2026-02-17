@@ -1,4 +1,4 @@
-#include "PrimeStage/PrimeStage.h"
+#include "PrimeStage/StudioUi.h"
 #include "PrimeStage/Render.h"
 
 #include <algorithm>

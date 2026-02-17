@@ -1,3 +1,4 @@
+#include "PrimeStage/StudioUi.h"
 #include "PrimeStage/PrimeStage.h"
 
 #include <algorithm>
@@ -475,11 +476,15 @@ UiNode UiNode::createPanel(PanelSpec const& spec) {
   return UiNode(frame(), nodeId);
 }
 
-UiNode UiNode::createPanel(RectRole role, Bounds const& bounds) {
+UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds) {
   PanelSpec spec;
   spec.bounds = bounds;
-  spec.rectStyle = rectToken(role);
+  spec.rectStyle = rectStyle;
   return createPanel(spec);
+}
+
+UiNode UiNode::createPanel(RectRole role, Bounds const& bounds) {
+  return createPanel(rectToken(role), bounds);
 }
 
 UiNode UiNode::createLabel(LabelSpec const& spec) {
@@ -493,17 +498,23 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
   return UiNode(frame(), nodeId);
 }
 
-UiNode UiNode::createLabel(std::string_view text, TextRole role, Bounds const& bounds) {
+UiNode UiNode::createLabel(std::string_view text,
+                           PrimeFrame::TextStyleToken textStyle,
+                           Bounds const& bounds) {
   LabelSpec spec;
   spec.bounds = bounds;
   spec.text = std::string(text);
-  spec.textStyle = textToken(role);
+  spec.textStyle = textStyle;
   return createLabel(spec);
+}
+
+UiNode UiNode::createLabel(std::string_view text, TextRole role, Bounds const& bounds) {
+  return createLabel(text, textToken(role), bounds);
 }
 
 UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
   Bounds bounds = spec.bounds;
-  PrimeFrame::TextStyleToken token = textToken(spec.textRole);
+  PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
   std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
 
@@ -528,6 +539,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
                           lineHeight};
     label.text = lines[i];
     label.textStyle = token;
+    label.textStyleOverride = spec.textStyleOverride;
     label.align = spec.align;
     label.wrap = PrimeFrame::WrapMode::None;
     label.visible = spec.visible;
@@ -539,16 +551,22 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
 
 UiNode UiNode::createParagraph(Bounds const& bounds,
                                std::string_view text,
-                               TextRole role) {
+                               PrimeFrame::TextStyleToken textStyle) {
   ParagraphSpec spec;
   spec.bounds = bounds;
   spec.text = std::string(text);
-  spec.textRole = role;
+  spec.textStyle = textStyle;
   return createParagraph(spec);
 }
 
+UiNode UiNode::createParagraph(Bounds const& bounds,
+                               std::string_view text,
+                               TextRole role) {
+  return createParagraph(bounds, text, textToken(role));
+}
+
 UiNode UiNode::createTextLine(TextLineSpec const& spec) {
-  PrimeFrame::TextStyleToken token = textToken(spec.textRole);
+  PrimeFrame::TextStyleToken token = spec.textStyle;
   float lineHeight = resolve_line_height(frame(), token);
   float containerHeight = spec.bounds.height > 0.0f ? spec.bounds.height : lineHeight;
   float textY = spec.bounds.y + (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
@@ -556,6 +574,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
   LabelSpec label;
   label.text = spec.text;
   label.textStyle = token;
+  label.textStyleOverride = spec.textStyleOverride;
   label.wrap = PrimeFrame::WrapMode::None;
   label.visible = spec.visible;
 
@@ -591,14 +610,21 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
 
 UiNode UiNode::createTextLine(Bounds const& bounds,
                               std::string_view text,
-                              TextRole role,
+                              PrimeFrame::TextStyleToken textStyle,
                               PrimeFrame::TextAlign align) {
   TextLineSpec spec;
   spec.bounds = bounds;
   spec.text = std::string(text);
-  spec.textRole = role;
+  spec.textStyle = textStyle;
   spec.align = align;
   return createTextLine(spec);
+}
+
+UiNode UiNode::createTextLine(Bounds const& bounds,
+                              std::string_view text,
+                              TextRole role,
+                              PrimeFrame::TextAlign align) {
+  return createTextLine(bounds, text, textToken(role), align);
 }
 
 UiNode UiNode::createDivider(DividerSpec const& spec) {
@@ -836,7 +862,7 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
                           std::max(0.0f, headerBounds.width - spec.headerPaddingX * 2.0f),
                           headerBounds.height};
     title.text = spec.title;
-    title.textRole = spec.textRole;
+    title.textStyle = textToken(spec.textRole);
     title.align = PrimeFrame::TextAlign::Start;
     out.panel.createTextLine(title);
   }
@@ -1016,17 +1042,22 @@ UiNode UiNode::createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards)
 }
 
 UiNode UiNode::createButton(ButtonSpec const& spec) {
-  UiNode button = createPanel(spec.backgroundRole, spec.bounds);
+  PanelSpec panel;
+  panel.bounds = spec.bounds;
+  panel.rectStyle = spec.backgroundStyle;
+  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  UiNode button = createPanel(panel);
   if (spec.label.empty()) {
     return button;
   }
-  float lineHeight = resolve_line_height(frame(), textToken(spec.textRole));
-  float textWidth = estimate_text_width(frame(), textToken(spec.textRole), spec.label);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
   float textY = (spec.bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
 
   LabelSpec label;
   label.text = spec.label;
-  label.textStyle = textToken(spec.textRole);
+  label.textStyle = spec.textStyle;
+  label.textStyleOverride = spec.textStyleOverride;
   label.bounds.height = lineHeight;
   label.bounds.y = textY;
 
@@ -1061,32 +1092,44 @@ UiNode UiNode::createButton(Bounds const& bounds,
   spec.bounds = bounds;
   spec.label = std::string(label);
   if (variant == ButtonVariant::Primary) {
-    spec.backgroundRole = RectRole::Accent;
-    spec.textRole = TextRole::BodyBright;
+    spec.backgroundStyle = rectToken(RectRole::Accent);
+    spec.textStyle = textToken(TextRole::BodyBright);
+  } else {
+    spec.backgroundStyle = rectToken(RectRole::Panel);
+    spec.textStyle = textToken(TextRole::BodyBright);
   }
   return createButton(spec);
 }
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
-  UiNode field = createPanel(spec.backgroundRole, spec.bounds);
+  PanelSpec panel;
+  panel.bounds = spec.bounds;
+  panel.rectStyle = spec.backgroundStyle;
+  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  UiNode field = createPanel(panel);
 
   std::string_view content = spec.text;
-  TextRole role = spec.textRole;
+  PrimeFrame::TextStyleToken style = spec.textStyle;
+  PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
   if (content.empty() && spec.showPlaceholderWhenEmpty) {
     content = spec.placeholder;
-    role = spec.placeholderRole;
+    style = spec.placeholderStyle;
+    overrideStyle = spec.placeholderStyleOverride;
   }
   if (content.empty()) {
     return field;
   }
 
-  float lineHeight = resolve_line_height(frame(), textToken(role));
+  float lineHeight = resolve_line_height(frame(), style);
   float textY = (spec.bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, spec.bounds.width - spec.paddingX * 2.0f);
 
-  field.createLabel(content,
-                    role,
-                    Bounds{spec.paddingX, textY, textWidth, lineHeight});
+  LabelSpec label;
+  label.text = std::string(content);
+  label.textStyle = style;
+  label.textStyleOverride = overrideStyle;
+  label.bounds = Bounds{spec.paddingX, textY, textWidth, lineHeight};
+  field.createLabel(label);
 
   return field;
 }
@@ -1095,6 +1138,9 @@ UiNode UiNode::createTextField(Bounds const& bounds, std::string_view placeholde
   TextFieldSpec spec;
   spec.bounds = bounds;
   spec.placeholder = std::string(placeholder);
+  spec.backgroundStyle = rectToken(RectRole::Panel);
+  spec.textStyle = textToken(TextRole::BodyBright);
+  spec.placeholderStyle = textToken(TextRole::BodyMuted);
   return createTextField(spec);
 }
 
@@ -1168,13 +1214,13 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
     float trackH = std::max(0.0f, bounds.height - spec.vertical.startPadding - spec.vertical.endPadding);
     float trackX = bounds.width - spec.vertical.inset;
     float trackY = spec.vertical.startPadding;
-    scrollNode.createPanel(spec.vertical.trackRole, Bounds{trackX, trackY, trackW, trackH});
+    scrollNode.createPanel(spec.vertical.trackStyle, Bounds{trackX, trackY, trackW, trackH});
 
     float thumbH = std::min(trackH, spec.vertical.thumbLength);
     float maxOffset = std::max(0.0f, trackH - thumbH);
     float thumbOffset = std::clamp(spec.vertical.thumbOffset, 0.0f, maxOffset);
     float thumbY = trackY + thumbOffset;
-    scrollNode.createPanel(spec.vertical.thumbRole, Bounds{trackX, thumbY, trackW, thumbH});
+    scrollNode.createPanel(spec.vertical.thumbStyle, Bounds{trackX, thumbY, trackW, thumbH});
   }
 
   if (spec.showHorizontal && spec.horizontal.enabled) {
@@ -1182,13 +1228,13 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
     float trackW = std::max(0.0f, bounds.width - spec.horizontal.startPadding - spec.horizontal.endPadding);
     float trackX = spec.horizontal.startPadding;
     float trackY = bounds.height - spec.horizontal.inset;
-    scrollNode.createPanel(spec.horizontal.trackRole, Bounds{trackX, trackY, trackW, trackH});
+    scrollNode.createPanel(spec.horizontal.trackStyle, Bounds{trackX, trackY, trackW, trackH});
 
     float thumbW = std::min(trackW, spec.horizontal.thumbLength);
     float maxOffset = std::max(0.0f, trackW - thumbW);
     float thumbOffset = std::clamp(spec.horizontal.thumbOffset, 0.0f, maxOffset);
     float thumbX = trackX + thumbOffset;
-    scrollNode.createPanel(spec.horizontal.thumbRole, Bounds{thumbX, trackY, thumbW, trackH});
+    scrollNode.createPanel(spec.horizontal.thumbStyle, Bounds{thumbX, trackY, thumbW, trackH});
   }
 
   return scrollNode;
@@ -1199,8 +1245,12 @@ UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
   view.bounds = spec.bounds;
   view.showVertical = spec.showVertical;
   view.showHorizontal = spec.showHorizontal;
+  view.vertical.trackStyle = rectToken(RectRole::ScrollTrack);
+  view.vertical.thumbStyle = rectToken(RectRole::ScrollThumb);
   view.vertical.thumbLength = spec.verticalThumbLength;
   view.vertical.thumbOffset = spec.verticalThumbOffset;
+  view.horizontal.trackStyle = rectToken(RectRole::ScrollTrack);
+  view.horizontal.thumbStyle = rectToken(RectRole::ScrollThumb);
   view.horizontal.thumbLength = spec.horizontalThumbLength;
   view.horizontal.thumbOffset = spec.horizontalThumbOffset;
   view.horizontal.startPadding = spec.horizontalStartPadding;
@@ -1349,7 +1399,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     float trackY = spec.scrollBar.padding;
     float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);
     float trackW = spec.scrollBar.width;
-    treeNode.createPanel(spec.scrollBar.trackRole, Bounds{trackX, trackY, trackW, trackH});
+    treeNode.createPanel(spec.scrollBar.trackStyle, Bounds{trackX, trackY, trackW, trackH});
 
     float thumbH = trackH * spec.scrollBar.thumbFraction;
     thumbH = std::max(thumbH, spec.scrollBar.minThumbHeight);
@@ -1359,7 +1409,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     float maxOffset = std::max(0.0f, trackH - thumbH);
     float progress = std::clamp(spec.scrollBar.thumbProgress, 0.0f, 1.0f);
     float thumbY = trackY + maxOffset * progress;
-    treeNode.createPanel(spec.scrollBar.thumbRole, Bounds{trackX, thumbY, trackW, thumbH});
+    treeNode.createPanel(spec.scrollBar.thumbStyle, Bounds{trackX, thumbY, trackW, thumbH});
   }
 
   return treeNode;
