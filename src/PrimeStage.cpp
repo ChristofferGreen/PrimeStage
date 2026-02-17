@@ -7,6 +7,12 @@
 namespace PrimeStage {
 namespace {
 
+Bounds inset_bounds(Bounds const& bounds, float left, float top, float right, float bottom) {
+  float width = std::max(0.0f, bounds.width - left - right);
+  float height = std::max(0.0f, bounds.height - top - bottom);
+  return Bounds{bounds.x + left, bounds.y + top, width, height};
+}
+
 void apply_bounds(PrimeFrame::Node& node, Bounds const& bounds) {
   node.localX = bounds.x;
   node.localY = bounds.y;
@@ -302,6 +308,35 @@ void add_divider_rect(PrimeFrame::Frame& frame,
 }
 
 } // namespace
+
+Bounds insetBounds(Bounds const& bounds, float inset) {
+  return inset_bounds(bounds, inset, inset, inset, inset);
+}
+
+Bounds insetBounds(Bounds const& bounds, float insetX, float insetY) {
+  return inset_bounds(bounds, insetX, insetY, insetX, insetY);
+}
+
+Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom) {
+  return inset_bounds(bounds, left, top, right, bottom);
+}
+
+Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY) {
+  float x = bounds.x + std::max(0.0f, bounds.width - width - insetX);
+  float y = bounds.y + std::max(0.0f, bounds.height - height - insetY);
+  return Bounds{x, y, width, height};
+}
+
+void setScrollBarThumbPixels(ScrollBarSpec& spec,
+                             float trackHeight,
+                             float thumbHeight,
+                             float thumbOffset) {
+  float track = std::max(1.0f, trackHeight);
+  float thumb = std::max(0.0f, std::min(thumbHeight, track));
+  float maxOffset = std::max(1.0f, track - thumb);
+  spec.thumbFraction = std::clamp(thumb / track, 0.0f, 1.0f);
+  spec.thumbProgress = std::clamp(thumbOffset / maxOffset, 0.0f, 1.0f);
+}
 
 PrimeFrame::RectStyleToken rectToken(RectRole role) {
   return static_cast<PrimeFrame::RectStyleToken>(role);

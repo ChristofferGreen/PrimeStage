@@ -292,6 +292,15 @@ struct ScrollViewSpec {
   ScrollAxisSpec horizontal{};
 };
 
+Bounds insetBounds(Bounds const& bounds, float inset);
+Bounds insetBounds(Bounds const& bounds, float insetX, float insetY);
+Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom);
+Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY);
+void setScrollBarThumbPixels(ScrollBarSpec& spec,
+                             float trackHeight,
+                             float thumbHeight,
+                             float thumbOffset);
+
 struct ScrollHintsSpec {
   Bounds bounds;
   bool showVertical = true;

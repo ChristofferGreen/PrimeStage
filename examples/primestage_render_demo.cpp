@@ -20,45 +20,48 @@ int main(int argc, char** argv) {
 
   constexpr float kWidth = 1100.0f;
   constexpr float kHeight = 700.0f;
-  constexpr float topbarH = 56.0f;
-  constexpr float statusH = 24.0f;
-  constexpr float sidebarW = 240.0f;
-  constexpr float inspectorW = 260.0f;
   constexpr float opacityBarH = 22.0f;
-  constexpr float opacityBarInset = 24.0f;
-  constexpr float contentW = kWidth - sidebarW - inspectorW;
-  constexpr float contentH = kHeight - topbarH - statusH;
 
   Frame frame;
 
   ShellSpec shellSpec;
   shellSpec.bounds = Bounds{0.0f, 0.0f, kWidth, kHeight};
   ShellLayout shell = createShell(frame, shellSpec);
+  Bounds sidebarBounds = shell.sidebarBounds;
+  Bounds contentBounds = shell.contentBounds;
+  Bounds inspectorBounds = shell.inspectorBounds;
+  Bounds sidebarLocal{0.0f, 0.0f, sidebarBounds.width, sidebarBounds.height};
+  Bounds inspectorLocal{0.0f, 0.0f, inspectorBounds.width, inspectorBounds.height};
+  float contentW = contentBounds.width;
+  float contentH = contentBounds.height;
+  float sidebarW = sidebarBounds.width;
+  float inspectorW = inspectorBounds.width;
+  float shellWidth = shell.bounds.width;
   UiNode root = shell.root;
   UiNode topbarNode = shell.topbar;
   UiNode sidebarNode = shell.sidebar;
   UiNode contentNode = shell.content;
   UiNode inspectorNode = shell.inspector;
 
-  auto add_panel = [&](UiNode& parent, float x, float y, float w, float h, RectRole role) -> UiNode {
-    return parent.createPanel(role, Bounds{x, y, w, h});
+  auto add_panel = [&](UiNode& parent, Bounds const& bounds, RectRole role) -> UiNode {
+    return parent.createPanel(role, bounds);
   };
 
-  auto add_divider = [&](UiNode& parent, float x, float y, float w, float h) -> UiNode {
+  auto add_divider = [&](UiNode& parent, Bounds const& bounds) -> UiNode {
     DividerSpec spec;
-    spec.bounds = Bounds{x, y, w, h};
+    spec.bounds = bounds;
     spec.rectStyle = rectToken(RectRole::Divider);
     return parent.createDivider(spec);
   };
 
   auto create_topbar = [&]() {
-    add_divider(topbarNode, 232.0f, 12.0f, 1.0f, 32.0f);
+    add_divider(topbarNode, Bounds{232.0f, 12.0f, 1.0f, 32.0f});
     topbarNode.createTextField(Bounds{248.0f, 12.0f, 360.0f, 32.0f}, "Search...");
-    UiNode runNode = topbarNode.createButton(Bounds{kWidth - 220.0f, 12.0f, 88.0f, 32.0f},
+    UiNode runNode = topbarNode.createButton(Bounds{shellWidth - 220.0f, 12.0f, 88.0f, 32.0f},
                                              "Run",
                                              ButtonVariant::Primary);
 
-    UiNode shareNode = topbarNode.createButton(Bounds{kWidth - 120.0f, 12.0f, 88.0f, 32.0f},
+    UiNode shareNode = topbarNode.createButton(Bounds{shellWidth - 120.0f, 12.0f, 88.0f, 32.0f},
                                                "Share");
 
     topbarNode.createTextLine(Bounds{0.0f, 14.0f, 232.0f, 28.0f},
@@ -68,9 +71,10 @@ int main(int argc, char** argv) {
   };
 
   auto create_sidebar = [&]() {
-    UiNode treePanel = add_panel(sidebarNode, 12.0f, 44.0f, sidebarW - 24.0f, contentH - 64.0f, RectRole::Panel);
-    add_panel(sidebarNode, 12.0f, 12.0f, sidebarW - 24.0f, 20.0f, RectRole::PanelStrong);
-    add_panel(sidebarNode, 12.0f, 12.0f, 3.0f, 20.0f, RectRole::Accent);
+    Bounds treePanelBounds = insetBounds(sidebarLocal, 12.0f, 44.0f, 12.0f, 20.0f);
+    UiNode treePanel = add_panel(sidebarNode, treePanelBounds, RectRole::Panel);
+    add_panel(sidebarNode, Bounds{12.0f, 12.0f, sidebarW - 24.0f, 20.0f}, RectRole::PanelStrong);
+    add_panel(sidebarNode, Bounds{12.0f, 12.0f, 3.0f, 20.0f}, RectRole::Accent);
 
     sidebarNode.createTextLine(Bounds{40.0f, 12.0f, 120.0f, 20.0f},
                                "Scene",
@@ -80,12 +84,14 @@ int main(int argc, char** argv) {
                                TextRole::SmallMuted);
 
     TreeViewSpec treeSpec;
-    treeSpec.bounds = Bounds{0.0f, 0.0f, sidebarW - 24.0f, contentH - 64.0f};
+    treeSpec.bounds = Bounds{0.0f, 0.0f, treePanelBounds.width, treePanelBounds.height};
     treeSpec.showHeaderDivider = true;
     treeSpec.headerDividerY = 30.0f;
-    treeSpec.scrollBar.thumbFraction = 90.0f / (contentH - 80.0f);
-    float treeTrackSpan = std::max(1.0f, (contentH - 80.0f) - 90.0f);
-    treeSpec.scrollBar.thumbProgress = (60.0f - 8.0f) / treeTrackSpan;
+    float treeTrackH = treePanelBounds.height - treeSpec.scrollBar.padding * 2.0f;
+    setScrollBarThumbPixels(treeSpec.scrollBar,
+                            treeTrackH,
+                            90.0f,
+                            60.0f - treeSpec.scrollBar.padding);
 
     TreeNode treeRoot{
         "Root",
@@ -114,14 +120,10 @@ int main(int argc, char** argv) {
   };
 
   auto create_content = [&]() {
-    UiNode boardPanel = add_panel(contentNode, 16.0f, 60.0f, contentW - 32.0f, 110.0f, RectRole::Panel);
-    float boardButtonW = 120.0f;
-    float boardButtonH = 32.0f;
-    float boardButtonX = contentW - 148.0f;
-    float boardButtonY = 60.0f + 110.0f - boardButtonH - 12.0f;
-    UiNode primaryButton = contentNode.createButton(Bounds{boardButtonX, boardButtonY, boardButtonW, boardButtonH},
-                                                    "Primary Action",
-                                                    ButtonVariant::Primary);
+    Bounds boardPanelBounds{16.0f, 60.0f, contentW - 32.0f, 110.0f};
+    UiNode boardPanel = add_panel(contentNode, boardPanelBounds, RectRole::Panel);
+    Bounds primaryBounds = alignBottomRight(boardPanelBounds, 120.0f, 32.0f, 12.0f, 12.0f);
+    UiNode primaryButton = contentNode.createButton(primaryBounds, "Primary Action", ButtonVariant::Primary);
     float highlightHeaderY = 170.0f;
     float highlightHeaderH = 20.0f;
 
@@ -192,7 +194,8 @@ int main(int argc, char** argv) {
         Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH},
         0.85f);
 
-    UiNode publishButton = inspectorNode.createButton(Bounds{16.0f, contentH - 56.0f, inspectorW - 32.0f, 32.0f},
+    Bounds publishBounds = alignBottomRight(inspectorLocal, inspectorW - 32.0f, 32.0f, 16.0f, 24.0f);
+    UiNode publishButton = inspectorNode.createButton(publishBounds,
                                                       "Publish",
                                                       ButtonVariant::Primary);
 
