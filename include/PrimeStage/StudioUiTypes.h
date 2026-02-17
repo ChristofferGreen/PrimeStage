@@ -290,7 +290,10 @@ struct RowLayout {
   float cursorLeft = 0.0f;
   float cursorRight = 0.0f;
 
+  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
   RowLayout(Bounds const& bounds, float gap = UiDefaults::PanelInset);
+  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
   Bounds takeLeft(float width, float height = 0.0f);
+  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
   Bounds takeRight(float width, float height = 0.0f);
 };
