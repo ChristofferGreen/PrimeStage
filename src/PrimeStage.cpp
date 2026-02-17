@@ -969,6 +969,18 @@ UiNode UiNode::createTable(Bounds const& bounds,
 
 UiNode UiNode::createSectionHeader(SectionHeaderSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = UiDefaults::SectionHeaderHeight;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.title.empty()) {
+    float textWidth = estimate_text_width(frame(), textToken(spec.textRole), spec.title);
+    bounds.width = std::max(bounds.width, spec.textInsetX + textWidth);
+  }
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1339,6 +1351,18 @@ UiNode UiNode::createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards)
 
 UiNode UiNode::createButton(ButtonSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = UiDefaults::ControlHeight;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.label.empty()) {
+    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
+  }
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1408,6 +1432,25 @@ UiNode UiNode::createButton(std::string_view label,
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = UiDefaults::ControlHeight;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    std::string_view preview = spec.text;
+    PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
+    if (preview.empty() && spec.showPlaceholderWhenEmpty) {
+      preview = spec.placeholder;
+      previewStyle = spec.placeholderStyle;
+    }
+    if (!preview.empty()) {
+      float previewWidth = estimate_text_width(frame(), previewStyle, preview);
+      bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
+    }
+  }
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1458,6 +1501,11 @@ UiNode UiNode::createTextField(std::string_view placeholder, SizeSpec const& siz
 
 UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = UiDefaults::StatusHeight;
+  }
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
