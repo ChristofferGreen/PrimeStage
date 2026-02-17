@@ -70,7 +70,7 @@ struct UiDefaults {
   static constexpr float TableHeaderPadY = 6.0f;
   static constexpr float TableRightInset = 48.0f;
   static constexpr float TableStatusOffset = 200.0f;
-  static constexpr float LabelIndent = 28.0f;
+  static constexpr float LabelIndent = 20.0f;
   static constexpr float LabelGap = 8.0f;
   static constexpr float TreeHeaderDividerY = 30.0f;
   static constexpr float ScrollThumbHeight = 90.0f;
