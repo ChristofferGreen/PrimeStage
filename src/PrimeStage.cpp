@@ -1517,10 +1517,13 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   }
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !spec.label.empty()) {
-    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
+      spec.size.stretchX <= 0.0f) {
+    if (!spec.label.empty()) {
+      float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+      bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
+    } else {
+      bounds.width = UiDefaults::ControlWidthM;
+    }
   }
   PanelSpec panel;
   panel.bounds = bounds;
