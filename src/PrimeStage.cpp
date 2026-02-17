@@ -1663,23 +1663,46 @@ UiNode UiNode::createScrollHints(Bounds const& bounds) {
 }
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
+  std::vector<FlatTreeRow> rows;
+  std::vector<int> depthStack;
+  flatten_tree(spec.nodes, 0, depthStack, rows);
+
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
+    float maxLabelWidth = 0.0f;
+    for (FlatTreeRow const& row : rows) {
+      TextRole role = row.selected ? spec.selectedTextRole : spec.textRole;
+      float textWidth = estimate_text_width(frame(), textToken(role), row.label);
+      float indent = row.depth > 0 ? spec.indent * static_cast<float>(row.depth) : 0.0f;
+      float contentWidth = spec.rowWidthInset + 20.0f + indent + textWidth;
+      if (contentWidth > maxLabelWidth) {
+        maxLabelWidth = contentWidth;
+      }
+    }
+    if (bounds.width <= 0.0f) {
+      bounds.width = maxLabelWidth;
+    }
+    if (bounds.height <= 0.0f) {
+      float rowsHeight = rows.empty()
+                             ? spec.rowHeight
+                             : static_cast<float>(rows.size()) * spec.rowHeight +
+                                   static_cast<float>(rows.size() - 1) * spec.rowGap;
+      bounds.height = spec.rowStartY + rowsHeight;
+    }
+  }
+
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
 
   PrimeFrame::NodeId treeId = create_node(frame(), id_, bounds,
-                                          nullptr,
+                                          &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
                                           0.0f,
                                           spec.clipChildren,
                                           true);
   UiNode treeNodeInternal(frame(), treeId, true);
-
-  std::vector<FlatTreeRow> rows;
-  std::vector<int> depthStack;
-  flatten_tree(spec.nodes, 0, depthStack, rows);
 
   float rowWidth = bounds.width - spec.rowWidthInset;
   float rowTextHeight = resolve_line_height(frame(), textToken(spec.textRole));
