@@ -131,7 +131,8 @@ int main(int argc, char** argv) {
     float treeWidth = std::max(0.0f, sidebarW - UiDefaults::PanelInset * 2.0f);
     float treeHeight = std::max(0.0f, sidebarBounds.height - UiDefaults::PanelInset * 2.0f -
                                         UiDefaults::HeaderHeight * 2.0f - UiDefaults::PanelInset);
-    treeSpec.bounds = Bounds{0.0f, 0.0f, treeWidth, treeHeight};
+    treeSpec.size.preferredWidth = treeWidth;
+    treeSpec.size.preferredHeight = treeHeight;
     treeSpec.showHeaderDivider = true;
     treeSpec.headerDividerY = UiDefaults::TreeHeaderDividerY;
     float treeTrackH = treeSpec.bounds.height - treeSpec.scrollBar.padding * 2.0f;
@@ -233,10 +234,8 @@ int main(int argc, char** argv) {
                                UiDefaults::HeaderDividerOffset);
 
     CardGridSpec cardSpec;
-    cardSpec.bounds = Bounds{0.0f,
-                             0.0f,
-                             sectionWidth,
-                             UiDefaults::CardHeight};
+    cardSpec.size.preferredWidth = sectionWidth;
+    cardSpec.size.preferredHeight = UiDefaults::CardHeight;
     cardSpec.gapX = UiDefaults::PanelInset;
     cardSpec.cardWidth = (sectionWidth - cardSpec.gapX * 2.0f) / 3.0f;
     cardSpec.cards = {
@@ -266,8 +265,10 @@ int main(int argc, char** argv) {
     TableSpec tableSpec;
     tableSpec.bounds = Bounds{0.0f,
                               listHeaderY - UiDefaults::TableHeaderPadY,
-                              tableWidth,
-                              std::max(1.0f, availableTableH)};
+                              0.0f,
+                              0.0f};
+    tableSpec.size.preferredWidth = tableWidth;
+    tableSpec.size.preferredHeight = std::max(1.0f, availableTableH);
     tableSpec.showHeaderDividers = false;
     tableSpec.columns = {
         TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
@@ -283,7 +284,10 @@ int main(int argc, char** argv) {
     };
     column.createTable(tableSpec);
 
-    centerPane.createScrollHints(Bounds{0.0f, 0.0f, contentW, contentH});
+    ScrollHintsSpec scrollSpec;
+    scrollSpec.size.preferredWidth = contentW;
+    scrollSpec.size.preferredHeight = contentH;
+    centerPane.createScrollHints(scrollSpec);
   };
 
   auto create_inspector = [&]() {

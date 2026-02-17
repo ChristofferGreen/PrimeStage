@@ -804,7 +804,7 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   return createSpacer(spec);
 }
 UiNode UiNode::createTable(TableSpec const& spec) {
-  Bounds tableBounds = spec.bounds;
+  Bounds tableBounds = resolve_bounds(spec.bounds, spec.size);
   size_t rowCount = spec.rows.size();
   float rowsHeight = 0.0f;
   if (rowCount > 0) {
@@ -817,7 +817,7 @@ UiNode UiNode::createTable(TableSpec const& spec) {
   }
 
   PrimeFrame::NodeId tableId = create_node(frame(), id_, tableBounds,
-                                           nullptr,
+                                           &spec.size,
                                            PrimeFrame::LayoutType::None,
                                            PrimeFrame::Insets{},
                                            0.0f,
@@ -1162,9 +1162,9 @@ UiNode UiNode::createProgressBar(Bounds const& bounds, float value) {
 }
 
 UiNode UiNode::createCardGrid(CardGridSpec const& spec) {
-  Bounds bounds = spec.bounds;
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
   PrimeFrame::NodeId gridId = create_node(frame(), id_, bounds,
-                                          nullptr,
+                                          &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
                                           0.0f,
@@ -1454,7 +1454,8 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
 
 UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
-  view.bounds = spec.bounds;
+  view.bounds = resolve_bounds(spec.bounds, spec.size);
+  view.size = spec.size;
   view.showVertical = spec.showVertical;
   view.showHorizontal = spec.showHorizontal;
   view.vertical.trackStyle = rectToken(RectRole::ScrollTrack);
@@ -1477,7 +1478,7 @@ UiNode UiNode::createScrollHints(Bounds const& bounds) {
 }
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
-  Bounds bounds = spec.bounds;
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_);
   }

@@ -102,6 +102,7 @@ struct TableSpec {
   bool clipChildren = true;
   std::vector<TableColumn> columns;
   std::vector<std::vector<std::string>> rows;
+  SizeSpec size;
 };
 
 struct SectionHeaderSpec {
@@ -207,6 +208,7 @@ struct CardGridSpec {
   TextRole titleRole = TextRole::SmallBright;
   TextRole subtitleRole = TextRole::SmallMuted;
   std::vector<CardSpec> cards;
+  SizeSpec size;
 };
 
 enum class ButtonVariant {
@@ -224,6 +226,7 @@ struct ScrollHintsSpec {
   float horizontalThumbOffset = 124.0f;
   float horizontalStartPadding = 16.0f;
   float horizontalEndPadding = 48.0f;
+  SizeSpec size;
 };
 
 struct TreeNode {
@@ -271,6 +274,7 @@ struct TreeViewSpec {
     return spec;
   }();
   std::vector<TreeNode> nodes;
+  SizeSpec size;
 };
 
 struct RowLayout {
