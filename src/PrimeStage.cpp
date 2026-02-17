@@ -814,6 +814,18 @@ UiNode UiNode::createTextLine(std::string_view text,
 UiNode UiNode::createDivider(DividerSpec const& spec) {
   DividerSpec resolved = spec;
   resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((resolved.bounds.width <= 0.0f || resolved.bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    if (resolved.bounds.width <= 0.0f) {
+      resolved.bounds.width = UiDefaults::DividerThickness;
+    }
+    if (resolved.bounds.height <= 0.0f) {
+      resolved.bounds.height = UiDefaults::DividerThickness;
+    }
+  }
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
@@ -834,6 +846,18 @@ UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec cons
 
 UiNode UiNode::createSpacer(SpacerSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    if (bounds.width <= 0.0f) {
+      bounds.width = UiDefaults::PanelInset;
+    }
+    if (bounds.height <= 0.0f) {
+      bounds.height = UiDefaults::PanelInset;
+    }
+  }
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
