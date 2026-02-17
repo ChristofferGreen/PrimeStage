@@ -609,10 +609,23 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
     float lineHeight = resolve_line_height(frame(), spec.textStyle);
     float textWidth = estimate_text_width(frame(), spec.textStyle, spec.text);
     if (resolved.bounds.width <= 0.0f) {
-      resolved.bounds.width = (spec.maxWidth > 0.0f) ? spec.maxWidth : textWidth;
+      if (spec.maxWidth > 0.0f) {
+        resolved.bounds.width = std::min(textWidth, spec.maxWidth);
+      } else {
+        resolved.bounds.width = textWidth;
+      }
     }
     if (resolved.bounds.height <= 0.0f) {
-      resolved.bounds.height = lineHeight;
+      float wrapWidth = resolved.bounds.width;
+      if (spec.maxWidth > 0.0f) {
+        wrapWidth = spec.maxWidth;
+      }
+      float height = lineHeight;
+      if (spec.wrap != PrimeFrame::WrapMode::None && wrapWidth > 0.0f) {
+        std::vector<std::string> lines = wrap_text_lines(frame(), spec.textStyle, spec.text, wrapWidth, spec.wrap);
+        height = lineHeight * std::max<size_t>(1, lines.size());
+      }
+      resolved.bounds.height = height;
     }
   }
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
