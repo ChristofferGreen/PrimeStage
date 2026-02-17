@@ -253,6 +253,7 @@ public:
 
 private:
   Bounds sanitizeBounds(Bounds bounds) const;
+  Bounds resolveLayoutBounds(Bounds const& bounds, SizeSpec const& size) const;
 
   std::reference_wrapper<PrimeFrame::Frame> frame_;
   PrimeFrame::NodeId id_{};

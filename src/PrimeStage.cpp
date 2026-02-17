@@ -505,6 +505,10 @@ Bounds UiNode::sanitizeBounds(Bounds bounds) const {
   return bounds;
 }
 
+Bounds UiNode::resolveLayoutBounds(Bounds const& bounds, SizeSpec const& size) const {
+  return sanitizeBounds(resolve_bounds(bounds, size));
+}
+
 UiNode& UiNode::setSize(SizeSpec const& size) {
   PrimeFrame::Node* node = frame().getNode(id_);
   if (!node) {
@@ -635,8 +639,7 @@ UiNode UiNode::createLabel(std::string_view text, TextRole role, SizeSpec const&
 }
 
 UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
   std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
@@ -712,8 +715,7 @@ UiNode UiNode::createParagraph(std::string_view text,
 UiNode UiNode::createTextLine(TextLineSpec const& spec) {
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float lineHeight = resolve_line_height(frame(), token);
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   float containerHeight = bounds.height > 0.0f ? bounds.height : lineHeight;
   float textY = bounds.y + (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
 
@@ -838,8 +840,7 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   return createSpacer(spec);
 }
 UiNode UiNode::createTable(TableSpec const& spec) {
-  Bounds tableBounds = resolve_bounds(spec.bounds, spec.size);
-  tableBounds = sanitizeBounds(tableBounds);
+  Bounds tableBounds = resolveLayoutBounds(spec.bounds, spec.size);
   size_t rowCount = spec.rows.size();
   float rowsHeight = 0.0f;
   if (rowCount > 0) {
@@ -985,8 +986,7 @@ UiNode UiNode::createTable(Bounds const& bounds,
 }
 
 UiNode UiNode::createSectionHeader(SectionHeaderSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1077,8 +1077,7 @@ UiNode UiNode::createSectionHeader(SizeSpec const& size,
 }
 
 SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1153,8 +1152,7 @@ SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view t
 }
 
 UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if (bounds.height <= 0.0f && !spec.rows.empty()) {
     bounds.height = static_cast<float>(spec.rows.size()) * spec.rowHeight +
                     static_cast<float>(spec.rows.size() - 1) * spec.rowGap;
@@ -1254,7 +1252,7 @@ UiNode UiNode::createPropertyRow(SizeSpec const& size,
 }
 
 UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1290,8 +1288,7 @@ UiNode UiNode::createProgressBar(SizeSpec const& size, float value) {
 }
 
 UiNode UiNode::createCardGrid(CardGridSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::NodeId gridId = create_node(frame(), id_, bounds,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
@@ -1359,8 +1356,7 @@ UiNode UiNode::createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards)
 }
 
 UiNode UiNode::createButton(ButtonSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1439,8 +1435,7 @@ UiNode UiNode::createButton(std::string_view label,
 }
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
@@ -1496,8 +1491,7 @@ UiNode UiNode::createTextField(std::string_view placeholder, SizeSpec const& siz
 }
 
 UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
@@ -1572,8 +1566,7 @@ UiNode UiNode::createStatusBar(SizeSpec const& size,
 }
 
 UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
@@ -1632,7 +1625,7 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
 
 UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
-  view.bounds = resolve_bounds(spec.bounds, spec.size);
+  view.bounds = spec.bounds;
   view.size = spec.size;
   view.showVertical = spec.showVertical;
   view.showHorizontal = spec.showHorizontal;
@@ -1656,8 +1649,7 @@ UiNode UiNode::createScrollHints(Bounds const& bounds) {
 }
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
-  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
-  bounds = sanitizeBounds(bounds);
+  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
