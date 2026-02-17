@@ -223,6 +223,9 @@ public:
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
                          PrimeFrame::TextStyleToken textStyle);
+  UiNode createParagraph(std::string_view text,
+                         PrimeFrame::TextStyleToken textStyle,
+                         SizeSpec const& size);
   UiNode createTextLine(TextLineSpec const& spec);
   UiNode createTextLine(Bounds const& bounds,
                         std::string_view text,

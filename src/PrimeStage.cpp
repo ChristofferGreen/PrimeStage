@@ -664,10 +664,26 @@ UiNode UiNode::createParagraph(Bounds const& bounds,
   return createParagraph(spec);
 }
 
+UiNode UiNode::createParagraph(std::string_view text,
+                               PrimeFrame::TextStyleToken textStyle,
+                               SizeSpec const& size) {
+  ParagraphSpec spec;
+  spec.text = std::string(text);
+  spec.textStyle = textStyle;
+  spec.size = size;
+  return createParagraph(spec);
+}
+
 UiNode UiNode::createParagraph(Bounds const& bounds,
                                std::string_view text,
                                TextRole role) {
   return createParagraph(bounds, text, textToken(role));
+}
+
+UiNode UiNode::createParagraph(std::string_view text,
+                               TextRole role,
+                               SizeSpec const& size) {
+  return createParagraph(text, textToken(role), size);
 }
 
 UiNode UiNode::createTextLine(TextLineSpec const& spec) {
@@ -979,6 +995,22 @@ UiNode UiNode::createSectionHeader(Bounds const& bounds,
   return createSectionHeader(spec);
 }
 
+UiNode UiNode::createSectionHeader(SizeSpec const& size,
+                                   std::string_view title,
+                                   TextRole role) {
+  Bounds bounds = resolve_bounds(Bounds{}, size);
+  return createSectionHeader(bounds, title, role);
+}
+
+UiNode UiNode::createSectionHeader(SizeSpec const& size,
+                                   std::string_view title,
+                                   TextRole role,
+                                   bool addDivider,
+                                   float dividerOffsetY) {
+  Bounds bounds = resolve_bounds(Bounds{}, size);
+  return createSectionHeader(bounds, title, role, addDivider, dividerOffsetY);
+}
+
 SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
   SectionPanel out{createPanel(spec.panelRole, spec.bounds), {}, {}};
 
@@ -1020,6 +1052,13 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
 SectionPanel UiNode::createSectionPanel(Bounds const& bounds, std::string_view title) {
   SectionPanelSpec spec;
   spec.bounds = bounds;
+  spec.title = std::string(title);
+  return createSectionPanel(spec);
+}
+
+SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view title) {
+  SectionPanelSpec spec;
+  spec.bounds = resolve_bounds(Bounds{}, size);
   spec.title = std::string(title);
   return createSectionPanel(spec);
 }

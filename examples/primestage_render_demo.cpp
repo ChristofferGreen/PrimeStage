@@ -178,12 +178,10 @@ int main(int argc, char** argv) {
     UiNode column = centerPane.createVerticalStack(columnSpec);
 
     float sectionWidth = contentW - UiDefaults::SurfaceInset * 2.0f;
-    column.createSectionHeader(Bounds{0.0f,
-                                      0.0f,
-                                      sectionWidth,
-                                      UiDefaults::SectionHeaderHeight},
-                               "Overview",
-                               TextRole::TitleBright);
+    SizeSpec overviewSize;
+    overviewSize.preferredWidth = sectionWidth;
+    overviewSize.preferredHeight = UiDefaults::SectionHeaderHeight;
+    column.createSectionHeader(overviewSize, "Overview", TextRole::TitleBright);
 
     PanelSpec boardSpec;
     boardSpec.rectStyle = rectToken(RectRole::Panel);
@@ -200,20 +198,18 @@ int main(int argc, char** argv) {
     UiNode boardPanel = column.createPanel(boardSpec);
 
     float boardTextWidth = std::max(0.0f, sectionWidth - UiDefaults::SurfaceInset * 2.0f);
-    boardPanel.createTextLine(Bounds{0.0f,
-                                     0.0f,
-                                     boardTextWidth,
-                                     UiDefaults::TitleHeight},
-                              "Active Board",
-                              TextRole::SmallMuted);
-    boardPanel.createParagraph(Bounds{0.0f,
-                                      0.0f,
-                                      boardTextWidth,
-                                      0.0f},
-                               "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n"
+    SizeSpec titleSize;
+    titleSize.preferredWidth = boardTextWidth;
+    titleSize.preferredHeight = UiDefaults::TitleHeight;
+    boardPanel.createTextLine("Active Board", TextRole::SmallMuted, titleSize);
+
+    SizeSpec paragraphSize;
+    paragraphSize.preferredWidth = boardTextWidth;
+    boardPanel.createParagraph("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n"
                                "Sed do eiusmod tempor incididunt ut labore et dolore.\n"
                                "Ut enim ad minim veniam, quis nostrud exercitation.",
-                               TextRole::SmallMuted);
+                               TextRole::SmallMuted,
+                               paragraphSize);
 
     StackSpec buttonRowSpec;
     buttonRowSpec.size.preferredWidth = boardTextWidth;
@@ -227,18 +223,14 @@ int main(int argc, char** argv) {
     buttonSize.preferredHeight = UiDefaults::ControlHeight;
     boardButtons.createButton("Primary Action", ButtonVariant::Primary, buttonSize);
 
-    column.createSectionHeader(Bounds{0.0f,
-                                      0.0f,
-                                      sectionWidth,
-                                      UiDefaults::HeaderHeight},
+    SizeSpec highlightSize;
+    highlightSize.preferredWidth = sectionWidth;
+    highlightSize.preferredHeight = UiDefaults::HeaderHeight;
+    column.createSectionHeader(highlightSize,
                                "Highlights",
                                TextRole::SmallBright,
                                true,
                                UiDefaults::HeaderDividerOffset);
-
-    SizeSpec highlightGap;
-    highlightGap.preferredHeight = UiDefaults::SectionGapSmall;
-    column.createSpacer(highlightGap);
 
     CardGridSpec cardSpec;
     cardSpec.bounds = Bounds{0.0f,
@@ -254,9 +246,16 @@ int main(int argc, char** argv) {
     };
     column.createCardGrid(cardSpec);
     SizeSpec cardGap;
-    cardGap.preferredHeight = UiDefaults::SectionGapLarge + UiDefaults::TableHeaderOffset +
-                              UiDefaults::TableHeaderPadY;
+    cardGap.preferredHeight = UiDefaults::SectionGap;
     column.createSpacer(cardGap);
+
+    float usedHeight = UiDefaults::SectionHeaderHeight +
+                       (UiDefaults::PanelHeightL + UiDefaults::ControlHeight + UiDefaults::PanelInset) +
+                       UiDefaults::HeaderHeight +
+                       UiDefaults::CardHeight +
+                       UiDefaults::SectionGap;
+    float gaps = columnSpec.gap * 5.0f;
+    float availableTableH = contentH - columnSpec.padding.vertical() - usedHeight - gaps;
 
     float listY = 0.0f;
     float listHeaderY = listY - UiDefaults::TableHeaderOffset;
@@ -268,7 +267,7 @@ int main(int argc, char** argv) {
     tableSpec.bounds = Bounds{0.0f,
                               listHeaderY - UiDefaults::TableHeaderPadY,
                               tableWidth,
-                              0.0f};
+                              std::max(1.0f, availableTableH)};
     tableSpec.showHeaderDividers = false;
     tableSpec.columns = {
         TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
@@ -303,26 +302,22 @@ int main(int argc, char** argv) {
     column.createSpacer(headerSpacer);
 
     float sectionWidth = inspectorW - UiDefaults::SurfaceInset * 2.0f;
-    column.createSectionHeader(Bounds{0.0f,
-                                      0.0f,
-                                      sectionWidth,
-                                      UiDefaults::SectionHeaderHeight},
+    SizeSpec inspectorHeaderSize;
+    inspectorHeaderSize.preferredWidth = sectionWidth;
+    inspectorHeaderSize.preferredHeight = UiDefaults::SectionHeaderHeight;
+    column.createSectionHeader(inspectorHeaderSize,
                                "Inspector",
                                TextRole::BodyBright);
 
-    SectionPanel propsPanel =
-        column.createSectionPanel(Bounds{0.0f,
-                                         0.0f,
-                                         sectionWidth,
-                                         UiDefaults::PanelHeightS},
-                                  "Properties");
+    SizeSpec propsSize;
+    propsSize.preferredWidth = sectionWidth;
+    propsSize.preferredHeight = UiDefaults::PanelHeightS;
+    SectionPanel propsPanel = column.createSectionPanel(propsSize, "Properties");
 
-    SectionPanel transformPanel =
-        column.createSectionPanel(Bounds{0.0f,
-                                         0.0f,
-                                         sectionWidth,
-                                         UiDefaults::PanelHeightM},
-                                  "Transform");
+    SizeSpec transformSize;
+    transformSize.preferredWidth = sectionWidth;
+    transformSize.preferredHeight = UiDefaults::PanelHeightM;
+    SectionPanel transformPanel = column.createSectionPanel(transformSize, "Transform");
 
     float opacityRowY = transformPanel.contentBounds.y + UiDefaults::InlineRowOffset;
     float opacityBarX = transformPanel.contentBounds.x;

@@ -5,6 +5,9 @@
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
                          TextRole role = TextRole::BodyMuted);
+  UiNode createParagraph(std::string_view text,
+                         TextRole role,
+                         SizeSpec const& size);
   UiNode createTextLine(Bounds const& bounds,
                         std::string_view text,
                         TextRole role = TextRole::BodyBright,
@@ -26,8 +29,17 @@
                              TextRole role,
                              bool addDivider,
                              float dividerOffsetY = 0.0f);
+  UiNode createSectionHeader(SizeSpec const& size,
+                             std::string_view title,
+                             TextRole role = TextRole::SmallBright);
+  UiNode createSectionHeader(SizeSpec const& size,
+                             std::string_view title,
+                             TextRole role,
+                             bool addDivider,
+                             float dividerOffsetY = 0.0f);
   SectionPanel createSectionPanel(SectionPanelSpec const& spec);
   SectionPanel createSectionPanel(Bounds const& bounds, std::string_view title);
+  SectionPanel createSectionPanel(SizeSpec const& size, std::string_view title);
   UiNode createPropertyList(PropertyListSpec const& spec);
   UiNode createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows);
   UiNode createPropertyRow(Bounds const& bounds,
