@@ -47,10 +47,10 @@ void apply_size_spec(PrimeFrame::Node& node, Bounds const& bounds, SizeSpec cons
 
 Bounds resolve_bounds(Bounds const& bounds, SizeSpec const& size) {
   Bounds resolved = bounds;
-  if (resolved.width <= 0.0f && size.preferredWidth.has_value()) {
+  if (size.preferredWidth.has_value()) {
     resolved.width = *size.preferredWidth;
   }
-  if (resolved.height <= 0.0f && size.preferredHeight.has_value()) {
+  if (size.preferredHeight.has_value()) {
     resolved.height = *size.preferredHeight;
   }
   return resolved;
