@@ -905,6 +905,32 @@ UiNode UiNode::createTable(TableSpec const& spec) {
   if (tableBounds.height <= 0.0f && !spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
     tableBounds.height = headerBlock + rowsHeight;
   }
+  if (tableBounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.columns.empty()) {
+    float inferredWidth = 0.0f;
+    float paddingX = std::max(spec.headerPaddingX, spec.cellPaddingX);
+    for (size_t colIndex = 0; colIndex < spec.columns.size(); ++colIndex) {
+      TableColumn const& col = spec.columns[colIndex];
+      if (col.width > 0.0f) {
+        inferredWidth += col.width;
+        continue;
+      }
+      float maxText = estimate_text_width(frame(), textToken(col.headerRole), col.label);
+      for (auto const& row : spec.rows) {
+        if (colIndex < row.size()) {
+          std::string const& cell = row[colIndex];
+          float cellWidth = estimate_text_width(frame(), textToken(col.cellRole), cell);
+          if (cellWidth > maxText) {
+            maxText = cellWidth;
+          }
+        }
+      }
+      inferredWidth += maxText + paddingX;
+    }
+    tableBounds.width = inferredWidth;
+  }
 
   PrimeFrame::NodeId tableId = create_node(frame(), id_, tableBounds,
                                            &spec.size,
