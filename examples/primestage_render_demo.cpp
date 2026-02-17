@@ -33,10 +33,6 @@ int main(int argc, char** argv) {
 
   ShellSpec shellSpec;
   shellSpec.bounds = Bounds{0.0f, 0.0f, kWidth, kHeight};
-  shellSpec.topbarHeight = topbarH;
-  shellSpec.statusHeight = statusH;
-  shellSpec.sidebarWidth = sidebarW;
-  shellSpec.inspectorWidth = inspectorW;
   ShellLayout shell = createShell(frame, shellSpec);
   UiNode root = shell.root;
   UiNode topbarNode = shell.topbar;
@@ -65,14 +61,11 @@ int main(int argc, char** argv) {
     runSpec.bounds = Bounds{kWidth - 220.0f, 12.0f, 88.0f, 32.0f};
     runSpec.label = "Run";
     runSpec.backgroundRole = RectRole::Accent;
-    runSpec.textRole = TextRole::BodyBright;
     UiNode runNode = topbarNode.createButton(runSpec);
 
     ButtonSpec shareSpec;
     shareSpec.bounds = Bounds{kWidth - 120.0f, 12.0f, 88.0f, 32.0f};
     shareSpec.label = "Share";
-    shareSpec.backgroundRole = RectRole::Panel;
-    shareSpec.textRole = TextRole::BodyBright;
     UiNode shareNode = topbarNode.createButton(shareSpec);
 
     topbarNode.createTextLine(Bounds{0.0f, 14.0f, 232.0f, 28.0f},
@@ -137,7 +130,6 @@ int main(int argc, char** argv) {
     primarySpec.bounds = Bounds{boardButtonX, boardButtonY, boardButtonW, boardButtonH};
     primarySpec.label = "Primary Action";
     primarySpec.backgroundRole = RectRole::Accent;
-    primarySpec.textRole = TextRole::BodyBright;
     UiNode primaryButton = contentNode.createButton(primarySpec);
     float highlightHeaderY = 170.0f;
     float highlightHeaderH = 20.0f;
@@ -191,16 +183,10 @@ int main(int argc, char** argv) {
 
     ScrollViewSpec scrollSpec;
     scrollSpec.bounds = Bounds{0.0f, 0.0f, contentW, contentH};
-    scrollSpec.vertical.inset = 12.0f;
-    scrollSpec.vertical.startPadding = 12.0f;
-    scrollSpec.vertical.endPadding = 12.0f;
-    scrollSpec.vertical.thickness = 6.0f;
     scrollSpec.vertical.thumbLength = 120.0f;
     scrollSpec.vertical.thumbOffset = 108.0f;
-    scrollSpec.horizontal.inset = 12.0f;
     scrollSpec.horizontal.startPadding = 16.0f;
     scrollSpec.horizontal.endPadding = 48.0f;
-    scrollSpec.horizontal.thickness = 6.0f;
     scrollSpec.horizontal.thumbLength = 120.0f;
     scrollSpec.horizontal.thumbOffset = 124.0f;
     contentNode.createScrollView(scrollSpec);
@@ -214,15 +200,11 @@ int main(int argc, char** argv) {
     SectionPanelSpec propsPanelSpec;
     propsPanelSpec.bounds = Bounds{16.0f, 56.0f, inspectorW - 32.0f, 90.0f};
     propsPanelSpec.title = "Properties";
-    propsPanelSpec.textRole = TextRole::SmallBright;
-    propsPanelSpec.headerInsetRight = 24.0f;
     SectionPanel propsPanel = inspectorNode.createSectionPanel(propsPanelSpec);
 
     SectionPanelSpec transformPanelSpec;
     transformPanelSpec.bounds = Bounds{16.0f, 164.0f, inspectorW - 32.0f, 140.0f};
     transformPanelSpec.title = "Transform";
-    transformPanelSpec.textRole = TextRole::SmallBright;
-    transformPanelSpec.headerInsetRight = 24.0f;
     SectionPanel transformPanel = inspectorNode.createSectionPanel(transformPanelSpec);
 
     float opacityRowY = transformPanel.contentBounds.y + 44.0f;
@@ -230,25 +212,16 @@ int main(int argc, char** argv) {
     ProgressBarSpec opacityBar;
     opacityBar.bounds = Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH};
     opacityBar.value = 0.85f;
-    opacityBar.trackRole = RectRole::PanelStrong;
-    opacityBar.fillRole = RectRole::Accent;
     transformPanel.panel.createProgressBar(opacityBar);
 
     ButtonSpec publishSpec;
     publishSpec.bounds = Bounds{16.0f, contentH - 56.0f, inspectorW - 32.0f, 32.0f};
     publishSpec.label = "Publish";
     publishSpec.backgroundRole = RectRole::Accent;
-    publishSpec.textRole = TextRole::BodyBright;
     UiNode publishButton = inspectorNode.createButton(publishSpec);
 
     PropertyListSpec propsList;
     propsList.bounds = propsPanel.contentBounds;
-    propsList.rowHeight = 12.0f;
-    propsList.rowGap = 12.0f;
-    propsList.labelRole = TextRole::SmallMuted;
-    propsList.valueRole = TextRole::SmallBright;
-    propsList.valueAlignRight = true;
-    propsList.valuePaddingRight = 0.0f;
     propsList.rows = {
         {"Name", "SceneRoot"},
         {"Tag", "Environment"}
@@ -257,12 +230,6 @@ int main(int argc, char** argv) {
 
     PropertyListSpec transformList;
     transformList.bounds = transformPanel.contentBounds;
-    transformList.rowHeight = 12.0f;
-    transformList.rowGap = 12.0f;
-    transformList.labelRole = TextRole::SmallMuted;
-    transformList.valueRole = TextRole::SmallBright;
-    transformList.valueAlignRight = true;
-    transformList.valuePaddingRight = 0.0f;
     transformList.rows = {
         {"Position", "0, 0, 0"},
         {"Scale", "1, 1, 1"}
@@ -275,9 +242,6 @@ int main(int argc, char** argv) {
     opacityList.rowHeight = opacityBarH;
     opacityList.rowGap = 0.0f;
     opacityList.labelRole = TextRole::SmallBright;
-    opacityList.valueRole = TextRole::SmallBright;
-    opacityList.valueAlignRight = true;
-    opacityList.valuePaddingRight = 0.0f;
     opacityList.rows = {
         {"Opacity", "85%"}
     };

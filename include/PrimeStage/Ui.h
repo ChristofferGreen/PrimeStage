@@ -151,7 +151,7 @@ struct SectionPanelSpec {
   float headerHeight = 22.0f;
   float headerInsetX = 8.0f;
   float headerInsetY = 12.0f;
-  float headerInsetRight = 8.0f;
+  float headerInsetRight = 24.0f;
   float headerPaddingX = 8.0f;
   float accentWidth = 3.0f;
   bool showAccent = true;
