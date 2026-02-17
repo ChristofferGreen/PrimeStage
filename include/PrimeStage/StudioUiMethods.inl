@@ -1,13 +1,17 @@
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createPanel(RectRole role, Bounds const& bounds);
   UiNode createPanel(RectRole role, SizeSpec const& size);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createLabel(std::string_view text, TextRole role, Bounds const& bounds);
   UiNode createLabel(std::string_view text, TextRole role, SizeSpec const& size);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
                          TextRole role = TextRole::BodyMuted);
   UiNode createParagraph(std::string_view text,
                          TextRole role,
                          SizeSpec const& size);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createTextLine(Bounds const& bounds,
                         std::string_view text,
                         TextRole role = TextRole::BodyBright,
@@ -17,13 +21,16 @@
                         SizeSpec const& size,
                         PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
   UiNode createTable(TableSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createTable(Bounds const& bounds,
                      std::vector<TableColumn> columns,
                      std::vector<std::vector<std::string>> rows);
   UiNode createSectionHeader(SectionHeaderSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createSectionHeader(Bounds const& bounds,
                              std::string_view title,
                              TextRole role = TextRole::SmallBright);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createSectionHeader(Bounds const& bounds,
                              std::string_view title,
                              TextRole role,
@@ -38,11 +45,14 @@
                              bool addDivider,
                              float dividerOffsetY = 0.0f);
   SectionPanel createSectionPanel(SectionPanelSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   SectionPanel createSectionPanel(Bounds const& bounds, std::string_view title);
   SectionPanel createSectionPanel(SizeSpec const& size, std::string_view title);
   UiNode createPropertyList(PropertyListSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows);
   UiNode createPropertyList(SizeSpec const& size, std::vector<PropertyRow> rows);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createPropertyRow(Bounds const& bounds,
                            std::string_view label,
                            std::string_view value,
@@ -52,9 +62,11 @@
                            std::string_view value,
                            TextRole role = TextRole::SmallBright);
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createProgressBar(Bounds const& bounds, float value);
   UiNode createProgressBar(SizeSpec const& size, float value);
   UiNode createStatusBar(StatusBarSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createStatusBar(Bounds const& bounds,
                          std::string_view leftText,
                          std::string_view rightText);
@@ -62,15 +74,19 @@
                          std::string_view leftText,
                          std::string_view rightText);
   UiNode createCardGrid(CardGridSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createButton(Bounds const& bounds,
                       std::string_view label,
                       ButtonVariant variant = ButtonVariant::Default);
   UiNode createButton(std::string_view label,
                       ButtonVariant variant,
                       SizeSpec const& size);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createTextField(Bounds const& bounds, std::string_view placeholder);
   UiNode createTextField(std::string_view placeholder, SizeSpec const& size);
   UiNode createScrollHints(ScrollHintsSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createScrollHints(Bounds const& bounds);
   UiNode createTreeView(TreeViewSpec const& spec);

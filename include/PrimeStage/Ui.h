@@ -210,9 +210,11 @@ public:
   }
 
   UiNode createPanel(PanelSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds);
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createLabel(LabelSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createLabel(std::string_view text,
                      PrimeFrame::TextStyleToken textStyle,
                      Bounds const& bounds);
@@ -220,6 +222,7 @@ public:
                      PrimeFrame::TextStyleToken textStyle,
                      SizeSpec const& size);
   UiNode createParagraph(ParagraphSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
                          PrimeFrame::TextStyleToken textStyle);
@@ -227,6 +230,7 @@ public:
                          PrimeFrame::TextStyleToken textStyle,
                          SizeSpec const& size);
   UiNode createTextLine(TextLineSpec const& spec);
+  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
   UiNode createTextLine(Bounds const& bounds,
                         std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,
@@ -280,9 +284,11 @@ struct ShellLayout {
   Bounds inspectorBounds;
 };
 
+[[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds);
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size);
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec);
+[[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
 ShellSpec makeShellSpec(Bounds const& bounds);
 ShellSpec makeShellSpec(SizeSpec const& size);
 #endif

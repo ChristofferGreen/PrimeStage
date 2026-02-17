@@ -2091,7 +2091,7 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
   Bounds contentBounds{spec.sidebarWidth, spec.topbarHeight, contentW, contentH};
   Bounds inspectorBounds{width - spec.inspectorWidth, spec.topbarHeight, spec.inspectorWidth, contentH};
 
-  UiNode root = createRoot(frame, shellBounds);
+  UiNode root = createRoot(frame, size_from_bounds(shellBounds));
   StackSpec overlaySpec;
   overlaySpec.size.preferredWidth = width;
   overlaySpec.size.preferredHeight = height;
