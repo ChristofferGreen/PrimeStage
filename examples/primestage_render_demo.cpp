@@ -167,66 +167,47 @@ int main(int argc, char** argv) {
   };
 
   auto create_content = [&]() {
-    float cursorY = UiDefaults::SectionHeaderOffsetY;
-    Bounds overviewHeader{UiDefaults::SurfaceInset,
-                          cursorY,
-                          contentW - UiDefaults::SurfaceInset * 2.0f,
-                          UiDefaults::SectionHeaderHeight};
-    centerPane.createSectionHeader(overviewHeader,
-                                    "Overview",
-                                    TextRole::TitleBright);
-    cursorY += UiDefaults::SectionHeaderHeight + UiDefaults::SectionGap;
+    StackSpec columnSpec;
+    columnSpec.size.preferredWidth = contentW;
+    columnSpec.size.preferredHeight = contentH;
+    columnSpec.padding = Insets{UiDefaults::SurfaceInset,
+                                UiDefaults::SectionHeaderOffsetY,
+                                UiDefaults::SurfaceInset,
+                                UiDefaults::SurfaceInset};
+    columnSpec.gap = UiDefaults::SectionGap;
+    UiNode column = centerPane.createVerticalStack(columnSpec);
 
-    Bounds boardPanelBounds{UiDefaults::SurfaceInset,
-                            cursorY,
-                            contentW - UiDefaults::SurfaceInset * 2.0f,
-                            UiDefaults::PanelHeightL};
-    UiNode boardPanel = add_panel(centerPane, boardPanelBounds, RectRole::Panel);
-    Bounds primaryBounds = alignBottomRight(boardPanelBounds,
-                                            UiDefaults::ControlWidthL,
-                                            UiDefaults::ControlHeight,
-                                            UiDefaults::PanelInset,
-                                            UiDefaults::PanelInset);
-    UiNode primaryButton = centerPane.createButton(primaryBounds, "Primary Action", ButtonVariant::Primary);
-    cursorY += UiDefaults::PanelHeightL;
+    float sectionWidth = contentW - UiDefaults::SurfaceInset * 2.0f;
+    column.createSectionHeader(Bounds{0.0f,
+                                      0.0f,
+                                      sectionWidth,
+                                      UiDefaults::SectionHeaderHeight},
+                               "Overview",
+                               TextRole::TitleBright);
 
-    float highlightHeaderY = cursorY;
-    float highlightHeaderH = UiDefaults::HeaderHeight;
+    PanelSpec boardSpec;
+    boardSpec.rectStyle = rectToken(RectRole::Panel);
+    boardSpec.layout = PrimeFrame::LayoutType::VerticalStack;
+    boardSpec.padding = Insets{UiDefaults::SurfaceInset,
+                               UiDefaults::PanelInset,
+                               UiDefaults::SurfaceInset,
+                               UiDefaults::PanelInset};
+    boardSpec.gap = UiDefaults::PanelInset;
+    boardSpec.size.preferredWidth = sectionWidth;
+    boardSpec.size.preferredHeight = UiDefaults::PanelHeightL +
+                                     UiDefaults::ControlHeight +
+                                     UiDefaults::PanelInset;
+    UiNode boardPanel = column.createPanel(boardSpec);
 
-    centerPane.createSectionHeader(Bounds{UiDefaults::SurfaceInset,
-                                          highlightHeaderY,
-                                          contentW - UiDefaults::SurfaceInset * 2.0f,
-                                          highlightHeaderH},
-                                    "Highlights",
-                                    TextRole::SmallBright,
-                                    true,
-                                    UiDefaults::HeaderDividerOffset);
-    cursorY += UiDefaults::HeaderHeight + UiDefaults::SectionGapSmall;
-
-
-    Bounds cardBounds{UiDefaults::SurfaceInset,
-                      cursorY,
-                      contentW - UiDefaults::SurfaceInset,
-                      UiDefaults::CardHeight};
-    centerPane.createCardGrid(cardBounds,
-                               {
-                                   {"Card", "Detail"},
-                                   {"Card", "Detail"},
-                                   {"Card", "Detail"}
-                               });
-    cursorY += UiDefaults::CardHeight + UiDefaults::SectionGapLarge;
-    cursorY += UiDefaults::TableHeaderOffset + UiDefaults::TableHeaderPadY;
-
-    float boardTextWidth = std::max(0.0f, primaryBounds.x - boardPanelBounds.x -
-                                            UiDefaults::SurfaceInset - UiDefaults::PanelInset);
-    boardPanel.createTextLine(Bounds{UiDefaults::SurfaceInset,
-                                     UiDefaults::PanelInset,
+    float boardTextWidth = std::max(0.0f, sectionWidth - UiDefaults::SurfaceInset * 2.0f);
+    boardPanel.createTextLine(Bounds{0.0f,
+                                     0.0f,
                                      boardTextWidth,
                                      UiDefaults::TitleHeight},
                               "Active Board",
                               TextRole::SmallMuted);
-    boardPanel.createParagraph(Bounds{UiDefaults::SurfaceInset,
-                                      UiDefaults::BodyOffsetY,
+    boardPanel.createParagraph(Bounds{0.0f,
+                                      0.0f,
                                       boardTextWidth,
                                       0.0f},
                                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n"
@@ -234,14 +215,57 @@ int main(int argc, char** argv) {
                                "Ut enim ad minim veniam, quis nostrud exercitation.",
                                TextRole::SmallMuted);
 
-    float listY = cursorY;
+    StackSpec buttonRowSpec;
+    buttonRowSpec.size.preferredWidth = boardTextWidth;
+    buttonRowSpec.size.preferredHeight = UiDefaults::ControlHeight;
+    UiNode boardButtons = boardPanel.createHorizontalStack(buttonRowSpec);
+    SizeSpec buttonSpacer;
+    buttonSpacer.stretchX = 1.0f;
+    boardButtons.createSpacer(buttonSpacer);
+    SizeSpec buttonSize;
+    buttonSize.preferredWidth = UiDefaults::ControlWidthL;
+    buttonSize.preferredHeight = UiDefaults::ControlHeight;
+    boardButtons.createButton("Primary Action", ButtonVariant::Primary, buttonSize);
+
+    column.createSectionHeader(Bounds{0.0f,
+                                      0.0f,
+                                      sectionWidth,
+                                      UiDefaults::HeaderHeight},
+                               "Highlights",
+                               TextRole::SmallBright,
+                               true,
+                               UiDefaults::HeaderDividerOffset);
+
+    SizeSpec highlightGap;
+    highlightGap.preferredHeight = UiDefaults::SectionGapSmall;
+    column.createSpacer(highlightGap);
+
+    CardGridSpec cardSpec;
+    cardSpec.bounds = Bounds{0.0f,
+                             0.0f,
+                             sectionWidth,
+                             UiDefaults::CardHeight};
+    cardSpec.gapX = UiDefaults::PanelInset;
+    cardSpec.cardWidth = (sectionWidth - cardSpec.gapX * 2.0f) / 3.0f;
+    cardSpec.cards = {
+        {"Card", "Detail"},
+        {"Card", "Detail"},
+        {"Card", "Detail"}
+    };
+    column.createCardGrid(cardSpec);
+    SizeSpec cardGap;
+    cardGap.preferredHeight = UiDefaults::SectionGapLarge + UiDefaults::TableHeaderOffset +
+                              UiDefaults::TableHeaderPadY;
+    column.createSpacer(cardGap);
+
+    float listY = 0.0f;
     float listHeaderY = listY - UiDefaults::TableHeaderOffset;
     float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
     float firstColWidth = contentW - UiDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
-    tableSpec.bounds = Bounds{UiDefaults::SurfaceInset,
+    tableSpec.bounds = Bounds{0.0f,
                               listHeaderY - UiDefaults::TableHeaderPadY,
                               tableWidth,
                               0.0f};
@@ -258,7 +282,7 @@ int main(int argc, char** argv) {
         {"Item Row", "Ready"},
         {"Item Row", "Ready"}
     };
-    centerPane.createTable(tableSpec);
+    column.createTable(tableSpec);
 
     centerPane.createScrollHints(Bounds{0.0f, 0.0f, contentW, contentH});
   };
