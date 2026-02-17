@@ -1640,6 +1640,18 @@ UiNode UiNode::createStatusBar(SizeSpec const& size,
 
 UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    if (bounds.width <= 0.0f) {
+      bounds.width = UiDefaults::FieldWidthL;
+    }
+    if (bounds.height <= 0.0f) {
+      bounds.height = UiDefaults::PanelHeightM;
+    }
+  }
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
