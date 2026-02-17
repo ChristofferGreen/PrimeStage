@@ -1596,6 +1596,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     if (!preview.empty()) {
       float previewWidth = estimate_text_width(frame(), previewStyle, preview);
       bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
+    } else {
+      bounds.width = UiDefaults::FieldWidthL;
     }
   }
   PanelSpec panel;
