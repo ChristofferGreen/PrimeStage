@@ -210,11 +210,9 @@ public:
   }
 
   UiNode createPanel(PanelSpec const& spec);
-  [[deprecated("Prefer size-based layout; absolute bounds are discouraged.")]]
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds);
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createLabel(LabelSpec const& spec);
-  [[deprecated("Prefer size-based layout; absolute bounds are discouraged.")]]
   UiNode createLabel(std::string_view text,
                      PrimeFrame::TextStyleToken textStyle,
                      Bounds const& bounds);
@@ -222,7 +220,6 @@ public:
                      PrimeFrame::TextStyleToken textStyle,
                      SizeSpec const& size);
   UiNode createParagraph(ParagraphSpec const& spec);
-  [[deprecated("Prefer size-based layout; absolute bounds are discouraged.")]]
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
                          PrimeFrame::TextStyleToken textStyle);
@@ -230,7 +227,6 @@ public:
                          PrimeFrame::TextStyleToken textStyle,
                          SizeSpec const& size);
   UiNode createTextLine(TextLineSpec const& spec);
-  [[deprecated("Prefer size-based layout; absolute bounds are discouraged.")]]
   UiNode createTextLine(Bounds const& bounds,
                         std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,
