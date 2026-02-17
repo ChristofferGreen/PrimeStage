@@ -137,6 +137,7 @@ TEST_CASE("PrimeStage shell creates a layout") {
   PrimeStage::ShellLayout layout = PrimeStage::createShell(frame, spec);
   CHECK(frame.getNode(layout.root.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.topbar.nodeId()) != nullptr);
+  CHECK(frame.getNode(layout.status.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.sidebar.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.content.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.inspector.nodeId()) != nullptr);

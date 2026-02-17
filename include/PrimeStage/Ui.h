@@ -264,6 +264,7 @@ struct ShellLayout {
   UiNode root;
   UiNode background;
   UiNode topbar;
+  UiNode status;
   UiNode sidebar;
   UiNode content;
   UiNode inspector;

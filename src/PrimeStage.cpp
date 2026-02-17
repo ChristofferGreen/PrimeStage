@@ -1404,27 +1404,36 @@ UiNode UiNode::createTextField(std::string_view placeholder, SizeSpec const& siz
 }
 
 UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
-  UiNode bar = createPanel(spec.backgroundRole, spec.bounds);
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
+  if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
+    return UiNode(frame(), id_);
+  }
+
+  PanelSpec panelSpec;
+  panelSpec.rectStyle = rectToken(spec.backgroundRole);
+  panelSpec.bounds = bounds;
+  panelSpec.size = spec.size;
+  UiNode bar = createPanel(panelSpec);
 
   float leftLineHeight = resolve_line_height(frame(), textToken(spec.leftRole));
   float rightLineHeight = resolve_line_height(frame(), textToken(spec.rightRole));
 
-  float leftY = (spec.bounds.height - leftLineHeight) * 0.5f;
-  float rightY = (spec.bounds.height - rightLineHeight) * 0.5f;
+  float leftY = (bounds.height - leftLineHeight) * 0.5f;
+  float rightY = (bounds.height - rightLineHeight) * 0.5f;
 
   float rightWidth = 0.0f;
   if (!spec.rightText.empty()) {
     rightWidth = estimate_text_width(frame(), textToken(spec.rightRole), spec.rightText);
-    float maxRightWidth = std::max(0.0f, spec.bounds.width - spec.paddingX);
+    float maxRightWidth = std::max(0.0f, bounds.width - spec.paddingX);
     rightWidth = std::min(rightWidth, maxRightWidth);
   }
 
-  float rightX = spec.bounds.width - spec.paddingX - rightWidth;
+  float rightX = bounds.width - spec.paddingX - rightWidth;
   if (rightX < 0.0f) {
     rightX = 0.0f;
   }
 
-  float leftMaxWidth = std::max(0.0f, spec.bounds.width - spec.paddingX * 2.0f);
+  float leftMaxWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
   if (!spec.rightText.empty()) {
     leftMaxWidth = std::min(leftMaxWidth, std::max(0.0f, rightX - spec.paddingX));
   }
@@ -1449,6 +1458,16 @@ UiNode UiNode::createStatusBar(Bounds const& bounds,
                                std::string_view rightText) {
   StatusBarSpec spec;
   spec.bounds = bounds;
+  spec.leftText = std::string(leftText);
+  spec.rightText = std::string(rightText);
+  return createStatusBar(spec);
+}
+
+UiNode UiNode::createStatusBar(SizeSpec const& size,
+                               std::string_view leftText,
+                               std::string_view rightText) {
+  StatusBarSpec spec;
+  spec.size = size;
   spec.leftText = std::string(leftText);
   spec.rightText = std::string(rightText);
   return createStatusBar(spec);
@@ -1706,11 +1725,55 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
   Bounds inspectorBounds{width - spec.inspectorWidth, spec.topbarHeight, spec.inspectorWidth, contentH};
 
   UiNode root = createRoot(frame, spec.bounds);
-  UiNode background = root.createPanel(spec.backgroundRole, spec.bounds);
-  UiNode topbar = root.createPanel(spec.topbarRole, topbarBounds);
-  UiNode sidebar = root.createPanel(spec.sidebarRole, sidebarBounds);
-  UiNode content = root.createPanel(spec.contentRole, contentBounds);
-  UiNode inspector = root.createPanel(spec.inspectorRole, inspectorBounds);
+  StackSpec overlaySpec;
+  overlaySpec.size.preferredWidth = width;
+  overlaySpec.size.preferredHeight = height;
+  overlaySpec.clipChildren = false;
+  UiNode overlay = root.createOverlay(overlaySpec);
+
+  SizeSpec fullSize;
+  fullSize.preferredWidth = width;
+  fullSize.preferredHeight = height;
+
+  UiNode background = overlay.createPanel(rectToken(spec.backgroundRole), fullSize);
+
+  StackSpec shellSpec;
+  shellSpec.size = fullSize;
+  shellSpec.gap = 0.0f;
+  shellSpec.clipChildren = false;
+  UiNode shellStack = overlay.createVerticalStack(shellSpec);
+
+  PanelSpec topbarSpec;
+  topbarSpec.rectStyle = rectToken(spec.topbarRole);
+  topbarSpec.size.preferredHeight = spec.topbarHeight;
+  UiNode topbar = shellStack.createPanel(topbarSpec);
+
+  StackSpec bodySpec;
+  bodySpec.size.stretchY = 1.0f;
+  bodySpec.size.stretchX = 1.0f;
+  bodySpec.gap = 0.0f;
+  bodySpec.clipChildren = false;
+  UiNode bodyRow = shellStack.createHorizontalStack(bodySpec);
+
+  PanelSpec sidebarSpec;
+  sidebarSpec.rectStyle = rectToken(spec.sidebarRole);
+  sidebarSpec.size.preferredWidth = spec.sidebarWidth;
+  UiNode sidebar = bodyRow.createPanel(sidebarSpec);
+
+  PanelSpec contentSpec;
+  contentSpec.rectStyle = rectToken(spec.contentRole);
+  contentSpec.size.stretchX = 1.0f;
+  UiNode content = bodyRow.createPanel(contentSpec);
+
+  PanelSpec inspectorSpec;
+  inspectorSpec.rectStyle = rectToken(spec.inspectorRole);
+  inspectorSpec.size.preferredWidth = spec.inspectorWidth;
+  UiNode inspector = bodyRow.createPanel(inspectorSpec);
+
+  PanelSpec statusSpec;
+  statusSpec.rectStyle = rectToken(spec.statusRole);
+  statusSpec.size.preferredHeight = spec.statusHeight;
+  UiNode status = shellStack.createPanel(statusSpec);
 
   if (spec.drawDividers) {
     DividerSpec divider;
@@ -1729,6 +1792,7 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
       root,
       background,
       topbar,
+      status,
       sidebar,
       content,
       inspector,

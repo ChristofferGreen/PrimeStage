@@ -58,6 +58,9 @@
   UiNode createStatusBar(Bounds const& bounds,
                          std::string_view leftText,
                          std::string_view rightText);
+  UiNode createStatusBar(SizeSpec const& size,
+                         std::string_view leftText,
+                         std::string_view rightText);
   UiNode createCardGrid(CardGridSpec const& spec);
   UiNode createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards);
   UiNode createButton(Bounds const& bounds,

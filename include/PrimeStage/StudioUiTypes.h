@@ -177,6 +177,7 @@ struct StatusBarSpec {
   RectRole backgroundRole = RectRole::Statusbar;
   TextRole leftRole = TextRole::SmallMuted;
   TextRole rightRole = TextRole::SmallMuted;
+  SizeSpec size;
 };
 
 struct ShellSpec {
@@ -187,6 +188,7 @@ struct ShellSpec {
   float inspectorWidth = UiDefaults::SecondaryRailWidth;
   RectRole backgroundRole = RectRole::Background;
   RectRole topbarRole = RectRole::Topbar;
+  RectRole statusRole = RectRole::Statusbar;
   RectRole sidebarRole = RectRole::Sidebar;
   RectRole contentRole = RectRole::Content;
   RectRole inspectorRole = RectRole::Inspector;

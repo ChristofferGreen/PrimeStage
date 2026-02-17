@@ -34,16 +34,11 @@ int main(int argc, char** argv) {
   float sidebarW = sidebarBounds.width;
   float inspectorW = inspectorBounds.width;
   float shellWidth = shell.bounds.width;
-  float shellHeight = shell.bounds.height;
-  UiNode root = shell.root;
   UiNode edgeBar = shell.topbar;
+  UiNode statusBar = shell.status;
   UiNode leftRail = shell.sidebar;
   UiNode centerPane = shell.content;
   UiNode rightRail = shell.inspector;
-
-  auto add_panel = [&](UiNode& parent, Bounds const& bounds, RectRole role) -> UiNode {
-    return parent.createPanel(role, bounds);
-  };
 
   auto create_topbar = [&]() {
     StackSpec rowSpec;
@@ -135,7 +130,7 @@ int main(int argc, char** argv) {
     treeSpec.size.preferredHeight = treeHeight;
     treeSpec.showHeaderDivider = true;
     treeSpec.headerDividerY = UiDefaults::TreeHeaderDividerY;
-    float treeTrackH = treeSpec.bounds.height - treeSpec.scrollBar.padding * 2.0f;
+    float treeTrackH = treeHeight - treeSpec.scrollBar.padding * 2.0f;
     setScrollBarThumbPixels(treeSpec.scrollBar,
                             treeTrackH,
                             UiDefaults::ScrollThumbHeight,
@@ -244,16 +239,12 @@ int main(int argc, char** argv) {
         {"Card", "Detail"}
     };
     column.createCardGrid(cardSpec);
-    SizeSpec cardGap;
-    cardGap.preferredHeight = UiDefaults::SectionGap;
-    column.createSpacer(cardGap);
 
     float usedHeight = UiDefaults::SectionHeaderHeight +
                        (UiDefaults::PanelHeightL + UiDefaults::ControlHeight + UiDefaults::PanelInset) +
                        UiDefaults::HeaderHeight +
-                       UiDefaults::CardHeight +
-                       UiDefaults::SectionGap;
-    float gaps = columnSpec.gap * 5.0f;
+                       UiDefaults::CardHeight;
+    float gaps = columnSpec.gap * 4.0f;
     float availableTableH = contentH - columnSpec.padding.vertical() - usedHeight - gaps;
 
     float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
@@ -357,23 +348,12 @@ int main(int argc, char** argv) {
   };
 
   auto create_status = [&]() {
-    StackSpec stackSpec;
-    stackSpec.size.preferredWidth = shellWidth;
-    stackSpec.size.preferredHeight = shellHeight;
-    UiNode statusStack = root.createVerticalStack(stackSpec);
-
-    SizeSpec spacer;
-    spacer.stretchY = 1.0f;
-    statusStack.createSpacer(spacer);
-
-    PanelSpec barSpec;
-    barSpec.rectStyle = rectToken(RectRole::Statusbar);
-    barSpec.layout = PrimeFrame::LayoutType::HorizontalStack;
-    barSpec.padding = Insets{UiDefaults::SurfaceInset, 0.0f, UiDefaults::SurfaceInset, 0.0f};
-    barSpec.gap = UiDefaults::PanelInset;
-    barSpec.size.preferredWidth = shellWidth;
-    barSpec.size.preferredHeight = UiDefaults::StatusHeight;
-    UiNode bar = statusStack.createPanel(barSpec);
+    StackSpec rowSpec;
+    rowSpec.size.preferredWidth = shellWidth;
+    rowSpec.size.preferredHeight = UiDefaults::StatusHeight;
+    rowSpec.padding = Insets{UiDefaults::SurfaceInset, 0.0f, UiDefaults::SurfaceInset, 0.0f};
+    rowSpec.gap = UiDefaults::PanelInset;
+    UiNode bar = statusBar.createHorizontalStack(rowSpec);
 
     SizeSpec lineSize;
     lineSize.preferredHeight = UiDefaults::StatusHeight;
