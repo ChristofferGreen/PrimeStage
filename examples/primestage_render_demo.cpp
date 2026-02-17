@@ -46,30 +46,43 @@ int main(int argc, char** argv) {
     return parent.createPanel(role, bounds);
   };
 
-  auto add_divider = [&](UiNode& parent, Bounds const& bounds) -> UiNode {
-    DividerSpec spec;
-    spec.bounds = bounds;
-    spec.rectStyle = rectToken(RectRole::Divider);
-    return parent.createDivider(spec);
-  };
-
   auto create_topbar = [&]() {
-    RowLayout row(Bounds{0.0f, UiDefaults::PanelInset, shellWidth, UiDefaults::ControlHeight});
-    Bounds titleBlock = row.takeLeft(UiDefaults::TitleBlockWidth);
-    Bounds dividerBounds = row.takeLeft(UiDefaults::DividerThickness);
-    Bounds searchBounds = row.takeLeft(UiDefaults::FieldWidthL);
-    Bounds shareBounds = row.takeRight(UiDefaults::ControlWidthM);
-    Bounds runBounds = row.takeRight(UiDefaults::ControlWidthM);
+    StackSpec rowSpec;
+    rowSpec.size.preferredWidth = shellWidth;
+    rowSpec.size.preferredHeight = UiDefaults::EdgeBarHeight;
+    rowSpec.padding = Insets{0.0f,
+                             UiDefaults::PanelInset,
+                             0.0f,
+                             UiDefaults::PanelInset};
+    rowSpec.gap = UiDefaults::PanelInset;
 
-    add_divider(edgeBar, alignCenterY(dividerBounds, UiDefaults::ControlHeight));
-    edgeBar.createTextField(searchBounds, "Search...");
-    UiNode runNode = edgeBar.createButton(runBounds, "Run", ButtonVariant::Primary);
-    UiNode shareNode = edgeBar.createButton(shareBounds, "Share");
+    UiNode row = edgeBar.createHorizontalStack(rowSpec);
 
-    edgeBar.createTextLine(alignCenterY(titleBlock, UiDefaults::TitleHeight),
-                              "PrimeFrame Studio",
-                              TextRole::TitleBright,
-                              PrimeFrame::TextAlign::Center);
+    auto fixed = [](float width, float height) {
+      SizeSpec size;
+      size.preferredWidth = width;
+      size.preferredHeight = height;
+      return size;
+    };
+
+    row.createTextLine("PrimeFrame Studio",
+                       TextRole::TitleBright,
+                       fixed(UiDefaults::TitleBlockWidth, UiDefaults::ControlHeight),
+                       PrimeFrame::TextAlign::Center);
+    row.createDivider(rectToken(RectRole::Divider),
+                      fixed(UiDefaults::DividerThickness, UiDefaults::ControlHeight));
+    row.createTextField("Search...", fixed(UiDefaults::FieldWidthL, UiDefaults::ControlHeight));
+
+    SizeSpec spacer;
+    spacer.stretchX = 1.0f;
+    row.createSpacer(spacer);
+
+    row.createButton("Share",
+                     ButtonVariant::Default,
+                     fixed(UiDefaults::ControlWidthM, UiDefaults::ControlHeight));
+    row.createButton("Run",
+                     ButtonVariant::Primary,
+                     fixed(UiDefaults::ControlWidthM, UiDefaults::ControlHeight));
   };
 
   auto create_sidebar = [&]() {

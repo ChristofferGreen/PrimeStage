@@ -17,6 +17,25 @@ struct Bounds {
   float height = 0.0f;
 };
 
+struct SizeSpec {
+  std::optional<float> minWidth;
+  std::optional<float> maxWidth;
+  std::optional<float> preferredWidth;
+  float stretchX = 0.0f;
+  std::optional<float> minHeight;
+  std::optional<float> maxHeight;
+  std::optional<float> preferredHeight;
+  float stretchY = 0.0f;
+};
+
+struct StackSpec {
+  SizeSpec size;
+  PrimeFrame::Insets padding{};
+  float gap = 0.0f;
+  bool clipChildren = true;
+  bool visible = true;
+};
+
 struct PanelSpec {
   Bounds bounds;
   PrimeFrame::RectStyleToken rectStyle = 0;
@@ -26,6 +45,7 @@ struct PanelSpec {
   float gap = 0.0f;
   bool clipChildren = true;
   bool visible = true;
+  SizeSpec size;
 };
 
 struct LabelSpec {
@@ -37,6 +57,7 @@ struct LabelSpec {
   PrimeFrame::WrapMode wrap = PrimeFrame::WrapMode::Word;
   float maxWidth = 0.0f;
   bool visible = true;
+  SizeSpec size;
 };
 
 struct ParagraphSpec {
@@ -50,6 +71,7 @@ struct ParagraphSpec {
   float textOffsetY = 0.0f;
   bool autoHeight = true;
   bool visible = true;
+  SizeSpec size;
 };
 
 struct TextLineSpec {
@@ -60,6 +82,7 @@ struct TextLineSpec {
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
   float textOffsetY = 0.0f;
   bool visible = true;
+  SizeSpec size;
 };
 
 struct DividerSpec {
@@ -67,11 +90,13 @@ struct DividerSpec {
   PrimeFrame::RectStyleToken rectStyle = 0;
   PrimeFrame::RectStyleOverride rectStyleOverride{};
   bool visible = true;
+  SizeSpec size;
 };
 
 struct SpacerSpec {
   Bounds bounds;
   bool visible = true;
+  SizeSpec size;
 };
 
 struct ButtonSpec {
@@ -84,6 +109,7 @@ struct ButtonSpec {
   float textInsetX = 16.0f;
   float textOffsetY = 0.0f;
   bool centerText = true;
+  SizeSpec size;
 };
 
 struct TextFieldSpec {
@@ -99,6 +125,7 @@ struct TextFieldSpec {
   PrimeFrame::TextStyleToken placeholderStyle = 0;
   PrimeFrame::TextStyleOverride placeholderStyleOverride{};
   bool showPlaceholderWhenEmpty = true;
+  SizeSpec size;
 };
 
 struct ScrollAxisSpec {
@@ -132,6 +159,7 @@ struct ScrollViewSpec {
   bool showHorizontal = true;
   ScrollAxisSpec vertical{};
   ScrollAxisSpec horizontal{};
+  SizeSpec size;
 };
 
 Bounds insetBounds(Bounds const& bounds, float inset);
@@ -157,12 +185,40 @@ public:
   PrimeFrame::NodeId nodeId() const { return id_; }
   PrimeFrame::Frame& frame() const { return frame_.get(); }
 
+  UiNode& setSize(SizeSpec const& size);
+
+  UiNode createVerticalStack(StackSpec const& spec);
+  UiNode createHorizontalStack(StackSpec const& spec);
+  UiNode createOverlay(StackSpec const& spec);
+  template <typename Fn>
+  UiNode createVerticalStack(StackSpec const& spec, Fn&& fn) {
+    UiNode child = createVerticalStack(spec);
+    fn(child);
+    return child;
+  }
+  template <typename Fn>
+  UiNode createHorizontalStack(StackSpec const& spec, Fn&& fn) {
+    UiNode child = createHorizontalStack(spec);
+    fn(child);
+    return child;
+  }
+  template <typename Fn>
+  UiNode createOverlay(StackSpec const& spec, Fn&& fn) {
+    UiNode child = createOverlay(spec);
+    fn(child);
+    return child;
+  }
+
   UiNode createPanel(PanelSpec const& spec);
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds);
+  UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createLabel(LabelSpec const& spec);
   UiNode createLabel(std::string_view text,
                      PrimeFrame::TextStyleToken textStyle,
                      Bounds const& bounds);
+  UiNode createLabel(std::string_view text,
+                     PrimeFrame::TextStyleToken textStyle,
+                     SizeSpec const& size);
   UiNode createParagraph(ParagraphSpec const& spec);
   UiNode createParagraph(Bounds const& bounds,
                          std::string_view text,
@@ -172,8 +228,14 @@ public:
                         std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,
                         PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
+  UiNode createTextLine(std::string_view text,
+                        PrimeFrame::TextStyleToken textStyle,
+                        SizeSpec const& size,
+                        PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
   UiNode createDivider(DividerSpec const& spec);
+  UiNode createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createSpacer(SpacerSpec const& spec);
+  UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
   UiNode createScrollView(ScrollViewSpec const& spec);

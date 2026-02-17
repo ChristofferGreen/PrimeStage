@@ -83,7 +83,7 @@ if(PRIMESTAGE_BUILD_EXAMPLES)
 
   FetchContent_Declare(
     PrimeManifest
-    GIT_REPOSITORY git@github.com:ChristofferGreen/PrimeManifest.git
+    GIT_REPOSITORY https://github.com/ChristofferGreen/PrimeManifest.git
     GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
   )
   FetchContent_MakeAvailable(PrimeManifest)
