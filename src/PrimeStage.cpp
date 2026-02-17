@@ -1245,6 +1245,24 @@ SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view t
 
 UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    float maxWidth = 0.0f;
+    float labelInset = spec.labelInsetX;
+    float valueInset = spec.valueInsetX;
+    float valuePadding = spec.valuePaddingRight;
+    for (PropertyRow const& row : spec.rows) {
+      float labelWidth = estimate_text_width(frame(), textToken(spec.labelRole), row.label);
+      float valueWidth = estimate_text_width(frame(), textToken(spec.valueRole), row.value);
+      if (spec.valueAlignRight) {
+        maxWidth = std::max(maxWidth, labelInset + labelWidth + valuePadding + valueWidth);
+      } else {
+        maxWidth = std::max(maxWidth, std::max(labelInset + labelWidth, valueInset + valueWidth));
+      }
+    }
+    bounds.width = maxWidth;
+  }
   if (bounds.height <= 0.0f &&
       !spec.rows.empty() &&
       !spec.size.preferredHeight.has_value() &&
