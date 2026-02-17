@@ -53,20 +53,13 @@ int main(int argc, char** argv) {
 
   auto create_topbar = [&]() {
     add_divider(topbarNode, 232.0f, 12.0f, 1.0f, 32.0f);
-    TextFieldSpec searchSpec;
-    searchSpec.bounds = Bounds{248.0f, 12.0f, 360.0f, 32.0f};
-    searchSpec.placeholder = "Search...";
-    topbarNode.createTextField(searchSpec);
-    ButtonSpec runSpec;
-    runSpec.bounds = Bounds{kWidth - 220.0f, 12.0f, 88.0f, 32.0f};
-    runSpec.label = "Run";
-    runSpec.backgroundRole = RectRole::Accent;
-    UiNode runNode = topbarNode.createButton(runSpec);
+    topbarNode.createTextField(Bounds{248.0f, 12.0f, 360.0f, 32.0f}, "Search...");
+    UiNode runNode = topbarNode.createButton(Bounds{kWidth - 220.0f, 12.0f, 88.0f, 32.0f},
+                                             "Run",
+                                             ButtonVariant::Primary);
 
-    ButtonSpec shareSpec;
-    shareSpec.bounds = Bounds{kWidth - 120.0f, 12.0f, 88.0f, 32.0f};
-    shareSpec.label = "Share";
-    UiNode shareNode = topbarNode.createButton(shareSpec);
+    UiNode shareNode = topbarNode.createButton(Bounds{kWidth - 120.0f, 12.0f, 88.0f, 32.0f},
+                                               "Share");
 
     topbarNode.createTextLine(Bounds{0.0f, 14.0f, 232.0f, 28.0f},
                               "PrimeFrame Studio",
@@ -126,11 +119,9 @@ int main(int argc, char** argv) {
     float boardButtonH = 32.0f;
     float boardButtonX = contentW - 148.0f;
     float boardButtonY = 60.0f + 110.0f - boardButtonH - 12.0f;
-    ButtonSpec primarySpec;
-    primarySpec.bounds = Bounds{boardButtonX, boardButtonY, boardButtonW, boardButtonH};
-    primarySpec.label = "Primary Action";
-    primarySpec.backgroundRole = RectRole::Accent;
-    UiNode primaryButton = contentNode.createButton(primarySpec);
+    UiNode primaryButton = contentNode.createButton(Bounds{boardButtonX, boardButtonY, boardButtonW, boardButtonH},
+                                                    "Primary Action",
+                                                    ButtonVariant::Primary);
     float highlightHeaderY = 170.0f;
     float highlightHeaderH = 20.0f;
 
@@ -197,44 +188,27 @@ int main(int argc, char** argv) {
                                       "Inspector",
                                       TextRole::BodyBright);
 
-    SectionPanelSpec propsPanelSpec;
-    propsPanelSpec.bounds = Bounds{16.0f, 56.0f, inspectorW - 32.0f, 90.0f};
-    propsPanelSpec.title = "Properties";
-    SectionPanel propsPanel = inspectorNode.createSectionPanel(propsPanelSpec);
+    SectionPanel propsPanel = inspectorNode.createSectionPanel(Bounds{16.0f, 56.0f, inspectorW - 32.0f, 90.0f},
+                                                               "Properties");
 
-    SectionPanelSpec transformPanelSpec;
-    transformPanelSpec.bounds = Bounds{16.0f, 164.0f, inspectorW - 32.0f, 140.0f};
-    transformPanelSpec.title = "Transform";
-    SectionPanel transformPanel = inspectorNode.createSectionPanel(transformPanelSpec);
+    SectionPanel transformPanel = inspectorNode.createSectionPanel(Bounds{16.0f, 164.0f, inspectorW - 32.0f, 140.0f},
+                                                                   "Transform");
 
     float opacityRowY = transformPanel.contentBounds.y + 44.0f;
     float opacityBarX = transformPanel.contentBounds.x;
-    ProgressBarSpec opacityBar;
-    opacityBar.bounds = Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH};
-    opacityBar.value = 0.85f;
-    transformPanel.panel.createProgressBar(opacityBar);
+    transformPanel.panel.createProgressBar(
+        Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH},
+        0.85f);
 
-    ButtonSpec publishSpec;
-    publishSpec.bounds = Bounds{16.0f, contentH - 56.0f, inspectorW - 32.0f, 32.0f};
-    publishSpec.label = "Publish";
-    publishSpec.backgroundRole = RectRole::Accent;
-    UiNode publishButton = inspectorNode.createButton(publishSpec);
+    UiNode publishButton = inspectorNode.createButton(Bounds{16.0f, contentH - 56.0f, inspectorW - 32.0f, 32.0f},
+                                                      "Publish",
+                                                      ButtonVariant::Primary);
 
-    PropertyListSpec propsList;
-    propsList.bounds = propsPanel.contentBounds;
-    propsList.rows = {
-        {"Name", "SceneRoot"},
-        {"Tag", "Environment"}
-    };
-    propsPanel.panel.createPropertyList(propsList);
+    propsPanel.panel.createPropertyList(propsPanel.contentBounds,
+                                        {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
 
-    PropertyListSpec transformList;
-    transformList.bounds = transformPanel.contentBounds;
-    transformList.rows = {
-        {"Position", "0, 0, 0"},
-        {"Scale", "1, 1, 1"}
-    };
-    transformPanel.panel.createPropertyList(transformList);
+    transformPanel.panel.createPropertyList(transformPanel.contentBounds,
+                                            {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
 
     PropertyListSpec opacityList;
     opacityList.bounds = transformPanel.contentBounds;
@@ -242,18 +216,12 @@ int main(int argc, char** argv) {
     opacityList.rowHeight = opacityBarH;
     opacityList.rowGap = 0.0f;
     opacityList.labelRole = TextRole::SmallBright;
-    opacityList.rows = {
-        {"Opacity", "85%"}
-    };
+    opacityList.rows = {{"Opacity", "85%"}};
     transformPanel.panel.createPropertyList(opacityList);
   };
 
   auto create_status = [&]() {
-    StatusBarSpec status;
-    status.bounds = shell.statusBounds;
-    status.leftText = "Ready";
-    status.rightText = "PrimeFrame Demo";
-    root.createStatusBar(status);
+    root.createStatusBar(shell.statusBounds, "Ready", "PrimeFrame Demo");
   };
 
   create_topbar();

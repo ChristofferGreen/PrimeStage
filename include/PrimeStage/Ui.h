@@ -242,6 +242,11 @@ struct ButtonSpec {
   bool centerText = true;
 };
 
+enum class ButtonVariant {
+  Default,
+  Primary
+};
+
 struct TextFieldSpec {
   Bounds bounds;
   std::string text;
@@ -367,13 +372,23 @@ public:
                              bool addDivider,
                              float dividerOffsetY = 0.0f);
   SectionPanel createSectionPanel(SectionPanelSpec const& spec);
+  SectionPanel createSectionPanel(Bounds const& bounds, std::string_view title);
   UiNode createPropertyList(PropertyListSpec const& spec);
+  UiNode createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows);
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  UiNode createProgressBar(Bounds const& bounds, float value);
   UiNode createStatusBar(StatusBarSpec const& spec);
+  UiNode createStatusBar(Bounds const& bounds,
+                         std::string_view leftText,
+                         std::string_view rightText);
   UiNode createCardGrid(CardGridSpec const& spec);
   UiNode createCardGrid(Bounds const& bounds, std::vector<CardSpec> cards);
   UiNode createButton(ButtonSpec const& spec);
+  UiNode createButton(Bounds const& bounds,
+                      std::string_view label,
+                      ButtonVariant variant = ButtonVariant::Default);
   UiNode createTextField(TextFieldSpec const& spec);
+  UiNode createTextField(Bounds const& bounds, std::string_view placeholder);
   UiNode createScrollView(ScrollViewSpec const& spec);
   UiNode createTreeView(TreeViewSpec const& spec);
 

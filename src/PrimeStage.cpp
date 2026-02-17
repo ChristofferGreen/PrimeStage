@@ -787,6 +787,13 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
   return out;
 }
 
+SectionPanel UiNode::createSectionPanel(Bounds const& bounds, std::string_view title) {
+  SectionPanelSpec spec;
+  spec.bounds = bounds;
+  spec.title = std::string(title);
+  return createSectionPanel(spec);
+}
+
 UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
   Bounds bounds = spec.bounds;
   if (bounds.height <= 0.0f && !spec.rows.empty()) {
@@ -840,6 +847,13 @@ UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
   return listNode;
 }
 
+UiNode UiNode::createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows) {
+  PropertyListSpec spec;
+  spec.bounds = bounds;
+  spec.rows = std::move(rows);
+  return createPropertyList(spec);
+}
+
 UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
   Bounds bounds = spec.bounds;
   UiNode bar = createPanel(spec.trackRole, bounds);
@@ -852,6 +866,13 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
     bar.createPanel(spec.fillRole, Bounds{0.0f, 0.0f, fillWidth, bounds.height});
   }
   return bar;
+}
+
+UiNode UiNode::createProgressBar(Bounds const& bounds, float value) {
+  ProgressBarSpec spec;
+  spec.bounds = bounds;
+  spec.value = value;
+  return createProgressBar(spec);
 }
 
 UiNode UiNode::createCardGrid(CardGridSpec const& spec) {
@@ -953,6 +974,19 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   return button;
 }
 
+UiNode UiNode::createButton(Bounds const& bounds,
+                            std::string_view label,
+                            ButtonVariant variant) {
+  ButtonSpec spec;
+  spec.bounds = bounds;
+  spec.label = std::string(label);
+  if (variant == ButtonVariant::Primary) {
+    spec.backgroundRole = RectRole::Accent;
+    spec.textRole = TextRole::BodyBright;
+  }
+  return createButton(spec);
+}
+
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   UiNode field = createPanel(spec.backgroundRole, spec.bounds);
 
@@ -975,6 +1009,13 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
                     Bounds{spec.paddingX, textY, textWidth, lineHeight});
 
   return field;
+}
+
+UiNode UiNode::createTextField(Bounds const& bounds, std::string_view placeholder) {
+  TextFieldSpec spec;
+  spec.bounds = bounds;
+  spec.placeholder = std::string(placeholder);
+  return createTextField(spec);
 }
 
 UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
@@ -1016,6 +1057,16 @@ UiNode UiNode::createStatusBar(StatusBarSpec const& spec) {
   }
 
   return bar;
+}
+
+UiNode UiNode::createStatusBar(Bounds const& bounds,
+                               std::string_view leftText,
+                               std::string_view rightText) {
+  StatusBarSpec spec;
+  spec.bounds = bounds;
+  spec.leftText = std::string(leftText);
+  spec.rightText = std::string(rightText);
+  return createStatusBar(spec);
 }
 
 UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
