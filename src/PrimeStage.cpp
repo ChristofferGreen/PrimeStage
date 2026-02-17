@@ -667,6 +667,12 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
+  if (bounds.width <= 0.0f &&
+      spec.maxWidth > 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    bounds.width = maxWidth;
+  }
   if (maxWidth <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f) {
