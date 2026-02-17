@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
   Bounds sidebarBounds = shell.sidebarBounds;
   Bounds contentBounds = shell.contentBounds;
   Bounds inspectorBounds = shell.inspectorBounds;
-  Bounds inspectorLocal{0.0f, 0.0f, inspectorBounds.width, inspectorBounds.height};
   float contentW = contentBounds.width;
   float contentH = contentBounds.height;
   float sidebarW = sidebarBounds.width;
@@ -265,29 +264,41 @@ int main(int argc, char** argv) {
   };
 
   auto create_inspector = [&]() {
-    float headerY = UiDefaults::SectionHeaderOffsetY;
-    rightRail.createSectionHeader(Bounds{UiDefaults::SurfaceInset,
-                                         headerY,
-                                         inspectorW - UiDefaults::SurfaceInset * 2.0f,
-                                         UiDefaults::SectionHeaderHeight},
-                                      "Inspector",
-                                      TextRole::BodyBright);
+    StackSpec columnSpec;
+    columnSpec.size.preferredWidth = inspectorW;
+    columnSpec.size.preferredHeight = inspectorBounds.height;
+    columnSpec.padding = Insets{UiDefaults::SurfaceInset,
+                                UiDefaults::SurfaceInset,
+                                UiDefaults::SurfaceInset,
+                                UiDefaults::SurfaceInset};
+    columnSpec.gap = UiDefaults::PanelGap;
+    UiNode column = rightRail.createVerticalStack(columnSpec);
 
-    float propsPanelY = headerY + UiDefaults::SectionHeaderHeight + UiDefaults::PanelGap;
+    SizeSpec headerSpacer;
+    headerSpacer.preferredHeight = UiDefaults::SectionHeaderOffsetY;
+    column.createSpacer(headerSpacer);
+
+    float sectionWidth = inspectorW - UiDefaults::SurfaceInset * 2.0f;
+    column.createSectionHeader(Bounds{0.0f,
+                                      0.0f,
+                                      sectionWidth,
+                                      UiDefaults::SectionHeaderHeight},
+                               "Inspector",
+                               TextRole::BodyBright);
+
     SectionPanel propsPanel =
-        rightRail.createSectionPanel(Bounds{UiDefaults::SurfaceInset,
-                                            propsPanelY,
-                                            inspectorW - UiDefaults::SurfaceInset * 2.0f,
-                                            UiDefaults::PanelHeightS},
-                                                               "Properties");
+        column.createSectionPanel(Bounds{0.0f,
+                                         0.0f,
+                                         sectionWidth,
+                                         UiDefaults::PanelHeightS},
+                                  "Properties");
 
-    float transformPanelY = propsPanelY + UiDefaults::PanelHeightS + UiDefaults::PanelGapLarge;
     SectionPanel transformPanel =
-        rightRail.createSectionPanel(Bounds{UiDefaults::SurfaceInset,
-                                            transformPanelY,
-                                            inspectorW - UiDefaults::SurfaceInset * 2.0f,
-                                            UiDefaults::PanelHeightM},
-                                                                   "Transform");
+        column.createSectionPanel(Bounds{0.0f,
+                                         0.0f,
+                                         sectionWidth,
+                                         UiDefaults::PanelHeightM},
+                                  "Transform");
 
     float opacityRowY = transformPanel.contentBounds.y + UiDefaults::InlineRowOffset;
     float opacityBarX = transformPanel.contentBounds.x;
@@ -295,14 +306,16 @@ int main(int argc, char** argv) {
         Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH},
         0.85f);
 
-    Bounds publishBounds = alignBottomRight(inspectorLocal,
-                                            inspectorW - UiDefaults::SurfaceInset * 2.0f,
-                                            UiDefaults::ControlHeight,
-                                            UiDefaults::SurfaceInset,
-                                            UiDefaults::FooterInset);
-    UiNode publishButton = rightRail.createButton(publishBounds,
-                                                      "Publish",
-                                                      ButtonVariant::Primary);
+    SizeSpec footerSpacer;
+    footerSpacer.stretchY = 1.0f;
+    column.createSpacer(footerSpacer);
+
+    SizeSpec publishSize;
+    publishSize.preferredWidth = sectionWidth;
+    publishSize.preferredHeight = UiDefaults::ControlHeight;
+    column.createButton("Publish",
+                        ButtonVariant::Primary,
+                        publishSize);
 
     propsPanel.panel.createPropertyList(propsPanel.contentBounds,
                                         {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
