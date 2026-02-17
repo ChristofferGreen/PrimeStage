@@ -24,7 +24,10 @@ int main(int argc, char** argv) {
 
   Frame frame;
 
-  ShellSpec shellSpec = makeShellSpec(Bounds{0.0f, 0.0f, kWidth, kHeight});
+  SizeSpec shellSize;
+  shellSize.preferredWidth = kWidth;
+  shellSize.preferredHeight = kHeight;
+  ShellSpec shellSpec = makeShellSpec(shellSize);
   ShellLayout shell = createShell(frame, shellSpec);
   Bounds sidebarBounds = shell.sidebarBounds;
   Bounds contentBounds = shell.contentBounds;

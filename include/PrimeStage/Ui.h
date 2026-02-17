@@ -281,8 +281,10 @@ struct ShellLayout {
 };
 
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds);
+UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size);
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec);
 ShellSpec makeShellSpec(Bounds const& bounds);
+ShellSpec makeShellSpec(SizeSpec const& size);
 #endif
 
 } // namespace PrimeStage

@@ -2,9 +2,16 @@
 
 #include "third_party/doctest.h"
 
+static PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame, float width, float height) {
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = width;
+  size.preferredHeight = height;
+  return PrimeStage::createRoot(frame, size);
+}
+
 TEST_CASE("PrimeStage UiNode builds panels and labels") {
   PrimeFrame::Frame frame;
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 100.0f, 50.0f});
+  PrimeStage::UiNode root = createRoot(frame, 100.0f, 50.0f);
   CHECK(frame.roots().size() == 1);
   PrimeFrame::Node const* rootNode = frame.getNode(root.nodeId());
   REQUIRE(rootNode != nullptr);
@@ -39,7 +46,7 @@ TEST_CASE("PrimeStage UiNode builds panels and labels") {
 
 TEST_CASE("PrimeStage role helpers create panels and labels") {
   PrimeFrame::Frame frame;
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 50.0f, 20.0f});
+  PrimeStage::UiNode root = createRoot(frame, 50.0f, 20.0f);
   PrimeStage::SizeSpec panelSize;
   panelSize.preferredWidth = 20.0f;
   panelSize.preferredHeight = 10.0f;
@@ -55,7 +62,7 @@ TEST_CASE("PrimeStage role helpers create panels and labels") {
 TEST_CASE("PrimeStage paragraph creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 80.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 80.0f);
 
   PrimeStage::SizeSpec paragraphSize;
   paragraphSize.preferredWidth = 160.0f;
@@ -68,7 +75,7 @@ TEST_CASE("PrimeStage paragraph creates a node") {
 TEST_CASE("PrimeStage text line creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 40.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
 
   PrimeStage::SizeSpec lineSize;
   lineSize.preferredWidth = 160.0f;
@@ -83,7 +90,7 @@ TEST_CASE("PrimeStage text line creates a node") {
 TEST_CASE("PrimeStage table creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   PrimeStage::TableSpec tableSpec;
   tableSpec.size.preferredWidth = 180.0f;
@@ -106,7 +113,7 @@ TEST_CASE("PrimeStage table creates a node") {
 TEST_CASE("PrimeStage tree view creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   PrimeStage::TreeViewSpec spec;
   spec.size.preferredWidth = 200.0f;
@@ -119,7 +126,7 @@ TEST_CASE("PrimeStage tree view creates a node") {
 TEST_CASE("PrimeStage section header creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 40.0f});
+  PrimeStage::UiNode root = createRoot(frame, 120.0f, 40.0f);
 
   PrimeStage::SizeSpec size;
   size.preferredWidth = 100.0f;
@@ -133,7 +140,7 @@ TEST_CASE("PrimeStage section header creates a node") {
 TEST_CASE("PrimeStage section panel creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   PrimeStage::SectionPanelSpec spec;
   spec.size.preferredWidth = 180.0f;
@@ -148,7 +155,8 @@ TEST_CASE("PrimeStage shell creates a layout") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
   PrimeStage::ShellSpec spec;
-  spec.bounds = PrimeStage::Bounds{0.0f, 0.0f, 320.0f, 180.0f};
+  spec.size.preferredWidth = 320.0f;
+  spec.size.preferredHeight = 180.0f;
   PrimeStage::ShellLayout layout = PrimeStage::createShell(frame, spec);
   CHECK(frame.getNode(layout.root.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.topbar.nodeId()) != nullptr);
@@ -161,7 +169,7 @@ TEST_CASE("PrimeStage shell creates a layout") {
 TEST_CASE("PrimeStage scroll view creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 120.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   PrimeStage::ScrollViewSpec spec;
   spec.size.preferredWidth = 200.0f;
@@ -175,7 +183,7 @@ TEST_CASE("PrimeStage scroll view creates a node") {
 TEST_CASE("PrimeStage button creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 40.0f});
+  PrimeStage::UiNode root = createRoot(frame, 120.0f, 40.0f);
 
   PrimeStage::ButtonSpec spec;
   spec.size.preferredWidth = 80.0f;
@@ -190,7 +198,7 @@ TEST_CASE("PrimeStage button creates a node") {
 TEST_CASE("PrimeStage text field creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 40.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
 
   PrimeStage::TextFieldSpec spec;
   spec.size.preferredWidth = 160.0f;
@@ -203,7 +211,7 @@ TEST_CASE("PrimeStage text field creates a node") {
 TEST_CASE("PrimeStage status bar creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 30.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 30.0f);
 
   PrimeStage::StatusBarSpec spec;
   spec.size.preferredWidth = 200.0f;
@@ -217,7 +225,7 @@ TEST_CASE("PrimeStage status bar creates a node") {
 TEST_CASE("PrimeStage property list creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 200.0f, 80.0f});
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 80.0f);
 
   PrimeStage::PropertyListSpec spec;
   spec.size.preferredWidth = 180.0f;
@@ -232,7 +240,7 @@ TEST_CASE("PrimeStage property list creates a node") {
 TEST_CASE("PrimeStage card grid creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 300.0f, 200.0f});
+  PrimeStage::UiNode root = createRoot(frame, 300.0f, 200.0f);
 
   PrimeStage::CardGridSpec spec;
   spec.size.preferredWidth = 280.0f;
@@ -245,7 +253,7 @@ TEST_CASE("PrimeStage card grid creates a node") {
 TEST_CASE("PrimeStage progress bar creates a node") {
   PrimeFrame::Frame frame;
   PrimeStage::applyStudioTheme(frame);
-  PrimeStage::UiNode root = PrimeStage::createRoot(frame, PrimeStage::Bounds{0.0f, 0.0f, 120.0f, 24.0f});
+  PrimeStage::UiNode root = createRoot(frame, 120.0f, 24.0f);
 
   PrimeStage::ProgressBarSpec spec;
   spec.size.preferredWidth = 120.0f;

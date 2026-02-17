@@ -1825,12 +1825,23 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 }
 
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
+  SizeSpec size;
+  if (bounds.width > 0.0f) {
+    size.preferredWidth = bounds.width;
+  }
+  if (bounds.height > 0.0f) {
+    size.preferredHeight = bounds.height;
+  }
+  return createRoot(frame, size);
+}
+
+UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
   PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
   if (theme && (theme->palette.empty() || theme->rectStyles.empty() || theme->textStyles.empty() ||
                 is_default_theme(*theme))) {
     applyStudioTheme(frame);
   }
-  Bounds rootBounds = bounds;
+  Bounds rootBounds = resolve_bounds(Bounds{}, size);
   rootBounds.x = 0.0f;
   rootBounds.y = 0.0f;
   PrimeFrame::NodeId id = create_node(frame, PrimeFrame::NodeId{}, rootBounds,
@@ -1844,8 +1855,11 @@ UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
 }
 
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
-  float width = spec.bounds.width;
-  float height = spec.bounds.height;
+  Bounds shellBounds = resolve_bounds(spec.bounds, spec.size);
+  shellBounds.x = 0.0f;
+  shellBounds.y = 0.0f;
+  float width = shellBounds.width;
+  float height = shellBounds.height;
   float contentH = std::max(0.0f, height - spec.topbarHeight - spec.statusHeight);
   float contentW = std::max(0.0f, width - spec.sidebarWidth - spec.inspectorWidth);
 
@@ -1855,7 +1869,7 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
   Bounds contentBounds{spec.sidebarWidth, spec.topbarHeight, contentW, contentH};
   Bounds inspectorBounds{width - spec.inspectorWidth, spec.topbarHeight, spec.inspectorWidth, contentH};
 
-  UiNode root = createRoot(frame, spec.bounds);
+  UiNode root = createRoot(frame, shellBounds);
   StackSpec overlaySpec;
   overlaySpec.size.preferredWidth = width;
   overlaySpec.size.preferredHeight = height;
@@ -1928,7 +1942,7 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
       sidebar,
       content,
       inspector,
-      spec.bounds,
+      shellBounds,
       topbarBounds,
       statusBounds,
       sidebarBounds,
@@ -1940,6 +1954,12 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
 ShellSpec makeShellSpec(Bounds const& bounds) {
   ShellSpec spec;
   spec.bounds = bounds;
+  return spec;
+}
+
+ShellSpec makeShellSpec(SizeSpec const& size) {
+  ShellSpec spec;
+  spec.size = size;
   return spec;
 }
 

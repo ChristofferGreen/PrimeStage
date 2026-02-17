@@ -182,6 +182,7 @@ struct StatusBarSpec {
 
 struct ShellSpec {
   Bounds bounds;
+  SizeSpec size;
   float topbarHeight = UiDefaults::EdgeBarHeight;
   float statusHeight = UiDefaults::StatusHeight;
   float sidebarWidth = UiDefaults::PrimaryRailWidth;
