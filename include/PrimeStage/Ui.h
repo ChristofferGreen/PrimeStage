@@ -162,10 +162,15 @@ struct ScrollViewSpec {
   SizeSpec size;
 };
 
+[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
 Bounds insetBounds(Bounds const& bounds, float inset);
+[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
 Bounds insetBounds(Bounds const& bounds, float insetX, float insetY);
+[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
 Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom);
+[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
 Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY);
+[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
 Bounds alignCenterY(Bounds const& bounds, float height);
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
