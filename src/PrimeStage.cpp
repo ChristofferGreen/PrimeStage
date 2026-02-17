@@ -736,6 +736,20 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float lineHeight = resolve_line_height(frame(), token);
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f &&
+      !spec.text.empty()) {
+    float textWidth = estimate_text_width(frame(), token, spec.text);
+    if (bounds.width <= 0.0f) {
+      bounds.width = textWidth;
+    }
+    if (bounds.height <= 0.0f) {
+      bounds.height = lineHeight;
+    }
+  }
   float containerHeight = bounds.height > 0.0f ? bounds.height : lineHeight;
   float textY = bounds.y + (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
 
