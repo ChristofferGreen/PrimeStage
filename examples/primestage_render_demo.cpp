@@ -172,15 +172,7 @@ int main(int argc, char** argv) {
                                 {"Item Row", "Ready"}
                             });
 
-    ScrollViewSpec scrollSpec;
-    scrollSpec.bounds = Bounds{0.0f, 0.0f, contentW, contentH};
-    scrollSpec.vertical.thumbLength = 120.0f;
-    scrollSpec.vertical.thumbOffset = 108.0f;
-    scrollSpec.horizontal.startPadding = 16.0f;
-    scrollSpec.horizontal.endPadding = 48.0f;
-    scrollSpec.horizontal.thumbLength = 120.0f;
-    scrollSpec.horizontal.thumbOffset = 124.0f;
-    contentNode.createScrollView(scrollSpec);
+    contentNode.createScrollHints(Bounds{0.0f, 0.0f, contentW, contentH});
   };
 
   auto create_inspector = [&]() {
@@ -210,14 +202,10 @@ int main(int argc, char** argv) {
     transformPanel.panel.createPropertyList(transformPanel.contentBounds,
                                             {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
 
-    PropertyListSpec opacityList;
-    opacityList.bounds = transformPanel.contentBounds;
-    opacityList.bounds.y = opacityRowY;
-    opacityList.rowHeight = opacityBarH;
-    opacityList.rowGap = 0.0f;
-    opacityList.labelRole = TextRole::SmallBright;
-    opacityList.rows = {{"Opacity", "85%"}};
-    transformPanel.panel.createPropertyList(opacityList);
+    Bounds opacityLabelBounds = transformPanel.contentBounds;
+    opacityLabelBounds.y = opacityRowY;
+    opacityLabelBounds.height = opacityBarH;
+    transformPanel.panel.createPropertyRow(opacityLabelBounds, "Opacity", "85%");
   };
 
   auto create_status = [&]() {

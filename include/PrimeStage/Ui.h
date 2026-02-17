@@ -292,6 +292,18 @@ struct ScrollViewSpec {
   ScrollAxisSpec horizontal{};
 };
 
+struct ScrollHintsSpec {
+  Bounds bounds;
+  bool showVertical = true;
+  bool showHorizontal = true;
+  float verticalThumbLength = 120.0f;
+  float verticalThumbOffset = 108.0f;
+  float horizontalThumbLength = 120.0f;
+  float horizontalThumbOffset = 124.0f;
+  float horizontalStartPadding = 16.0f;
+  float horizontalEndPadding = 48.0f;
+};
+
 struct TreeNode {
   std::string label;
   std::vector<TreeNode> children;
@@ -375,6 +387,10 @@ public:
   SectionPanel createSectionPanel(Bounds const& bounds, std::string_view title);
   UiNode createPropertyList(PropertyListSpec const& spec);
   UiNode createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows);
+  UiNode createPropertyRow(Bounds const& bounds,
+                           std::string_view label,
+                           std::string_view value,
+                           TextRole role = TextRole::SmallBright);
   UiNode createProgressBar(ProgressBarSpec const& spec);
   UiNode createProgressBar(Bounds const& bounds, float value);
   UiNode createStatusBar(StatusBarSpec const& spec);
@@ -390,6 +406,8 @@ public:
   UiNode createTextField(TextFieldSpec const& spec);
   UiNode createTextField(Bounds const& bounds, std::string_view placeholder);
   UiNode createScrollView(ScrollViewSpec const& spec);
+  UiNode createScrollHints(ScrollHintsSpec const& spec);
+  UiNode createScrollHints(Bounds const& bounds);
   UiNode createTreeView(TreeViewSpec const& spec);
 
 private:

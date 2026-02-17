@@ -854,6 +854,22 @@ UiNode UiNode::createPropertyList(Bounds const& bounds, std::vector<PropertyRow>
   return createPropertyList(spec);
 }
 
+UiNode UiNode::createPropertyRow(Bounds const& bounds,
+                                 std::string_view label,
+                                 std::string_view value,
+                                 TextRole role) {
+  PropertyListSpec spec;
+  spec.bounds = bounds;
+  if (bounds.height > 0.0f) {
+    spec.rowHeight = bounds.height;
+  }
+  spec.rowGap = 0.0f;
+  spec.labelRole = role;
+  spec.valueRole = role;
+  spec.rows = {{std::string(label), std::string(value)}};
+  return createPropertyList(spec);
+}
+
 UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
   Bounds bounds = spec.bounds;
   UiNode bar = createPanel(spec.trackRole, bounds);
@@ -1112,6 +1128,26 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
   }
 
   return scrollNode;
+}
+
+UiNode UiNode::createScrollHints(ScrollHintsSpec const& spec) {
+  ScrollViewSpec view;
+  view.bounds = spec.bounds;
+  view.showVertical = spec.showVertical;
+  view.showHorizontal = spec.showHorizontal;
+  view.vertical.thumbLength = spec.verticalThumbLength;
+  view.vertical.thumbOffset = spec.verticalThumbOffset;
+  view.horizontal.thumbLength = spec.horizontalThumbLength;
+  view.horizontal.thumbOffset = spec.horizontalThumbOffset;
+  view.horizontal.startPadding = spec.horizontalStartPadding;
+  view.horizontal.endPadding = spec.horizontalEndPadding;
+  return createScrollView(view);
+}
+
+UiNode UiNode::createScrollHints(Bounds const& bounds) {
+  ScrollHintsSpec spec;
+  spec.bounds = bounds;
+  return createScrollHints(spec);
 }
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
