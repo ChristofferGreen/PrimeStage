@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
   float sidebarW = sidebarBounds.width;
   float inspectorW = inspectorBounds.width;
   float shellWidth = shell.bounds.width;
+  float shellHeight = shell.bounds.height;
   UiNode root = shell.root;
   UiNode edgeBar = shell.topbar;
   UiNode leftRail = shell.sidebar;
@@ -305,7 +306,33 @@ int main(int argc, char** argv) {
   };
 
   auto create_status = [&]() {
-    root.createStatusBar(shell.statusBounds, "Ready", "PrimeFrame Demo");
+    StackSpec stackSpec;
+    stackSpec.size.preferredWidth = shellWidth;
+    stackSpec.size.preferredHeight = shellHeight;
+    UiNode statusStack = root.createVerticalStack(stackSpec);
+
+    SizeSpec spacer;
+    spacer.stretchY = 1.0f;
+    statusStack.createSpacer(spacer);
+
+    PanelSpec barSpec;
+    barSpec.rectStyle = rectToken(RectRole::Statusbar);
+    barSpec.layout = PrimeFrame::LayoutType::HorizontalStack;
+    barSpec.padding = Insets{UiDefaults::SurfaceInset, 0.0f, UiDefaults::SurfaceInset, 0.0f};
+    barSpec.gap = UiDefaults::PanelInset;
+    barSpec.size.preferredWidth = shellWidth;
+    barSpec.size.preferredHeight = UiDefaults::StatusHeight;
+    UiNode bar = statusStack.createPanel(barSpec);
+
+    SizeSpec lineSize;
+    lineSize.preferredHeight = UiDefaults::StatusHeight;
+    bar.createTextLine("Ready", TextRole::SmallMuted, lineSize);
+
+    SizeSpec barSpacer;
+    barSpacer.stretchX = 1.0f;
+    bar.createSpacer(barSpacer);
+
+    bar.createTextLine("PrimeFrame Demo", TextRole::SmallMuted, lineSize);
   };
 
   create_topbar();
