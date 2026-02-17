@@ -256,17 +256,12 @@ int main(int argc, char** argv) {
     float gaps = columnSpec.gap * 5.0f;
     float availableTableH = contentH - columnSpec.padding.vertical() - usedHeight - gaps;
 
-    float listY = 0.0f;
-    float listHeaderY = listY - UiDefaults::TableHeaderOffset;
     float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
     float firstColWidth = contentW - UiDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
-    tableSpec.bounds = Bounds{0.0f,
-                              listHeaderY - UiDefaults::TableHeaderPadY,
-                              0.0f,
-                              0.0f};
+    tableSpec.bounds = Bounds{};
     tableSpec.size.preferredWidth = tableWidth;
     tableSpec.size.preferredHeight = std::max(1.0f, availableTableH);
     tableSpec.showHeaderDividers = false;
@@ -323,11 +318,31 @@ int main(int argc, char** argv) {
     transformSize.preferredHeight = UiDefaults::PanelHeightM;
     SectionPanel transformPanel = column.createSectionPanel(transformSize, "Transform");
 
-    float opacityRowY = transformPanel.contentBounds.y + UiDefaults::InlineRowOffset;
-    float opacityBarX = transformPanel.contentBounds.x;
-    transformPanel.panel.createProgressBar(
-        Bounds{opacityBarX, opacityRowY, transformPanel.contentBounds.width, opacityBarH},
-        0.85f);
+    SizeSpec propsListSize;
+    propsListSize.preferredWidth = propsPanel.contentBounds.width;
+    propsPanel.content.createPropertyList(propsListSize,
+                                          {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
+
+    StackSpec transformStackSpec;
+    transformStackSpec.size.preferredWidth = transformPanel.contentBounds.width;
+    transformStackSpec.size.preferredHeight = transformPanel.contentBounds.height;
+    transformStackSpec.gap = UiDefaults::PanelInset;
+    UiNode transformStack = transformPanel.content.createVerticalStack(transformStackSpec);
+
+    SizeSpec transformListSize;
+    transformListSize.preferredWidth = transformPanel.contentBounds.width;
+    transformStack.createPropertyList(transformListSize,
+                                      {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
+
+    SizeSpec opacityRowSize;
+    opacityRowSize.preferredWidth = transformPanel.contentBounds.width;
+    opacityRowSize.preferredHeight = opacityBarH;
+    transformStack.createPropertyRow(opacityRowSize, "Opacity", "85%");
+
+    SizeSpec opacityBarSize;
+    opacityBarSize.preferredWidth = transformPanel.contentBounds.width;
+    opacityBarSize.preferredHeight = opacityBarH;
+    transformStack.createProgressBar(opacityBarSize, 0.85f);
 
     SizeSpec footerSpacer;
     footerSpacer.stretchY = 1.0f;
@@ -340,16 +355,6 @@ int main(int argc, char** argv) {
                         ButtonVariant::Primary,
                         publishSize);
 
-    propsPanel.panel.createPropertyList(propsPanel.contentBounds,
-                                        {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
-
-    transformPanel.panel.createPropertyList(transformPanel.contentBounds,
-                                            {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
-
-    Bounds opacityLabelBounds = transformPanel.contentBounds;
-    opacityLabelBounds.y = opacityRowY;
-    opacityLabelBounds.height = opacityBarH;
-    transformPanel.panel.createPropertyRow(opacityLabelBounds, "Opacity", "85%");
   };
 
   auto create_status = [&]() {

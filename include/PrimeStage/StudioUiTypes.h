@@ -155,6 +155,7 @@ struct PropertyListSpec {
   TextRole labelRole = TextRole::SmallMuted;
   TextRole valueRole = TextRole::SmallBright;
   std::vector<PropertyRow> rows;
+  SizeSpec size;
 };
 
 struct ProgressBarSpec {
@@ -163,6 +164,7 @@ struct ProgressBarSpec {
   float minFillWidth = 0.0f;
   RectRole trackRole = RectRole::PanelStrong;
   RectRole fillRole = RectRole::Accent;
+  SizeSpec size;
 };
 
 struct StatusBarSpec {

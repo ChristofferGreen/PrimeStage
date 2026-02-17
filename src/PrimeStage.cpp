@@ -1012,7 +1012,7 @@ UiNode UiNode::createSectionHeader(SizeSpec const& size,
 }
 
 SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
-  SectionPanel out{createPanel(spec.panelRole, spec.bounds), {}, {}};
+  SectionPanel out{createPanel(spec.panelRole, spec.bounds), UiNode(frame(), PrimeFrame::NodeId{}), {}, {}};
 
   float headerWidth = std::max(0.0f, spec.bounds.width - spec.headerInsetX - spec.headerInsetRight);
   Bounds headerBounds{spec.headerInsetX, spec.headerInsetY, headerWidth, spec.headerHeight};
@@ -1045,6 +1045,14 @@ SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
   float contentH = std::max(0.0f,
                             spec.bounds.height - (contentY + spec.contentInsetBottom));
   out.contentBounds = Bounds{contentX, contentY, contentW, contentH};
+  PrimeFrame::NodeId contentId = create_node(frame(), out.panel.nodeId(), out.contentBounds,
+                                             nullptr,
+                                             PrimeFrame::LayoutType::None,
+                                             PrimeFrame::Insets{},
+                                             0.0f,
+                                             false,
+                                             true);
+  out.content = UiNode(frame(), contentId);
 
   return out;
 }
@@ -1064,13 +1072,13 @@ SectionPanel UiNode::createSectionPanel(SizeSpec const& size, std::string_view t
 }
 
 UiNode UiNode::createPropertyList(PropertyListSpec const& spec) {
-  Bounds bounds = spec.bounds;
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
   if (bounds.height <= 0.0f && !spec.rows.empty()) {
     bounds.height = static_cast<float>(spec.rows.size()) * spec.rowHeight +
                     static_cast<float>(spec.rows.size() - 1) * spec.rowGap;
   }
   PrimeFrame::NodeId listId = create_node(frame(), id_, bounds,
-                                          nullptr,
+                                          &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
                                           0.0f,
@@ -1124,6 +1132,13 @@ UiNode UiNode::createPropertyList(Bounds const& bounds, std::vector<PropertyRow>
   return createPropertyList(spec);
 }
 
+UiNode UiNode::createPropertyList(SizeSpec const& size, std::vector<PropertyRow> rows) {
+  PropertyListSpec spec;
+  spec.size = size;
+  spec.rows = std::move(rows);
+  return createPropertyList(spec);
+}
+
 UiNode UiNode::createPropertyRow(Bounds const& bounds,
                                  std::string_view label,
                                  std::string_view value,
@@ -1140,9 +1155,25 @@ UiNode UiNode::createPropertyRow(Bounds const& bounds,
   return createPropertyList(spec);
 }
 
+UiNode UiNode::createPropertyRow(SizeSpec const& size,
+                                 std::string_view label,
+                                 std::string_view value,
+                                 TextRole role) {
+  PropertyListSpec spec;
+  spec.size = size;
+  spec.labelRole = role;
+  spec.valueRole = role;
+  spec.rows = {{std::string(label), std::string(value)}};
+  return createPropertyList(spec);
+}
+
 UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
-  Bounds bounds = spec.bounds;
-  UiNode bar = createPanel(spec.trackRole, bounds);
+  Bounds bounds = resolve_bounds(spec.bounds, spec.size);
+  PanelSpec panel;
+  panel.bounds = bounds;
+  panel.size = spec.size;
+  panel.rectStyle = rectToken(spec.trackRole);
+  UiNode bar = createPanel(panel);
   float clamped = std::clamp(spec.value, 0.0f, 1.0f);
   float fillWidth = bounds.width * clamped;
   if (spec.minFillWidth > 0.0f && clamped > 0.0f) {
@@ -1157,6 +1188,13 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
 UiNode UiNode::createProgressBar(Bounds const& bounds, float value) {
   ProgressBarSpec spec;
   spec.bounds = bounds;
+  spec.value = value;
+  return createProgressBar(spec);
+}
+
+UiNode UiNode::createProgressBar(SizeSpec const& size, float value) {
+  ProgressBarSpec spec;
+  spec.size = size;
   spec.value = value;
   return createProgressBar(spec);
 }

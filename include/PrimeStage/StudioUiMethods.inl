@@ -42,12 +42,18 @@
   SectionPanel createSectionPanel(SizeSpec const& size, std::string_view title);
   UiNode createPropertyList(PropertyListSpec const& spec);
   UiNode createPropertyList(Bounds const& bounds, std::vector<PropertyRow> rows);
+  UiNode createPropertyList(SizeSpec const& size, std::vector<PropertyRow> rows);
   UiNode createPropertyRow(Bounds const& bounds,
+                           std::string_view label,
+                           std::string_view value,
+                           TextRole role = TextRole::SmallBright);
+  UiNode createPropertyRow(SizeSpec const& size,
                            std::string_view label,
                            std::string_view value,
                            TextRole role = TextRole::SmallBright);
   UiNode createProgressBar(ProgressBarSpec const& spec);
   UiNode createProgressBar(Bounds const& bounds, float value);
+  UiNode createProgressBar(SizeSpec const& size, float value);
   UiNode createStatusBar(StatusBarSpec const& spec);
   UiNode createStatusBar(Bounds const& bounds,
                          std::string_view leftText,

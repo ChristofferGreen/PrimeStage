@@ -255,6 +255,7 @@ private:
 #ifdef PRIMESTAGE_STUDIO_UI
 struct SectionPanel {
   UiNode panel;
+  UiNode content;
   Bounds headerBounds;
   Bounds contentBounds;
 };
