@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
   Bounds sidebarBounds = shell.sidebarBounds;
   Bounds contentBounds = shell.contentBounds;
   Bounds inspectorBounds = shell.inspectorBounds;
-  Bounds sidebarLocal{0.0f, 0.0f, sidebarBounds.width, sidebarBounds.height};
   Bounds inspectorLocal{0.0f, 0.0f, inspectorBounds.width, inspectorBounds.height};
   float contentW = contentBounds.width;
   float contentH = contentBounds.height;
@@ -72,6 +71,7 @@ int main(int argc, char** argv) {
                        PrimeFrame::TextAlign::Center);
     row.createDivider(rectToken(RectRole::Divider),
                       fixed(UiDefaults::DividerThickness, UiDefaults::ControlHeight));
+    row.createSpacer(fixed(UiDefaults::PanelInset, UiDefaults::ControlHeight));
     row.createTextField("Search...", fixed(UiDefaults::FieldWidthL, UiDefaults::ControlHeight));
 
     SizeSpec spacer;
@@ -87,48 +87,55 @@ int main(int argc, char** argv) {
   };
 
   auto create_sidebar = [&]() {
-    float headerY = UiDefaults::PanelInset;
-    float treeTop = headerY + UiDefaults::HeaderHeight + UiDefaults::PanelInset;
-    float treeBottomInset = UiDefaults::HeaderHeight;
-    Bounds treePanelBounds = insetBounds(sidebarLocal,
-                                         UiDefaults::PanelInset,
-                                         treeTop,
-                                         UiDefaults::PanelInset,
-                                         treeBottomInset);
-    UiNode treePanel = add_panel(leftRail, treePanelBounds, RectRole::Panel);
-    add_panel(leftRail,
-              Bounds{UiDefaults::PanelInset,
-                     headerY,
-                     sidebarW - UiDefaults::PanelInset * 2.0f,
-                     UiDefaults::HeaderHeight},
-              RectRole::PanelStrong);
-    add_panel(leftRail,
-              Bounds{UiDefaults::PanelInset,
-                     headerY,
-                     UiDefaults::AccentThickness,
-                     UiDefaults::HeaderHeight},
-              RectRole::Accent);
+    StackSpec columnSpec;
+    columnSpec.size.preferredWidth = sidebarW;
+    columnSpec.size.preferredHeight = sidebarBounds.height;
+    columnSpec.padding = Insets{UiDefaults::PanelInset,
+                                UiDefaults::PanelInset,
+                                UiDefaults::PanelInset,
+                                UiDefaults::PanelInset};
+    columnSpec.gap = UiDefaults::PanelInset;
+    UiNode column = leftRail.createVerticalStack(columnSpec);
 
-    float labelX = UiDefaults::PanelInset + UiDefaults::LabelIndent;
-    float labelW = std::max(0.0f, sidebarW - labelX - UiDefaults::PanelInset);
-    leftRail.createTextLine(Bounds{labelX,
-                                   headerY,
-                                   labelW,
-                                   UiDefaults::HeaderHeight},
-                               "Scene",
-                               TextRole::BodyBright);
-    leftRail.createTextLine(Bounds{labelX,
-                                   treeTop + UiDefaults::LabelGap,
-                                   labelW,
-                                   UiDefaults::HeaderHeight},
-                               "Hierarchy",
-                               TextRole::SmallMuted);
+    PanelSpec headerSpec;
+    headerSpec.rectStyle = rectToken(RectRole::PanelStrong);
+    headerSpec.layout = PrimeFrame::LayoutType::HorizontalStack;
+    headerSpec.size.preferredHeight = UiDefaults::HeaderHeight;
+    UiNode header = column.createPanel(headerSpec);
+
+    SizeSpec accentSize;
+    accentSize.preferredWidth = UiDefaults::AccentThickness;
+    accentSize.preferredHeight = UiDefaults::HeaderHeight;
+    header.createPanel(rectToken(RectRole::Accent), accentSize);
+
+    SizeSpec indentSize;
+    indentSize.preferredWidth = UiDefaults::LabelIndent;
+    indentSize.preferredHeight = UiDefaults::HeaderHeight;
+    header.createSpacer(indentSize);
+
+    SizeSpec headerTextSize;
+    headerTextSize.stretchX = 1.0f;
+    headerTextSize.preferredHeight = UiDefaults::HeaderHeight;
+    header.createTextLine("Scene", TextRole::BodyBright, headerTextSize);
+
+    SizeSpec hierarchyTextSize;
+    hierarchyTextSize.preferredHeight = UiDefaults::HeaderHeight;
+    column.createTextLine("Hierarchy", TextRole::SmallMuted, hierarchyTextSize);
+
+    PanelSpec treePanelSpec;
+    treePanelSpec.rectStyle = rectToken(RectRole::Panel);
+    treePanelSpec.size.stretchX = 1.0f;
+    treePanelSpec.size.stretchY = 1.0f;
+    UiNode treePanel = column.createPanel(treePanelSpec);
 
     TreeViewSpec treeSpec;
-    treeSpec.bounds = Bounds{0.0f, 0.0f, treePanelBounds.width, treePanelBounds.height};
+    float treeWidth = std::max(0.0f, sidebarW - UiDefaults::PanelInset * 2.0f);
+    float treeHeight = std::max(0.0f, sidebarBounds.height - UiDefaults::PanelInset * 2.0f -
+                                        UiDefaults::HeaderHeight * 2.0f - UiDefaults::PanelInset);
+    treeSpec.bounds = Bounds{0.0f, 0.0f, treeWidth, treeHeight};
     treeSpec.showHeaderDivider = true;
     treeSpec.headerDividerY = UiDefaults::TreeHeaderDividerY;
-    float treeTrackH = treePanelBounds.height - treeSpec.scrollBar.padding * 2.0f;
+    float treeTrackH = treeSpec.bounds.height - treeSpec.scrollBar.padding * 2.0f;
     setScrollBarThumbPixels(treeSpec.scrollBar,
                             treeTrackH,
                             UiDefaults::ScrollThumbHeight,
@@ -209,6 +216,7 @@ int main(int argc, char** argv) {
                                    {"Card", "Detail"}
                                });
     cursorY += UiDefaults::CardHeight + UiDefaults::SectionGapLarge;
+    cursorY += UiDefaults::TableHeaderOffset + UiDefaults::TableHeaderPadY;
 
     float boardTextWidth = std::max(0.0f, primaryBounds.x - boardPanelBounds.x -
                                             UiDefaults::SurfaceInset - UiDefaults::PanelInset);
@@ -233,22 +241,25 @@ int main(int argc, char** argv) {
     float firstColWidth = contentW - UiDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
-    centerPane.createTable(Bounds{UiDefaults::SurfaceInset,
-                                  listHeaderY - UiDefaults::TableHeaderPadY,
-                                  tableWidth,
-                                  0.0f},
-                            {
-                                TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
-                                TableColumn{"Status", secondColWidth, TextRole::SmallBright, TextRole::SmallMuted}
-                            },
-                            {
-                                {"Item Row", "Ready"},
-                                {"Item Row", "Ready"},
-                                {"Item Row", "Ready"},
-                                {"Item Row", "Ready"},
-                                {"Item Row", "Ready"},
-                                {"Item Row", "Ready"}
-                            });
+    TableSpec tableSpec;
+    tableSpec.bounds = Bounds{UiDefaults::SurfaceInset,
+                              listHeaderY - UiDefaults::TableHeaderPadY,
+                              tableWidth,
+                              0.0f};
+    tableSpec.showHeaderDividers = false;
+    tableSpec.columns = {
+        TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
+        TableColumn{"Status", secondColWidth, TextRole::SmallBright, TextRole::SmallMuted}
+    };
+    tableSpec.rows = {
+        {"Item Row", "Ready"},
+        {"Item Row", "Ready"},
+        {"Item Row", "Ready"},
+        {"Item Row", "Ready"},
+        {"Item Row", "Ready"},
+        {"Item Row", "Ready"}
+    };
+    centerPane.createTable(tableSpec);
 
     centerPane.createScrollHints(Bounds{0.0f, 0.0f, contentW, contentH});
   };
