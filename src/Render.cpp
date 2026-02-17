@@ -355,7 +355,6 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
       add_bitmap_text(batch, cmd.text, cmd.x0, cmd.y0, fallbackSize, colorIndex, clip);
     }
   }
-
   std::vector<uint8_t> buffer(widthPx * heightPx * 4, 0);
   PrimeManifest::RenderTarget target{std::span<uint8_t>(buffer), widthPx, heightPx, widthPx * 4};
 

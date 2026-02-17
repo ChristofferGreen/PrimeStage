@@ -374,6 +374,29 @@ void applyStudioTheme(PrimeFrame::Frame& frame) {
   theme->textStyles = {titleText, bodyText, bodyMuted, smallText, smallMuted};
 }
 
+bool is_default_theme(PrimeFrame::Theme const& theme) {
+  if (theme.name != "Default") {
+    return false;
+  }
+  if (theme.palette.size() != 1 || theme.rectStyles.size() != 1 || theme.textStyles.size() != 1) {
+    return false;
+  }
+  PrimeFrame::Color const& color = theme.palette[0];
+  if (color.r != 0.0f || color.g != 0.0f || color.b != 0.0f || color.a != 1.0f) {
+    return false;
+  }
+  PrimeFrame::RectStyle const& rect = theme.rectStyles[0];
+  if (rect.fill != 0 || rect.opacity != 1.0f) {
+    return false;
+  }
+  PrimeFrame::TextStyle const& text = theme.textStyles[0];
+  if (text.font != 0 || text.size != 14.0f || text.weight != 400.0f || text.slant != 0.0f ||
+      text.lineHeight != 0.0f || text.tracking != 0.0f || text.color != 0) {
+    return false;
+  }
+  return true;
+}
+
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id)
     : frame_(frame), id_(id) {}
 
@@ -1193,7 +1216,8 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
 UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
   PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
-  if (theme && theme->palette.empty() && theme->rectStyles.empty() && theme->textStyles.empty()) {
+  if (theme && (theme->palette.empty() || theme->rectStyles.empty() || theme->textStyles.empty() ||
+                is_default_theme(*theme))) {
     applyStudioTheme(frame);
   }
   PrimeFrame::NodeId id = create_node(frame, PrimeFrame::NodeId{}, bounds,
