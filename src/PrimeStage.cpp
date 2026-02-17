@@ -1170,6 +1170,18 @@ UiNode UiNode::createSectionHeader(SizeSpec const& size,
 
 SectionPanel UiNode::createSectionPanel(SectionPanelSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.title.empty()) {
+    float textWidth = estimate_text_width(frame(), textToken(spec.textRole), spec.title);
+    bounds.width = spec.headerInsetX + spec.headerInsetRight + spec.headerPaddingX * 2.0f + textWidth;
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = spec.headerInsetY + spec.headerHeight + spec.contentInsetY + spec.contentInsetBottom;
+  }
   PanelSpec panel;
   panel.bounds = bounds;
   panel.size = spec.size;
