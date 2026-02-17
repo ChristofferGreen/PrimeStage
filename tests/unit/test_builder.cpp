@@ -21,7 +21,8 @@ TEST_CASE("PrimeStage UiNode builds panels and labels") {
   CHECK(*rootNode->sizeHint.height.preferred == doctest::Approx(50.0f));
 
   PrimeStage::PanelSpec panelSpec;
-  panelSpec.bounds = PrimeStage::Bounds{10.0f, 5.0f, 40.0f, 20.0f};
+  panelSpec.size.preferredWidth = 40.0f;
+  panelSpec.size.preferredHeight = 20.0f;
   panelSpec.rectStyle = PrimeStage::rectToken(PrimeStage::RectRole::Panel);
   PrimeStage::UiNode panel = root.createPanel(panelSpec);
   PrimeFrame::Node const* panelNode = frame.getNode(panel.nodeId());
@@ -32,7 +33,8 @@ TEST_CASE("PrimeStage UiNode builds panels and labels") {
   CHECK(panelNode->localY == doctest::Approx(0.0f));
 
   PrimeStage::LabelSpec labelSpec;
-  labelSpec.bounds = PrimeStage::Bounds{4.0f, 3.0f, 10.0f, 8.0f};
+  labelSpec.size.preferredWidth = 10.0f;
+  labelSpec.size.preferredHeight = 8.0f;
   labelSpec.text = "Label";
   labelSpec.textStyle = PrimeStage::textToken(PrimeStage::TextRole::BodyBright);
   PrimeStage::UiNode label = panel.createLabel(labelSpec);
