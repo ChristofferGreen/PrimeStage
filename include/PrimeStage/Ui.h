@@ -10,23 +10,6 @@
 
 namespace PrimeStage {
 
-struct Bounds {
-  float x = 0.0f;
-  float y = 0.0f;
-  float width = 0.0f;
-  float height = 0.0f;
-};
-
-struct UiDefaults {
-  static constexpr float DividerThickness = 1.0f;
-  static constexpr float PanelInset = 12.0f;
-  static constexpr float ControlHeight = 32.0f;
-  static constexpr float ControlWidthM = 88.0f;
-  static constexpr float ControlWidthL = 120.0f;
-  static constexpr float FieldWidthL = 360.0f;
-  static constexpr float PanelHeightM = 140.0f;
-};
-
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;
@@ -38,7 +21,7 @@ struct SizeSpec {
   float stretchY = 0.0f;
 };
 
-struct StackSpec {
+struct ContainerSpec {
   SizeSpec size;
   PrimeFrame::Insets padding{};
   float gap = 0.0f;
@@ -46,20 +29,16 @@ struct StackSpec {
   bool visible = true;
 };
 
-struct PanelSpec {
-  Bounds bounds;
+struct StackSpec : ContainerSpec {
+};
+
+struct PanelSpec : ContainerSpec {
   PrimeFrame::RectStyleToken rectStyle = 0;
   PrimeFrame::RectStyleOverride rectStyleOverride{};
   PrimeFrame::LayoutType layout = PrimeFrame::LayoutType::None;
-  PrimeFrame::Insets padding{};
-  float gap = 0.0f;
-  bool clipChildren = true;
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct LabelSpec {
-  Bounds bounds;
   std::string text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
@@ -71,7 +50,6 @@ struct LabelSpec {
 };
 
 struct ParagraphSpec {
-  Bounds bounds;
   std::string text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
@@ -85,7 +63,6 @@ struct ParagraphSpec {
 };
 
 struct TextLineSpec {
-  Bounds bounds;
   std::string text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
@@ -96,7 +73,6 @@ struct TextLineSpec {
 };
 
 struct DividerSpec {
-  Bounds bounds;
   PrimeFrame::RectStyleToken rectStyle = 0;
   PrimeFrame::RectStyleOverride rectStyleOverride{};
   bool visible = true;
@@ -104,13 +80,11 @@ struct DividerSpec {
 };
 
 struct SpacerSpec {
-  Bounds bounds;
   bool visible = true;
   SizeSpec size;
 };
 
 struct ButtonSpec {
-  Bounds bounds;
   std::string label;
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
@@ -123,7 +97,6 @@ struct ButtonSpec {
 };
 
 struct TextFieldSpec {
-  Bounds bounds;
   std::string text;
   std::string placeholder;
   float paddingX = 16.0f;
@@ -163,7 +136,6 @@ struct ScrollBarSpec {
 };
 
 struct ScrollViewSpec {
-  Bounds bounds;
   bool clipChildren = true;
   bool showVertical = true;
   bool showHorizontal = true;
@@ -172,20 +144,12 @@ struct ScrollViewSpec {
   SizeSpec size;
 };
 
-[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
-Bounds insetBounds(Bounds const& bounds, float inset);
-[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
-Bounds insetBounds(Bounds const& bounds, float insetX, float insetY);
-[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
-Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom);
-[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
-Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY);
-[[deprecated("Bounds helpers are for absolute layout; prefer automatic layout stacks instead.")]]
-Bounds alignCenterY(Bounds const& bounds, float height);
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
                              float thumbOffset);
+
+struct ScrollView;
 
 class UiNode {
 public:
@@ -220,31 +184,16 @@ public:
   }
 
   UiNode createPanel(PanelSpec const& spec);
-  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-  UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds);
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createLabel(LabelSpec const& spec);
-  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-  UiNode createLabel(std::string_view text,
-                     PrimeFrame::TextStyleToken textStyle,
-                     Bounds const& bounds);
   UiNode createLabel(std::string_view text,
                      PrimeFrame::TextStyleToken textStyle,
                      SizeSpec const& size);
   UiNode createParagraph(ParagraphSpec const& spec);
-  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-  UiNode createParagraph(Bounds const& bounds,
-                         std::string_view text,
-                         PrimeFrame::TextStyleToken textStyle);
   UiNode createParagraph(std::string_view text,
                          PrimeFrame::TextStyleToken textStyle,
                          SizeSpec const& size);
   UiNode createTextLine(TextLineSpec const& spec);
-  [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-  UiNode createTextLine(Bounds const& bounds,
-                        std::string_view text,
-                        PrimeFrame::TextStyleToken textStyle,
-                        PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
   UiNode createTextLine(std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,
                         SizeSpec const& size,
@@ -255,15 +204,17 @@ public:
   UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
-  UiNode createScrollView(ScrollViewSpec const& spec);
+  ScrollView createScrollView(ScrollViewSpec const& spec);
 
 private:
-  Bounds sanitizeBounds(Bounds bounds) const;
-  Bounds resolveLayoutBounds(Bounds const& bounds, SizeSpec const& size) const;
-
   std::reference_wrapper<PrimeFrame::Frame> frame_;
   PrimeFrame::NodeId id_{};
   bool allowAbsolute_ = false;
+};
+
+struct ScrollView {
+  UiNode root;
+  UiNode content;
 };
 
 } // namespace PrimeStage

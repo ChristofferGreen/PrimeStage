@@ -30,14 +30,12 @@ int main(int argc, char** argv) {
   shellSize.preferredHeight = kHeight;
   ShellSpec shellSpec = makeShellSpec(shellSize);
   ShellLayout shell = createShell(frame, shellSpec);
-  Bounds sidebarBounds = shell.sidebarBounds;
-  Bounds contentBounds = shell.contentBounds;
-  Bounds inspectorBounds = shell.inspectorBounds;
-  float contentW = contentBounds.width;
-  float contentH = contentBounds.height;
-  float sidebarW = sidebarBounds.width;
-  float inspectorW = inspectorBounds.width;
-  float shellWidth = shell.bounds.width;
+  float shellWidth = shellSpec.size.preferredWidth.value_or(kWidth);
+  float shellHeight = shellSpec.size.preferredHeight.value_or(kHeight);
+  float sidebarW = shellSpec.sidebarWidth;
+  float inspectorW = shellSpec.inspectorWidth;
+  float contentW = std::max(0.0f, shellWidth - sidebarW - inspectorW);
+  float contentH = std::max(0.0f, shellHeight - shellSpec.topbarHeight - shellSpec.statusHeight);
   UiNode edgeBar = shell.topbar;
   UiNode statusBar = shell.status;
   UiNode leftRail = shell.sidebar;
@@ -90,7 +88,7 @@ int main(int argc, char** argv) {
   auto create_sidebar = [&]() {
     StackSpec columnSpec;
     columnSpec.size.preferredWidth = sidebarW;
-    columnSpec.size.preferredHeight = sidebarBounds.height;
+    columnSpec.size.preferredHeight = contentH;
     columnSpec.padding = Insets{StudioDefaults::PanelInset,
                                 StudioDefaults::PanelInset,
                                 StudioDefaults::PanelInset,
@@ -156,7 +154,7 @@ int main(int argc, char** argv) {
     treeSpec.connectorRole = RectRole::Accent;
     treeSpec.textRole = TextRole::SmallBright;
     treeSpec.selectedTextRole = TextRole::SmallBright;
-    float treePanelHeight = sidebarBounds.height - StudioDefaults::HeaderHeight * 2.0f -
+    float treePanelHeight = contentH - StudioDefaults::HeaderHeight * 2.0f -
                             StudioDefaults::PanelInset * 4.0f;
     treeSpec.size.preferredWidth = sidebarW - StudioDefaults::PanelInset * 2.0f;
     treeSpec.size.preferredHeight = std::max(0.0f, treePanelHeight);
@@ -299,33 +297,51 @@ int main(int argc, char** argv) {
     tableSpacer.preferredHeight = StudioDefaults::PanelInset;
     column.createSpacer(tableSpacer);
 
-    UiNode contentInternal(frame, centerPane.nodeId(), true);
+    StackSpec overlaySpec;
+    overlaySpec.size.preferredWidth = columnWidth + scrollGutterX;
+    overlaySpec.size.preferredHeight = columnHeight + scrollGutterY;
+    overlaySpec.clipChildren = false;
+    UiNode scrollOverlay = centerPane.createOverlay(overlaySpec);
+
+    StackSpec vertSpec;
+    vertSpec.size.preferredWidth = columnWidth + scrollGutterX;
+    vertSpec.size.preferredHeight = columnHeight;
+    vertSpec.gap = 0.0f;
+    UiNode vertRow = scrollOverlay.createHorizontalStack(vertSpec);
+
+    SizeSpec vertSpacer;
+    vertSpacer.preferredWidth = columnWidth;
+    vertSpacer.preferredHeight = columnHeight;
+    vertRow.createSpacer(vertSpacer);
 
     ScrollHintsSpec scrollVertical;
-    scrollVertical.bounds = Bounds{columnWidth,
-                                   0.0f,
-                                   scrollGutterX,
-                                   columnHeight};
-    scrollVertical.size.preferredWidth = scrollVertical.bounds.width;
-    scrollVertical.size.preferredHeight = scrollVertical.bounds.height;
+    scrollVertical.size.preferredWidth = scrollGutterX;
+    scrollVertical.size.preferredHeight = columnHeight;
     scrollVertical.showHorizontal = false;
-    createScrollHints(contentInternal, scrollVertical);
+    createScrollHints(vertRow, scrollVertical);
+
+    StackSpec horizSpec;
+    horizSpec.size.preferredWidth = columnWidth;
+    horizSpec.size.preferredHeight = columnHeight + scrollGutterY;
+    horizSpec.gap = 0.0f;
+    UiNode horizCol = scrollOverlay.createVerticalStack(horizSpec);
+
+    SizeSpec horizSpacer;
+    horizSpacer.preferredWidth = columnWidth;
+    horizSpacer.preferredHeight = columnHeight;
+    horizCol.createSpacer(horizSpacer);
 
     ScrollHintsSpec scrollHorizontal;
-    scrollHorizontal.bounds = Bounds{0.0f,
-                                     columnHeight,
-                                     columnWidth,
-                                     scrollGutterY};
-    scrollHorizontal.size.preferredWidth = scrollHorizontal.bounds.width;
-    scrollHorizontal.size.preferredHeight = scrollHorizontal.bounds.height;
+    scrollHorizontal.size.preferredWidth = columnWidth;
+    scrollHorizontal.size.preferredHeight = scrollGutterY;
     scrollHorizontal.showVertical = false;
-    createScrollHints(contentInternal, scrollHorizontal);
+    createScrollHints(horizCol, scrollHorizontal);
   };
 
   auto create_inspector = [&]() {
     StackSpec columnSpec;
     columnSpec.size.preferredWidth = inspectorW;
-    columnSpec.size.preferredHeight = inspectorBounds.height;
+    columnSpec.size.preferredHeight = contentH;
     columnSpec.padding = Insets{StudioDefaults::SurfaceInset,
                                 StudioDefaults::SurfaceInset,
                                 StudioDefaults::SurfaceInset,
@@ -349,43 +365,63 @@ int main(int argc, char** argv) {
     SizeSpec propsSize;
     propsSize.preferredWidth = sectionWidth;
     propsSize.preferredHeight = StudioDefaults::PanelHeightS;
-    SectionPanel propsPanel = createSectionPanel(column, propsSize, "Properties");
+    SectionPanelSpec propsSpec;
+    propsSpec.size = propsSize;
+    propsSpec.title = "Properties";
+    SectionPanel propsPanel = createSectionPanel(column, propsSpec);
+    float propsContentW = std::max(0.0f,
+                                   propsSize.preferredWidth.value_or(0.0f) -
+                                       propsSpec.contentInsetX -
+                                       propsSpec.contentInsetRight);
 
     SizeSpec transformSize;
     transformSize.preferredWidth = sectionWidth;
     transformSize.preferredHeight = StudioDefaults::PanelHeightM + opacityBarH;
-    SectionPanel transformPanel = createSectionPanel(column, transformSize, "Transform");
+    SectionPanelSpec transformSpec;
+    transformSpec.size = transformSize;
+    transformSpec.title = "Transform";
+    SectionPanel transformPanel = createSectionPanel(column, transformSpec);
+    float transformContentW = std::max(0.0f,
+                                       transformSize.preferredWidth.value_or(0.0f) -
+                                           transformSpec.contentInsetX -
+                                           transformSpec.contentInsetRight);
+    float transformContentH = std::max(0.0f,
+                                       transformSize.preferredHeight.value_or(0.0f) -
+                                           (transformSpec.headerInsetY +
+                                            transformSpec.headerHeight +
+                                            transformSpec.contentInsetY +
+                                            transformSpec.contentInsetBottom));
 
     SizeSpec propsListSize;
-    propsListSize.preferredWidth = propsPanel.contentBounds.width;
+    propsListSize.preferredWidth = propsContentW;
     createPropertyList(propsPanel.content,
                        propsListSize,
                        {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
 
     StackSpec transformStackSpec;
-    transformStackSpec.size.preferredWidth = transformPanel.contentBounds.width;
-    transformStackSpec.size.preferredHeight = transformPanel.contentBounds.height;
+    transformStackSpec.size.preferredWidth = transformContentW;
+    transformStackSpec.size.preferredHeight = transformContentH;
     transformStackSpec.gap = StudioDefaults::PanelInset;
     UiNode transformStack = transformPanel.content.createVerticalStack(transformStackSpec);
 
     SizeSpec transformListSize;
-    transformListSize.preferredWidth = transformPanel.contentBounds.width;
+    transformListSize.preferredWidth = transformContentW;
     createPropertyList(transformStack,
                        transformListSize,
                        {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
 
     StackSpec opacityOverlaySpec;
-    opacityOverlaySpec.size.preferredWidth = transformPanel.contentBounds.width;
+    opacityOverlaySpec.size.preferredWidth = transformContentW;
     opacityOverlaySpec.size.preferredHeight = opacityBarH;
     UiNode opacityOverlay = transformStack.createOverlay(opacityOverlaySpec);
 
     SizeSpec opacityBarSize;
-    opacityBarSize.preferredWidth = transformPanel.contentBounds.width;
+    opacityBarSize.preferredWidth = transformContentW;
     opacityBarSize.preferredHeight = opacityBarH;
     createProgressBar(opacityOverlay, opacityBarSize, 0.85f);
 
     PropertyListSpec opacitySpec;
-    opacitySpec.size.preferredWidth = transformPanel.contentBounds.width;
+    opacitySpec.size.preferredWidth = transformContentW;
     opacitySpec.size.preferredHeight = opacityBarH;
     opacitySpec.rowHeight = opacityBarH;
     opacitySpec.rowGap = 0.0f;

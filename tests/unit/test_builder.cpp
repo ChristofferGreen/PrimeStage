@@ -188,8 +188,9 @@ TEST_CASE("PrimeStage scroll view creates a node") {
   spec.size.preferredHeight = 120.0f;
   spec.vertical.thumbLength = 24.0f;
   spec.horizontal.thumbLength = 24.0f;
-  PrimeStage::UiNode scroll = root.createScrollView(spec);
-  CHECK(frame.getNode(scroll.nodeId()) != nullptr);
+  PrimeStage::ScrollView scroll = root.createScrollView(spec);
+  CHECK(frame.getNode(scroll.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(scroll.content.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage button creates a node") {

@@ -8,45 +8,46 @@
 namespace PrimeStage {
 namespace {
 
-Bounds inset_bounds(Bounds const& bounds, float left, float top, float right, float bottom) {
-  float width = std::max(0.0f, bounds.width - left - right);
-  float height = std::max(0.0f, bounds.height - top - bottom);
-  return Bounds{bounds.x + left, bounds.y + top, width, height};
-}
+struct Rect {
+  float x = 0.0f;
+  float y = 0.0f;
+  float width = 0.0f;
+  float height = 0.0f;
+};
 
-void apply_bounds(PrimeFrame::Node& node, Bounds const& bounds) {
-  node.localX = bounds.x;
-  node.localY = bounds.y;
-  if (bounds.width > 0.0f) {
-    node.sizeHint.width.preferred = bounds.width;
+void apply_rect(PrimeFrame::Node& node, Rect const& rect) {
+  node.localX = rect.x;
+  node.localY = rect.y;
+  if (rect.width > 0.0f) {
+    node.sizeHint.width.preferred = rect.width;
   } else {
     node.sizeHint.width.preferred.reset();
   }
-  if (bounds.height > 0.0f) {
-    node.sizeHint.height.preferred = bounds.height;
+  if (rect.height > 0.0f) {
+    node.sizeHint.height.preferred = rect.height;
   } else {
     node.sizeHint.height.preferred.reset();
   }
 }
 
-void apply_size_spec(PrimeFrame::Node& node, Bounds const& bounds, SizeSpec const& size) {
+void apply_size_spec(PrimeFrame::Node& node, SizeSpec const& size) {
   node.sizeHint.width.min = size.minWidth;
   node.sizeHint.width.max = size.maxWidth;
-  if (bounds.width <= 0.0f && size.preferredWidth.has_value()) {
+  if (!node.sizeHint.width.preferred.has_value() && size.preferredWidth.has_value()) {
     node.sizeHint.width.preferred = size.preferredWidth;
   }
   node.sizeHint.width.stretch = size.stretchX;
 
   node.sizeHint.height.min = size.minHeight;
   node.sizeHint.height.max = size.maxHeight;
-  if (bounds.height <= 0.0f && size.preferredHeight.has_value()) {
+  if (!node.sizeHint.height.preferred.has_value() && size.preferredHeight.has_value()) {
     node.sizeHint.height.preferred = size.preferredHeight;
   }
   node.sizeHint.height.stretch = size.stretchY;
 }
 
-Bounds resolve_bounds(Bounds const& bounds, SizeSpec const& size) {
-  Bounds resolved = bounds;
+Rect resolve_rect(SizeSpec const& size) {
+  Rect resolved;
   if (size.preferredWidth.has_value()) {
     resolved.width = *size.preferredWidth;
   }
@@ -56,20 +57,10 @@ Bounds resolve_bounds(Bounds const& bounds, SizeSpec const& size) {
   return resolved;
 }
 
-SizeSpec size_from_bounds(Bounds const& bounds) {
-  SizeSpec size;
-  if (bounds.width > 0.0f) {
-    size.preferredWidth = bounds.width;
-  }
-  if (bounds.height > 0.0f) {
-    size.preferredHeight = bounds.height;
-  }
-  return size;
-}
 
 PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
                                PrimeFrame::NodeId parent,
-                               Bounds const& bounds,
+                               Rect const& rect,
                                SizeSpec const* size,
                                PrimeFrame::LayoutType layout,
                                PrimeFrame::Insets const& padding,
@@ -81,9 +72,9 @@ PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
   if (!node) {
     return id;
   }
-  apply_bounds(*node, bounds);
+  apply_rect(*node, rect);
   if (size) {
-    apply_size_spec(*node, bounds, *size);
+    apply_size_spec(*node, *size);
   }
   node->layout = layout;
   node->padding = padding;
@@ -114,21 +105,80 @@ void add_rect_primitive(PrimeFrame::Frame& frame,
 
 void add_text_primitive(PrimeFrame::Frame& frame,
                         PrimeFrame::NodeId nodeId,
-                        LabelSpec const& spec) {
+                        std::string_view text,
+                        PrimeFrame::TextStyleToken textStyle,
+                        PrimeFrame::TextStyleOverride const& overrideStyle,
+                        PrimeFrame::TextAlign align,
+                        PrimeFrame::WrapMode wrap,
+                        float maxWidth,
+                        float width,
+                        float height) {
   PrimeFrame::Primitive prim;
   prim.type = PrimeFrame::PrimitiveType::Text;
-  prim.width = spec.bounds.width;
-  prim.height = spec.bounds.height;
-  prim.textBlock.text = spec.text;
-  prim.textBlock.align = spec.align;
-  prim.textBlock.wrap = spec.wrap;
-  prim.textBlock.maxWidth = spec.maxWidth;
-  prim.textStyle.token = spec.textStyle;
-  prim.textStyle.overrideStyle = spec.textStyleOverride;
+  prim.width = width;
+  prim.height = height;
+  prim.textBlock.text = std::string(text);
+  prim.textBlock.align = align;
+  prim.textBlock.wrap = wrap;
+  prim.textBlock.maxWidth = maxWidth;
+  prim.textStyle.token = textStyle;
+  prim.textStyle.overrideStyle = overrideStyle;
   PrimeFrame::PrimitiveId pid = frame.addPrimitive(prim);
   if (PrimeFrame::Node* node = frame.getNode(nodeId)) {
     node->primitives.push_back(pid);
   }
+}
+
+PrimeFrame::NodeId create_rect_node(PrimeFrame::Frame& frame,
+                                    PrimeFrame::NodeId parent,
+                                    Rect const& rect,
+                                    PrimeFrame::RectStyleToken token,
+                                    PrimeFrame::RectStyleOverride const& overrideStyle,
+                                    bool clipChildren,
+                                    bool visible) {
+  PrimeFrame::NodeId id = create_node(frame,
+                                      parent,
+                                      rect,
+                                      nullptr,
+                                      PrimeFrame::LayoutType::None,
+                                      PrimeFrame::Insets{},
+                                      0.0f,
+                                      clipChildren,
+                                      visible);
+  add_rect_primitive(frame, id, token, overrideStyle);
+  return id;
+}
+
+PrimeFrame::NodeId create_text_node(PrimeFrame::Frame& frame,
+                                    PrimeFrame::NodeId parent,
+                                    Rect const& rect,
+                                    std::string_view text,
+                                    PrimeFrame::TextStyleToken textStyle,
+                                    PrimeFrame::TextStyleOverride const& overrideStyle,
+                                    PrimeFrame::TextAlign align,
+                                    PrimeFrame::WrapMode wrap,
+                                    float maxWidth,
+                                    bool visible) {
+  PrimeFrame::NodeId id = create_node(frame,
+                                      parent,
+                                      rect,
+                                      nullptr,
+                                      PrimeFrame::LayoutType::None,
+                                      PrimeFrame::Insets{},
+                                      0.0f,
+                                      false,
+                                      visible);
+  add_text_primitive(frame,
+                     id,
+                     text,
+                     textStyle,
+                     overrideStyle,
+                     align,
+                     wrap,
+                     maxWidth,
+                     rect.width,
+                     rect.height);
+  return id;
 }
 
 float resolve_line_height(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token) {
@@ -343,7 +393,7 @@ void flatten_tree(std::vector<Studio::TreeNode> const& nodes,
 
 void add_divider_rect(PrimeFrame::Frame& frame,
                       PrimeFrame::NodeId nodeId,
-                      Bounds const& bounds,
+                      Rect const& bounds,
                       PrimeFrame::RectStyleToken token) {
   PrimeFrame::NodeId id = create_node(frame, nodeId, bounds,
                                       nullptr,
@@ -357,29 +407,6 @@ void add_divider_rect(PrimeFrame::Frame& frame,
 
 } // namespace
 
-Bounds insetBounds(Bounds const& bounds, float inset) {
-  return inset_bounds(bounds, inset, inset, inset, inset);
-}
-
-Bounds insetBounds(Bounds const& bounds, float insetX, float insetY) {
-  return inset_bounds(bounds, insetX, insetY, insetX, insetY);
-}
-
-Bounds insetBounds(Bounds const& bounds, float left, float top, float right, float bottom) {
-  return inset_bounds(bounds, left, top, right, bottom);
-}
-
-Bounds alignBottomRight(Bounds const& bounds, float width, float height, float insetX, float insetY) {
-  float x = bounds.x + std::max(0.0f, bounds.width - width - insetX);
-  float y = bounds.y + std::max(0.0f, bounds.height - height - insetY);
-  return Bounds{x, y, width, height};
-}
-
-Bounds alignCenterY(Bounds const& bounds, float height) {
-  float y = bounds.y + (bounds.height - height) * 0.5f;
-  return Bounds{bounds.x, y, bounds.width, height};
-}
-
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
@@ -392,30 +419,6 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
 }
 
 namespace Studio {
-
-RowLayout::RowLayout(Bounds const& bounds, float gap)
-    : bounds(bounds),
-      gap(gap),
-      cursorLeft(bounds.x),
-      cursorRight(bounds.x + bounds.width) {}
-
-Bounds RowLayout::takeLeft(float width, float height) {
-  float h = height > 0.0f ? height : bounds.height;
-  Bounds out{cursorLeft, bounds.y, width, h};
-  cursorLeft += width + gap;
-  return out;
-}
-
-Bounds RowLayout::takeRight(float width, float height) {
-  float h = height > 0.0f ? height : bounds.height;
-  float x = cursorRight - width;
-  if (x < cursorLeft) {
-    x = cursorLeft;
-  }
-  Bounds out{x, bounds.y, width, h};
-  cursorRight = x - gap;
-  return out;
-}
 
 PrimeFrame::RectStyleToken rectToken(RectRole role) {
   return static_cast<PrimeFrame::RectStyleToken>(role);
@@ -527,30 +530,17 @@ static void ensure_studio_theme(PrimeFrame::Frame& frame) {
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
     : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
 
-Bounds UiNode::sanitizeBounds(Bounds bounds) const {
-  if (!allowAbsolute_) {
-    bounds.x = 0.0f;
-    bounds.y = 0.0f;
-  }
-  return bounds;
-}
-
-Bounds UiNode::resolveLayoutBounds(Bounds const& bounds, SizeSpec const& size) const {
-  return sanitizeBounds(resolve_bounds(bounds, size));
-}
-
 UiNode& UiNode::setSize(SizeSpec const& size) {
   PrimeFrame::Node* node = frame().getNode(id_);
   if (!node) {
     return *this;
   }
-  apply_size_spec(*node, Bounds{}, size);
+  apply_size_spec(*node, size);
   return *this;
 }
 
 UiNode UiNode::createVerticalStack(StackSpec const& spec) {
-  Bounds bounds;
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
                                           PrimeFrame::LayoutType::VerticalStack,
                                           spec.padding,
@@ -561,8 +551,7 @@ UiNode UiNode::createVerticalStack(StackSpec const& spec) {
 }
 
 UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
-  Bounds bounds;
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
                                           PrimeFrame::LayoutType::HorizontalStack,
                                           spec.padding,
@@ -573,8 +562,7 @@ UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
 }
 
 UiNode UiNode::createOverlay(StackSpec const& spec) {
-  Bounds bounds;
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
                                           PrimeFrame::LayoutType::Overlay,
                                           spec.padding,
@@ -585,8 +573,7 @@ UiNode UiNode::createOverlay(StackSpec const& spec) {
 }
 
 UiNode UiNode::createPanel(PanelSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
                                           spec.layout,
                                           spec.padding,
@@ -595,10 +582,6 @@ UiNode UiNode::createPanel(PanelSpec const& spec) {
                                           spec.visible);
   add_rect_primitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
   return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, Bounds const& bounds) {
-  return createPanel(rectStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
@@ -610,10 +593,6 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
 
 namespace Studio {
 
-UiNode createPanel(UiNode& parent, RectRole role, Bounds const& bounds) {
-  return createPanel(parent, role, size_from_bounds(bounds));
-}
-
 UiNode createPanel(UiNode& parent, RectRole role, SizeSpec const& size) {
   return parent.createPanel(rectToken(role), size);
 }
@@ -621,9 +600,8 @@ UiNode createPanel(UiNode& parent, RectRole role, SizeSpec const& size) {
 } // namespace Studio
 
 UiNode UiNode::createLabel(LabelSpec const& spec) {
-  LabelSpec resolved = spec;
-  resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  if ((resolved.bounds.width <= 0.0f || resolved.bounds.height <= 0.0f) &&
+  Rect rect = resolve_rect(spec.size);
+  if ((rect.width <= 0.0f || rect.height <= 0.0f) &&
       !spec.text.empty() &&
       !spec.size.preferredWidth.has_value() &&
       !spec.size.preferredHeight.has_value() &&
@@ -631,15 +609,15 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
       spec.size.stretchY <= 0.0f) {
     float lineHeight = resolve_line_height(frame(), spec.textStyle);
     float textWidth = estimate_text_width(frame(), spec.textStyle, spec.text);
-    if (resolved.bounds.width <= 0.0f) {
+    if (rect.width <= 0.0f) {
       if (spec.maxWidth > 0.0f) {
-        resolved.bounds.width = std::min(textWidth, spec.maxWidth);
+        rect.width = std::min(textWidth, spec.maxWidth);
       } else {
-        resolved.bounds.width = textWidth;
+        rect.width = textWidth;
       }
     }
-    if (resolved.bounds.height <= 0.0f) {
-      float wrapWidth = resolved.bounds.width;
+    if (rect.height <= 0.0f) {
+      float wrapWidth = rect.width;
       if (spec.maxWidth > 0.0f) {
         wrapWidth = spec.maxWidth;
       }
@@ -648,24 +626,27 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
         std::vector<std::string> lines = wrap_text_lines(frame(), spec.textStyle, spec.text, wrapWidth, spec.wrap);
         height = lineHeight * std::max<size_t>(1, lines.size());
       }
-      resolved.bounds.height = height;
+      rect.height = height;
     }
   }
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
                                           0.0f,
                                           false,
                                           spec.visible);
-  add_text_primitive(frame(), nodeId, resolved);
+  add_text_primitive(frame(),
+                     nodeId,
+                     spec.text,
+                     spec.textStyle,
+                     spec.textStyleOverride,
+                     spec.align,
+                     spec.wrap,
+                     spec.maxWidth,
+                     rect.width,
+                     rect.height);
   return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createLabel(std::string_view text,
-                           PrimeFrame::TextStyleToken textStyle,
-                           Bounds const& bounds) {
-  return createLabel(text, textStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createLabel(std::string_view text,
@@ -680,10 +661,6 @@ UiNode UiNode::createLabel(std::string_view text,
 
 namespace Studio {
 
-UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, Bounds const& bounds) {
-  return createLabel(parent, text, role, size_from_bounds(bounds));
-}
-
 UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, SizeSpec const& size) {
   return parent.createLabel(text, textToken(role), size);
 }
@@ -691,7 +668,7 @@ UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, SizeSpe
 } // namespace Studio
 
 UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
   if (bounds.width <= 0.0f &&
@@ -700,13 +677,20 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
       spec.size.stretchX <= 0.0f) {
     bounds.width = maxWidth;
   }
-  if (maxWidth <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    maxWidth = UiDefaults::FieldWidthL;
-    bounds.width = maxWidth;
-  }
   std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !lines.empty()) {
+    float inferredWidth = 0.0f;
+    for (auto const& line : lines) {
+      inferredWidth = std::max(inferredWidth, estimate_text_width(frame(), token, line));
+    }
+    bounds.width = inferredWidth;
+  }
+  if (maxWidth <= 0.0f && bounds.width > 0.0f) {
+    maxWidth = bounds.width;
+  }
 
   float lineHeight = resolve_line_height(frame(), token);
   if (spec.autoHeight &&
@@ -723,30 +707,26 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
                                                0.0f,
                                                false,
                                                spec.visible);
-  UiNode paragraphInternal(frame(), paragraphId, true);
 
   for (size_t i = 0; i < lines.size(); ++i) {
-    LabelSpec label;
-    label.bounds = Bounds{0.0f,
-                          spec.textOffsetY + static_cast<float>(i) * lineHeight,
-                          maxWidth > 0.0f ? maxWidth : bounds.width,
-                          lineHeight};
-    label.text = lines[i];
-    label.textStyle = token;
-    label.textStyleOverride = spec.textStyleOverride;
-    label.align = spec.align;
-    label.wrap = PrimeFrame::WrapMode::None;
-    label.visible = spec.visible;
-    paragraphInternal.createLabel(label);
+    Rect lineRect;
+    lineRect.x = 0.0f;
+    lineRect.y = spec.textOffsetY + static_cast<float>(i) * lineHeight;
+    lineRect.width = maxWidth > 0.0f ? maxWidth : bounds.width;
+    lineRect.height = lineHeight;
+    create_text_node(frame(),
+                     paragraphId,
+                     lineRect,
+                     lines[i],
+                     token,
+                     spec.textStyleOverride,
+                     spec.align,
+                     PrimeFrame::WrapMode::None,
+                     maxWidth,
+                     spec.visible);
   }
 
   return UiNode(frame(), paragraphId, allowAbsolute_);
-}
-
-UiNode UiNode::createParagraph(Bounds const& bounds,
-                               std::string_view text,
-                               PrimeFrame::TextStyleToken textStyle) {
-  return createParagraph(text, textStyle, size_from_bounds(bounds));
 }
 
 UiNode UiNode::createParagraph(std::string_view text,
@@ -762,13 +742,6 @@ UiNode UiNode::createParagraph(std::string_view text,
 namespace Studio {
 
 UiNode createParagraph(UiNode& parent,
-                       Bounds const& bounds,
-                       std::string_view text,
-                       TextRole role) {
-  return createParagraph(parent, text, role, size_from_bounds(bounds));
-}
-
-UiNode createParagraph(UiNode& parent,
                        std::string_view text,
                        TextRole role,
                        SizeSpec const& size) {
@@ -780,7 +753,7 @@ UiNode createParagraph(UiNode& parent,
 UiNode UiNode::createTextLine(TextLineSpec const& spec) {
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float lineHeight = resolve_line_height(frame(), token);
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
       !spec.size.preferredWidth.has_value() &&
       !spec.size.preferredHeight.has_value() &&
@@ -796,14 +769,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
     }
   }
   float containerHeight = bounds.height > 0.0f ? bounds.height : lineHeight;
-  float textY = bounds.y + (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
-
-  LabelSpec label;
-  label.text = spec.text;
-  label.textStyle = token;
-  label.textStyleOverride = spec.textStyleOverride;
-  label.wrap = PrimeFrame::WrapMode::None;
-  label.visible = spec.visible;
+  float textY = (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
 
   float textWidth = estimate_text_width(frame(), token, spec.text);
   float containerWidth = bounds.width;
@@ -811,6 +777,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
                      containerWidth > 0.0f &&
                      textWidth > 0.0f;
 
+  PrimeFrame::NodeId lineId;
   if (manualAlign) {
     float offset = 0.0f;
     if (spec.align == PrimeFrame::TextAlign::Center) {
@@ -818,30 +785,36 @@ UiNode UiNode::createTextLine(TextLineSpec const& spec) {
     } else if (spec.align == PrimeFrame::TextAlign::End) {
       offset = containerWidth - textWidth;
     }
-    float x = bounds.x + offset;
-    if (x < bounds.x) {
-      x = bounds.x;
+    float x = offset;
+    if (x < 0.0f) {
+      x = 0.0f;
     }
-    label.bounds = Bounds{x, textY, textWidth, lineHeight};
-    label.align = PrimeFrame::TextAlign::Start;
-    label.maxWidth = textWidth;
+    Rect textRect{x, textY, textWidth, lineHeight};
+    lineId = create_text_node(frame(),
+                              id_,
+                              textRect,
+                              spec.text,
+                              token,
+                              spec.textStyleOverride,
+                              PrimeFrame::TextAlign::Start,
+                              PrimeFrame::WrapMode::None,
+                              textWidth,
+                              spec.visible);
   } else {
     float width = containerWidth > 0.0f ? containerWidth : textWidth;
-    label.bounds = Bounds{bounds.x, textY, width, lineHeight};
-    label.align = spec.align;
-    label.maxWidth = width;
+    Rect textRect{0.0f, textY, width, lineHeight};
+    lineId = create_text_node(frame(),
+                              id_,
+                              textRect,
+                              spec.text,
+                              token,
+                              spec.textStyleOverride,
+                              spec.align,
+                              PrimeFrame::WrapMode::None,
+                              width,
+                              spec.visible);
   }
-
-  UiNode internal(frame(), id_, true);
-  UiNode line = internal.createLabel(label);
-  return UiNode(frame(), line.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createTextLine(Bounds const& bounds,
-                              std::string_view text,
-                              PrimeFrame::TextStyleToken textStyle,
-                              PrimeFrame::TextAlign align) {
-  return createTextLine(text, textStyle, size_from_bounds(bounds), align);
+  return UiNode(frame(), lineId, allowAbsolute_);
 }
 
 UiNode UiNode::createTextLine(std::string_view text,
@@ -859,14 +832,6 @@ UiNode UiNode::createTextLine(std::string_view text,
 namespace Studio {
 
 UiNode createTextLine(UiNode& parent,
-                      Bounds const& bounds,
-                      std::string_view text,
-                      TextRole role,
-                      PrimeFrame::TextAlign align) {
-  return createTextLine(parent, text, role, size_from_bounds(bounds), align);
-}
-
-UiNode createTextLine(UiNode& parent,
                       std::string_view text,
                       TextRole role,
                       SizeSpec const& size,
@@ -877,21 +842,8 @@ UiNode createTextLine(UiNode& parent,
 } // namespace Studio
 
 UiNode UiNode::createDivider(DividerSpec const& spec) {
-  DividerSpec resolved = spec;
-  resolved.bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  if ((resolved.bounds.width <= 0.0f || resolved.bounds.height <= 0.0f) &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    if (resolved.bounds.width <= 0.0f) {
-      resolved.bounds.width = UiDefaults::DividerThickness;
-    }
-    if (resolved.bounds.height <= 0.0f) {
-      resolved.bounds.height = UiDefaults::DividerThickness;
-    }
-  }
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, resolved.bounds,
+  Rect rect = resolve_rect(spec.size);
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
@@ -910,20 +862,8 @@ UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec cons
 }
 
 UiNode UiNode::createSpacer(SpacerSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    if (bounds.width <= 0.0f) {
-      bounds.width = UiDefaults::PanelInset;
-    }
-    if (bounds.height <= 0.0f) {
-      bounds.height = UiDefaults::PanelInset;
-    }
-  }
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, bounds,
+  Rect rect = resolve_rect(spec.size);
+  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
                                           &spec.size,
                                           PrimeFrame::LayoutType::None,
                                           PrimeFrame::Insets{},
@@ -939,30 +879,13 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   return createSpacer(spec);
 }
 
-namespace {
-
-Bounds resolve_layout_bounds(UiNode const& parent, Bounds const& bounds, SizeSpec const& size) {
-  Bounds resolved = resolve_bounds(bounds, size);
-  if (!parent.allowAbsolute()) {
-    resolved.x = 0.0f;
-    resolved.y = 0.0f;
-  }
-  return resolved;
-}
-
-} // namespace
-
 namespace Studio {
 
 UiNode createTable(UiNode const& parent, TableSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds tableBounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect tableBounds = resolve_rect(spec.size);
   size_t rowCount = spec.rows.size();
   float rowsHeight = 0.0f;
   if (rowCount > 0) {
@@ -1065,7 +988,7 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
     PrimeFrame::Insets padding{};
     padding.left = paddingX;
     padding.right = paddingX;
-    PrimeFrame::NodeId cellId = create_node(frame(), rowNode.nodeId(), Bounds{},
+    PrimeFrame::NodeId cellId = create_node(frame(), rowNode.nodeId(), Rect{},
                                             &cellSize,
                                             PrimeFrame::LayoutType::Overlay,
                                             padding,
@@ -1172,25 +1095,10 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
   return UiNode(frame(), tableNode.nodeId(), allowAbsolute_);
 }
 
-UiNode createTable(UiNode const& parent,
-                   Bounds const& bounds,
-                   std::vector<TableColumn> columns,
-                   std::vector<std::vector<std::string>> rows) {
-  TableSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.columns = std::move(columns);
-  spec.rows = std::move(rows);
-  return createTable(parent, spec);
-}
-
 UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
@@ -1212,7 +1120,6 @@ UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec) {
   }
 
   PanelSpec panel;
-  panel.bounds = bounds;
   panel.size = headerSize;
   panel.rectStyle = rectToken(spec.backgroundRole);
   panel.layout = PrimeFrame::LayoutType::HorizontalStack;
@@ -1265,32 +1172,6 @@ UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec) {
 }
 
 UiNode createSectionHeader(UiNode& parent,
-                           Bounds const& bounds,
-                           std::string_view title,
-                           TextRole role) {
-  SectionHeaderSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.title = std::string(title);
-  spec.textRole = role;
-  return createSectionHeader(parent, spec);
-}
-
-UiNode createSectionHeader(UiNode& parent,
-                           Bounds const& bounds,
-                           std::string_view title,
-                           TextRole role,
-                           bool addDivider,
-                           float dividerOffsetY) {
-  SectionHeaderSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.title = std::string(title);
-  spec.textRole = role;
-  spec.addDivider = addDivider;
-  spec.dividerOffsetY = dividerOffsetY;
-  return createSectionHeader(parent, spec);
-}
-
-UiNode createSectionHeader(UiNode& parent,
                            SizeSpec const& size,
                            std::string_view title,
                            TextRole role) {
@@ -1319,11 +1200,7 @@ UiNode createSectionHeader(UiNode& parent,
 SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f &&
@@ -1345,20 +1222,15 @@ SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
   }
 
   PanelSpec panel;
-  panel.bounds = bounds;
   panel.size = panelSize;
   panel.rectStyle = rectToken(spec.panelRole);
   panel.layout = PrimeFrame::LayoutType::VerticalStack;
   panel.gap = 0.0f;
   UiNode panelNode = parent.createPanel(panel);
   SectionPanel out{UiNode(frame(), panelNode.nodeId(), allowAbsolute_),
-                   UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute_),
-                   {},
-                   {}};
+                   UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute_)};
 
   float headerWidth = std::max(0.0f, bounds.width - spec.headerInsetX - spec.headerInsetRight);
-  Bounds headerBounds{spec.headerInsetX, spec.headerInsetY, headerWidth, spec.headerHeight};
-  out.headerBounds = headerBounds;
 
   if (spec.headerInsetY > 0.0f) {
     SizeSpec spacer;
@@ -1423,12 +1295,9 @@ SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
     panelNode.createSpacer(spacer);
   }
 
-  float contentX = spec.contentInsetX;
-  float contentY = headerBounds.y + headerBounds.height + spec.contentInsetY;
+  float contentY = spec.headerInsetY + spec.headerHeight + spec.contentInsetY;
   float contentW = std::max(0.0f, bounds.width - spec.contentInsetX - spec.contentInsetRight);
-  float contentH = std::max(0.0f,
-                            bounds.height - (contentY + spec.contentInsetBottom));
-  out.contentBounds = Bounds{contentX, contentY, contentW, contentH};
+  float contentH = std::max(0.0f, bounds.height - (contentY + spec.contentInsetBottom));
 
   StackSpec contentInset;
   contentInset.size.stretchX = 1.0f;
@@ -1450,7 +1319,7 @@ SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
   if (contentH > 0.0f) {
     contentSize.preferredHeight = contentH;
   }
-  PrimeFrame::NodeId contentId = create_node(frame(), contentInsetNode.nodeId(), Bounds{},
+  PrimeFrame::NodeId contentId = create_node(frame(), contentInsetNode.nodeId(), Rect{},
                                              &contentSize,
                                              PrimeFrame::LayoutType::None,
                                              PrimeFrame::Insets{},
@@ -1468,13 +1337,6 @@ SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
   return out;
 }
 
-SectionPanel createSectionPanel(UiNode& parent, Bounds const& bounds, std::string_view title) {
-  SectionPanelSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.title = std::string(title);
-  return createSectionPanel(parent, spec);
-}
-
 SectionPanel createSectionPanel(UiNode& parent, SizeSpec const& size, std::string_view title) {
   SectionPanelSpec spec;
   spec.size = size;
@@ -1485,11 +1347,7 @@ SectionPanel createSectionPanel(UiNode& parent, SizeSpec const& size, std::strin
 UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f) {
@@ -1564,7 +1422,7 @@ UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
     PrimeFrame::Insets padding{};
     padding.left = paddingLeft;
     padding.right = paddingRight;
-    PrimeFrame::NodeId cellId = create_node(frame(), rowNode.nodeId(), Bounds{},
+    PrimeFrame::NodeId cellId = create_node(frame(), rowNode.nodeId(), Rect{},
                                             &cellSize,
                                             PrimeFrame::LayoutType::Overlay,
                                             padding,
@@ -1611,7 +1469,7 @@ UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
     PrimeFrame::Insets valuePadding{};
     valuePadding.left = spec.valueInsetX;
     valuePadding.right = spec.valuePaddingRight;
-    PrimeFrame::NodeId valueId = create_node(frame(), rowNode.nodeId(), Bounds{},
+    PrimeFrame::NodeId valueId = create_node(frame(), rowNode.nodeId(), Rect{},
                                              &valueSize,
                                              PrimeFrame::LayoutType::HorizontalStack,
                                              valuePadding,
@@ -1635,34 +1493,10 @@ UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
   return UiNode(frame(), listNode.nodeId(), allowAbsolute_);
 }
 
-UiNode createPropertyList(UiNode const& parent, Bounds const& bounds, std::vector<PropertyRow> rows) {
-  PropertyListSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.rows = std::move(rows);
-  return createPropertyList(parent, spec);
-}
-
 UiNode createPropertyList(UiNode const& parent, SizeSpec const& size, std::vector<PropertyRow> rows) {
   PropertyListSpec spec;
   spec.size = size;
   spec.rows = std::move(rows);
-  return createPropertyList(parent, spec);
-}
-
-UiNode createPropertyRow(UiNode const& parent,
-                         Bounds const& bounds,
-                         std::string_view label,
-                         std::string_view value,
-                         TextRole role) {
-  PropertyListSpec spec;
-  spec.size = size_from_bounds(bounds);
-  if (bounds.height > 0.0f) {
-    spec.rowHeight = bounds.height;
-  }
-  spec.rowGap = 0.0f;
-  spec.labelRole = role;
-  spec.valueRole = role;
-  spec.rows = {{std::string(label), std::string(value)}};
   return createPropertyList(parent, spec);
 }
 
@@ -1681,11 +1515,7 @@ UiNode createPropertyRow(UiNode const& parent,
 
 UiNode createProgressBar(UiNode& parent, ProgressBarSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
       !spec.size.preferredWidth.has_value() &&
       !spec.size.preferredHeight.has_value() &&
@@ -1699,8 +1529,13 @@ UiNode createProgressBar(UiNode& parent, ProgressBarSpec const& spec) {
     }
   }
   PanelSpec panel;
-  panel.bounds = bounds;
   panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
   panel.rectStyle = rectToken(spec.trackRole);
   UiNode bar = parent.createPanel(panel);
   float clamped = std::clamp(spec.value, 0.0f, 1.0f);
@@ -1709,17 +1544,15 @@ UiNode createProgressBar(UiNode& parent, ProgressBarSpec const& spec) {
     fillWidth = std::max(fillWidth, spec.minFillWidth);
   }
   if (fillWidth > 0.0f) {
-    PanelSpec fillPanel;
-    fillPanel.rectStyle = rectToken(spec.fillRole);
-    fillPanel.bounds = Bounds{0.0f, 0.0f, fillWidth, bounds.height};
-    UiNode barInternal(frame(), bar.nodeId(), true);
-    barInternal.createPanel(fillPanel);
+    create_rect_node(frame(),
+                     bar.nodeId(),
+                     Rect{0.0f, 0.0f, fillWidth, bounds.height},
+                     rectToken(spec.fillRole),
+                     {},
+                     false,
+                     true);
   }
   return bar;
-}
-
-UiNode createProgressBar(UiNode& parent, Bounds const& bounds, float value) {
-  return createProgressBar(parent, size_from_bounds(bounds), value);
 }
 
 UiNode createProgressBar(UiNode& parent, SizeSpec const& size, float value) {
@@ -1732,11 +1565,7 @@ UiNode createProgressBar(UiNode& parent, SizeSpec const& size, float value) {
 UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
       !spec.size.preferredWidth.has_value() &&
       !spec.size.preferredHeight.has_value() &&
@@ -1807,24 +1636,38 @@ UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec) {
 
       CardSpec const& card = spec.cards[index];
       if (!card.title.empty()) {
-        LabelSpec titleLabel;
-        titleLabel.text = card.title;
-        titleLabel.textStyle = textToken(spec.titleRole);
-        titleLabel.bounds = Bounds{spec.paddingX,
-                                   spec.titleOffsetY,
-                                   std::max(0.0f, spec.cardWidth - spec.paddingX * 2.0f),
-                                   titleLine};
-        cardInternal.createLabel(titleLabel);
+        Rect titleRect;
+        titleRect.x = spec.paddingX;
+        titleRect.y = spec.titleOffsetY;
+        titleRect.width = std::max(0.0f, spec.cardWidth - spec.paddingX * 2.0f);
+        titleRect.height = titleLine;
+        create_text_node(frame(),
+                         cardInternal.nodeId(),
+                         titleRect,
+                         card.title,
+                         textToken(spec.titleRole),
+                         {},
+                         PrimeFrame::TextAlign::Start,
+                         PrimeFrame::WrapMode::None,
+                         titleRect.width,
+                         true);
       }
       if (!card.subtitle.empty()) {
-        LabelSpec subtitleLabel;
-        subtitleLabel.text = card.subtitle;
-        subtitleLabel.textStyle = textToken(spec.subtitleRole);
-        subtitleLabel.bounds = Bounds{spec.paddingX,
-                                      spec.subtitleOffsetY,
-                                      std::max(0.0f, spec.cardWidth - spec.paddingX * 2.0f),
-                                      subtitleLine};
-        cardInternal.createLabel(subtitleLabel);
+        Rect subtitleRect;
+        subtitleRect.x = spec.paddingX;
+        subtitleRect.y = spec.subtitleOffsetY;
+        subtitleRect.width = std::max(0.0f, spec.cardWidth - spec.paddingX * 2.0f);
+        subtitleRect.height = subtitleLine;
+        create_text_node(frame(),
+                         cardInternal.nodeId(),
+                         subtitleRect,
+                         card.subtitle,
+                         textToken(spec.subtitleRole),
+                         {},
+                         PrimeFrame::TextAlign::Start,
+                         PrimeFrame::WrapMode::None,
+                         subtitleRect.width,
+                         true);
       }
     }
   }
@@ -1832,85 +1675,79 @@ UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec) {
   return UiNode(frame(), gridNode.nodeId(), allowAbsolute_);
 }
 
-UiNode createCardGrid(UiNode& parent, Bounds const& bounds, std::vector<CardSpec> cards) {
-  CardGridSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.cards = std::move(cards);
-  return createCardGrid(parent, spec);
-}
-
 } // namespace Studio
 
 UiNode UiNode::createButton(ButtonSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
-    bounds.height = UiDefaults::ControlHeight;
+    if (lineHeight > 0.0f) {
+      bounds.height = lineHeight;
+    }
   }
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    if (!spec.label.empty()) {
-      float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-      bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
-    } else {
-      bounds.width = UiDefaults::ControlWidthM;
-    }
+      spec.size.stretchX <= 0.0f &&
+      !spec.label.empty()) {
+    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
+  }
+  if (bounds.width <= 0.0f &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    return UiNode(frame(), id_, allowAbsolute_);
   }
   PanelSpec panel;
-  panel.bounds = bounds;
   panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
   panel.rectStyle = spec.backgroundStyle;
   panel.rectStyleOverride = spec.backgroundStyleOverride;
   UiNode button = createPanel(panel);
   if (spec.label.empty()) {
     return UiNode(frame(), button.nodeId(), allowAbsolute_);
   }
-  UiNode buttonInternal(frame(), button.nodeId(), true);
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
   float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-
-  LabelSpec label;
-  label.text = spec.label;
-  label.textStyle = spec.textStyle;
-  label.textStyleOverride = spec.textStyleOverride;
-  label.bounds.height = lineHeight;
-  label.bounds.y = textY;
-
+  float textX = spec.textInsetX;
+  float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
+  PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
   if (spec.centerText) {
-    float textX = (bounds.width - textWidth) * 0.5f;
+    textX = (bounds.width - textWidth) * 0.5f;
     if (textX < 0.0f) {
       textX = 0.0f;
     }
-    label.align = PrimeFrame::TextAlign::Start;
-    label.bounds.x = textX;
-    label.bounds.width = std::max(0.0f, textWidth);
-    label.maxWidth = label.bounds.width;
-  } else {
-    label.bounds.x = spec.textInsetX;
-    label.bounds.width = std::max(0.0f, bounds.width - spec.textInsetX);
-    label.maxWidth = label.bounds.width;
+    labelWidth = std::max(0.0f, textWidth);
   }
 
   if (!spec.centerText && textWidth > 0.0f) {
-    label.bounds.width = std::max(label.bounds.width, textWidth);
-    label.maxWidth = label.bounds.width;
+    labelWidth = std::max(labelWidth, textWidth);
   }
 
-  buttonInternal.createLabel(label);
+  Rect textRect{textX, textY, labelWidth, lineHeight};
+  create_text_node(frame(),
+                   button.nodeId(),
+                   textRect,
+                   spec.label,
+                   spec.textStyle,
+                   spec.textStyleOverride,
+                   align,
+                   PrimeFrame::WrapMode::None,
+                   labelWidth,
+                   true);
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
 namespace Studio {
-
-UiNode createButton(UiNode& parent,
-                    Bounds const& bounds,
-                    std::string_view label,
-                    ButtonVariant variant) {
-  return createButton(parent, label, variant, size_from_bounds(bounds));
-}
 
 UiNode createButton(UiNode& parent,
                     std::string_view label,
@@ -1919,6 +1756,14 @@ UiNode createButton(UiNode& parent,
   ButtonSpec spec;
   spec.label = std::string(label);
   spec.size = size;
+  if (!spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
+    spec.size.preferredHeight = StudioDefaults::ControlHeight;
+  }
+  if (spec.label.empty() &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    spec.size.preferredWidth = StudioDefaults::ControlWidthM;
+  }
   if (variant == ButtonVariant::Primary) {
     spec.backgroundStyle = rectToken(RectRole::Accent);
     spec.textStyle = textToken(TextRole::BodyBright);
@@ -1932,32 +1777,47 @@ UiNode createButton(UiNode& parent,
 } // namespace Studio
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
+  std::string_view preview = spec.text;
+  PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
+  if (preview.empty() && spec.showPlaceholderWhenEmpty) {
+    preview = spec.placeholder;
+    previewStyle = spec.placeholderStyle;
+  }
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  if (lineHeight <= 0.0f && previewStyle != spec.textStyle) {
+    lineHeight = resolve_line_height(frame(), previewStyle);
+  }
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
-    bounds.height = UiDefaults::ControlHeight;
+    if (lineHeight > 0.0f) {
+      bounds.height = lineHeight;
+    }
   }
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    std::string_view preview = spec.text;
-    PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
-    if (preview.empty() && spec.showPlaceholderWhenEmpty) {
-      preview = spec.placeholder;
-      previewStyle = spec.placeholderStyle;
-    }
-    if (!preview.empty()) {
-      float previewWidth = estimate_text_width(frame(), previewStyle, preview);
-      bounds.width = std::max(bounds.width, std::max(UiDefaults::FieldWidthL,
-                                                     previewWidth + spec.paddingX * 2.0f));
-    } else {
-      bounds.width = UiDefaults::FieldWidthL;
-    }
+      spec.size.stretchX <= 0.0f &&
+      !preview.empty()) {
+    float previewWidth = estimate_text_width(frame(), previewStyle, preview);
+    bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
+  }
+  if (bounds.width <= 0.0f &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    return UiNode(frame(), id_, allowAbsolute_);
   }
   PanelSpec panel;
-  panel.bounds = bounds;
   panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
   panel.rectStyle = spec.backgroundStyle;
   panel.rectStyleOverride = spec.backgroundStyleOverride;
   UiNode field = createPanel(panel);
@@ -1974,31 +1834,37 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     return UiNode(frame(), field.nodeId(), allowAbsolute_);
   }
 
-  float lineHeight = resolve_line_height(frame(), style);
+  lineHeight = resolve_line_height(frame(), style);
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
-  LabelSpec label;
-  label.text = std::string(content);
-  label.textStyle = style;
-  label.textStyleOverride = overrideStyle;
-  label.bounds = Bounds{spec.paddingX, textY, textWidth, lineHeight};
-  UiNode fieldInternal(frame(), field.nodeId(), true);
-  fieldInternal.createLabel(label);
+  Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
+  create_text_node(frame(),
+                   field.nodeId(),
+                   textRect,
+                   content,
+                   style,
+                   overrideStyle,
+                   PrimeFrame::TextAlign::Start,
+                   PrimeFrame::WrapMode::None,
+                   textWidth,
+                   true);
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }
 
 namespace Studio {
 
-UiNode createTextField(UiNode& parent, Bounds const& bounds, std::string_view placeholder) {
-  return createTextField(parent, placeholder, size_from_bounds(bounds));
-}
-
 UiNode createTextField(UiNode& parent, std::string_view placeholder, SizeSpec const& size) {
   TextFieldSpec spec;
   spec.placeholder = std::string(placeholder);
   spec.size = size;
+  if (!spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
+    spec.size.preferredHeight = StudioDefaults::ControlHeight;
+  }
+  if (!spec.size.minWidth.has_value() && spec.size.stretchX <= 0.0f) {
+    spec.size.minWidth = StudioDefaults::FieldWidthL;
+  }
   spec.backgroundStyle = rectToken(RectRole::Panel);
   spec.textStyle = textToken(TextRole::BodyBright);
   spec.placeholderStyle = textToken(TextRole::BodyMuted);
@@ -2009,11 +1875,7 @@ UiNode createStatusBar(UiNode& parent, StatusBarSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
-
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
@@ -2037,10 +1899,14 @@ UiNode createStatusBar(UiNode& parent, StatusBarSpec const& spec) {
 
   PanelSpec panelSpec;
   panelSpec.rectStyle = rectToken(spec.backgroundRole);
-  panelSpec.bounds = bounds;
   panelSpec.size = spec.size;
+  if (!panelSpec.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panelSpec.size.preferredWidth = bounds.width;
+  }
+  if (!panelSpec.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panelSpec.size.preferredHeight = bounds.height;
+  }
   UiNode bar = parent.createPanel(panelSpec);
-  UiNode barInternal(frame(), bar.nodeId(), true);
 
   float leftLineHeight = resolve_line_height(frame(), textToken(spec.leftRole));
   float rightLineHeight = resolve_line_height(frame(), textToken(spec.rightRole));
@@ -2066,33 +1932,34 @@ UiNode createStatusBar(UiNode& parent, StatusBarSpec const& spec) {
   }
 
   if (!spec.leftText.empty()) {
-    LabelSpec leftLabel;
-    leftLabel.text = spec.leftText;
-    leftLabel.textStyle = textToken(spec.leftRole);
-    leftLabel.bounds = Bounds{spec.paddingX, leftY, leftMaxWidth, leftLineHeight};
-    barInternal.createLabel(leftLabel);
+    Rect leftRect{spec.paddingX, leftY, leftMaxWidth, leftLineHeight};
+    create_text_node(frame(),
+                     bar.nodeId(),
+                     leftRect,
+                     spec.leftText,
+                     textToken(spec.leftRole),
+                     {},
+                     PrimeFrame::TextAlign::Start,
+                     PrimeFrame::WrapMode::None,
+                     leftMaxWidth,
+                     true);
   }
 
   if (!spec.rightText.empty()) {
-    LabelSpec rightLabel;
-    rightLabel.text = spec.rightText;
-    rightLabel.textStyle = textToken(spec.rightRole);
-    rightLabel.bounds = Bounds{rightX, rightY, rightWidth, rightLineHeight};
-    barInternal.createLabel(rightLabel);
+    Rect rightRect{rightX, rightY, rightWidth, rightLineHeight};
+    create_text_node(frame(),
+                     bar.nodeId(),
+                     rightRect,
+                     spec.rightText,
+                     textToken(spec.rightRole),
+                     {},
+                     PrimeFrame::TextAlign::Start,
+                     PrimeFrame::WrapMode::None,
+                     rightWidth,
+                     true);
   }
 
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);
-}
-
-UiNode createStatusBar(UiNode& parent,
-                       Bounds const& bounds,
-                       std::string_view leftText,
-                       std::string_view rightText) {
-  StatusBarSpec spec;
-  spec.size = size_from_bounds(bounds);
-  spec.leftText = std::string(leftText);
-  spec.rightText = std::string(rightText);
-  return createStatusBar(parent, spec);
 }
 
 UiNode createStatusBar(UiNode& parent,
@@ -2108,51 +1975,62 @@ UiNode createStatusBar(UiNode& parent,
 
 } // namespace Studio
 
-UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
-  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    if (bounds.width <= 0.0f) {
-      bounds.width = UiDefaults::FieldWidthL;
-    }
-    if (bounds.height <= 0.0f) {
-      bounds.height = UiDefaults::PanelHeightM;
-    }
-  }
+ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
+    return ScrollView{UiNode(frame(), id_, allowAbsolute_),
+                      UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute_)};
   }
 
+  SizeSpec scrollSize = spec.size;
+  if (!scrollSize.preferredWidth.has_value() && bounds.width > 0.0f) {
+    scrollSize.preferredWidth = bounds.width;
+  }
+  if (!scrollSize.preferredHeight.has_value() && bounds.height > 0.0f) {
+    scrollSize.preferredHeight = bounds.height;
+  }
   PrimeFrame::NodeId scrollId = create_node(frame(), id_, bounds,
-                                            &spec.size,
+                                            &scrollSize,
                                             PrimeFrame::LayoutType::None,
                                             PrimeFrame::Insets{},
                                             0.0f,
                                             spec.clipChildren,
                                             true);
-  UiNode scrollNodeInternal(frame(), scrollId, true);
+  SizeSpec contentSize;
+  contentSize.stretchX = 1.0f;
+  contentSize.stretchY = 1.0f;
+  PrimeFrame::NodeId contentId = create_node(frame(), scrollId, Rect{},
+                                             &contentSize,
+                                             PrimeFrame::LayoutType::Overlay,
+                                             PrimeFrame::Insets{},
+                                             0.0f,
+                                             false,
+                                             true);
 
   if (spec.showVertical && spec.vertical.enabled) {
     float trackW = spec.vertical.thickness;
     float trackH = std::max(0.0f, bounds.height - spec.vertical.startPadding - spec.vertical.endPadding);
     float trackX = bounds.width - spec.vertical.inset;
     float trackY = spec.vertical.startPadding;
-    PanelSpec trackPanel;
-    trackPanel.rectStyle = spec.vertical.trackStyle;
-    trackPanel.bounds = Bounds{trackX, trackY, trackW, trackH};
-    scrollNodeInternal.createPanel(trackPanel);
+    create_rect_node(frame(),
+                     scrollId,
+                     Rect{trackX, trackY, trackW, trackH},
+                     spec.vertical.trackStyle,
+                     {},
+                     false,
+                     true);
 
     float thumbH = std::min(trackH, spec.vertical.thumbLength);
     float maxOffset = std::max(0.0f, trackH - thumbH);
     float thumbOffset = std::clamp(spec.vertical.thumbOffset, 0.0f, maxOffset);
     float thumbY = trackY + thumbOffset;
-    PanelSpec thumbPanel;
-    thumbPanel.rectStyle = spec.vertical.thumbStyle;
-    thumbPanel.bounds = Bounds{trackX, thumbY, trackW, thumbH};
-    scrollNodeInternal.createPanel(thumbPanel);
+    create_rect_node(frame(),
+                     scrollId,
+                     Rect{trackX, thumbY, trackW, thumbH},
+                     spec.vertical.thumbStyle,
+                     {},
+                     false,
+                     true);
   }
 
   if (spec.showHorizontal && spec.horizontal.enabled) {
@@ -2160,29 +2038,35 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
     float trackW = std::max(0.0f, bounds.width - spec.horizontal.startPadding - spec.horizontal.endPadding);
     float trackX = spec.horizontal.startPadding;
     float trackY = bounds.height - spec.horizontal.inset;
-    PanelSpec trackPanel;
-    trackPanel.rectStyle = spec.horizontal.trackStyle;
-    trackPanel.bounds = Bounds{trackX, trackY, trackW, trackH};
-    scrollNodeInternal.createPanel(trackPanel);
+    create_rect_node(frame(),
+                     scrollId,
+                     Rect{trackX, trackY, trackW, trackH},
+                     spec.horizontal.trackStyle,
+                     {},
+                     false,
+                     true);
 
     float thumbW = std::min(trackW, spec.horizontal.thumbLength);
     float maxOffset = std::max(0.0f, trackW - thumbW);
     float thumbOffset = std::clamp(spec.horizontal.thumbOffset, 0.0f, maxOffset);
     float thumbX = trackX + thumbOffset;
-    PanelSpec thumbPanel;
-    thumbPanel.rectStyle = spec.horizontal.thumbStyle;
-    thumbPanel.bounds = Bounds{thumbX, trackY, thumbW, trackH};
-    scrollNodeInternal.createPanel(thumbPanel);
+    create_rect_node(frame(),
+                     scrollId,
+                     Rect{thumbX, trackY, thumbW, trackH},
+                     spec.horizontal.thumbStyle,
+                     {},
+                     false,
+                     true);
   }
 
-  return UiNode(frame(), scrollId, allowAbsolute_);
+  return ScrollView{UiNode(frame(), scrollId, allowAbsolute_),
+                    UiNode(frame(), contentId, allowAbsolute_)};
 }
 
 namespace Studio {
 
 UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
-  view.bounds = spec.bounds;
   view.size = spec.size;
   if (!view.size.preferredWidth.has_value() &&
       !view.size.preferredHeight.has_value() &&
@@ -2203,22 +2087,13 @@ UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec) {
   view.horizontal.thumbOffset = spec.horizontalThumbOffset;
   view.horizontal.startPadding = spec.horizontalStartPadding;
   view.horizontal.endPadding = spec.horizontalEndPadding;
-  return parent.createScrollView(view);
-}
-
-UiNode createScrollHints(UiNode& parent, Bounds const& bounds) {
-  ScrollHintsSpec spec;
-  spec.size = size_from_bounds(bounds);
-  return createScrollHints(parent, spec);
+  return parent.createScrollView(view).root;
 }
 
 UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
-  auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
-    return resolve_layout_bounds(parent, bounds, size);
-  };
 
   std::vector<FlatTreeRow> rows;
   std::vector<int> depthStack;
@@ -2236,7 +2111,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
     }
   }
 
-  Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
+  Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     float maxLabelWidth = 0.0f;
     for (FlatTreeRow const& row : rows) {
@@ -2281,7 +2156,6 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   treeSpec.padding.right = 0.0f;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode treeNode = parentNode.createOverlay(treeSpec);
-  UiNode treeNodeInternal(frame(), treeNode.nodeId(), true);
 
   float rowWidth = std::max(0.0f, bounds.width);
   float rowTextHeight = resolve_line_height(frame(), textToken(spec.textRole));
@@ -2297,7 +2171,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   if (spec.showHeaderDivider) {
     float dividerY = spec.headerDividerY;
     add_divider_rect(frame(), treeNode.nodeId(),
-                     Bounds{0.0f, dividerY, rowWidth, spec.connectorThickness},
+                     Rect{0.0f, dividerY, rowWidth, spec.connectorThickness},
                      rectToken(spec.connectorRole));
   }
 
@@ -2315,7 +2189,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
     rowPanel.size.stretchX = 1.0f;
     rowPanel.clipChildren = false;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
-    UiNode rowInternal(frame(), rowNode.nodeId(), true);
+    PrimeFrame::NodeId rowId = rowNode.nodeId();
 
     if (spec.showConnectors && row.depth > 0) {
       float halfThickness = spec.connectorThickness * 0.5f;
@@ -2352,7 +2226,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
         }
         if (segmentBottom > segmentTop + 0.5f) {
           add_divider_rect(frame(), rowNode.nodeId(),
-                           Bounds{trunkX - halfThickness, segmentTop - halfThickness,
+                           Rect{trunkX - halfThickness, segmentTop - halfThickness,
                                   spec.connectorThickness,
                                   (segmentBottom - segmentTop) + spec.connectorThickness},
                            rectToken(spec.connectorRole));
@@ -2377,7 +2251,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
         float linkW = linkEndX - linkStartX;
         if (linkW > 0.5f) {
           add_divider_rect(frame(), rowNode.nodeId(),
-                           Bounds{linkStartX, rowCenterY - halfThickness,
+                           Rect{linkStartX, rowCenterY - halfThickness,
                                   linkW, spec.connectorThickness},
                            rectToken(spec.connectorRole));
         }
@@ -2385,10 +2259,13 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
     }
 
     if (row.selected && spec.selectionAccentWidth > 0.0f) {
-      PanelSpec accentPanel;
-      accentPanel.rectStyle = rectToken(spec.selectionAccentRole);
-      accentPanel.bounds = Bounds{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight};
-      rowInternal.createPanel(accentPanel);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight},
+                       rectToken(spec.selectionAccentRole),
+                       {},
+                       false,
+                       true);
     }
 
     float indent = (row.depth > 0) ? spec.indent * static_cast<float>(row.depth) : 0.0f;
@@ -2397,63 +2274,86 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
 
     if (spec.showCaretMasks && row.depth > 0) {
       float maskPad = spec.caretMaskPad;
-      PanelSpec maskPanel;
-      maskPanel.rectStyle = rectToken(rowRole);
-      maskPanel.bounds = Bounds{glyphX - maskPad,
-                                glyphY - maskPad,
-                                spec.caretSize + maskPad * 2.0f,
-                                spec.caretSize + maskPad * 2.0f};
-      rowInternal.createPanel(maskPanel);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{glyphX - maskPad,
+                            glyphY - maskPad,
+                            spec.caretSize + maskPad * 2.0f,
+                            spec.caretSize + maskPad * 2.0f},
+                       rectToken(rowRole),
+                       {},
+                       false,
+                       true);
     }
 
     if (row.hasChildren) {
-      PanelSpec caretPanel;
-      caretPanel.rectStyle = rectToken(spec.caretBackgroundRole);
-      caretPanel.bounds = Bounds{glyphX, glyphY, spec.caretSize, spec.caretSize};
-      rowInternal.createPanel(caretPanel);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
+                       rectToken(spec.caretBackgroundRole),
+                       {},
+                       false,
+                       true);
 
-      PanelSpec caretLine;
-      caretLine.rectStyle = rectToken(spec.caretLineRole);
-      caretLine.bounds = Bounds{glyphX + spec.caretInset,
-                                glyphY + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
-                                spec.caretSize - spec.caretInset * 2.0f,
-                                spec.caretThickness};
-      rowInternal.createPanel(caretLine);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{glyphX + spec.caretInset,
+                            glyphY + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
+                            spec.caretSize - spec.caretInset * 2.0f,
+                            spec.caretThickness},
+                       rectToken(spec.caretLineRole),
+                       {},
+                       false,
+                       true);
       if (!row.expanded) {
-        PanelSpec caretVertical;
-        caretVertical.rectStyle = rectToken(spec.caretLineRole);
-        caretVertical.bounds = Bounds{glyphX + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
-                                      glyphY + spec.caretInset,
-                                      spec.caretThickness,
-                                      spec.caretSize - spec.caretInset * 2.0f};
-        rowInternal.createPanel(caretVertical);
+        create_rect_node(frame(),
+                         rowId,
+                         Rect{glyphX + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
+                              glyphY + spec.caretInset,
+                              spec.caretThickness,
+                              spec.caretSize - spec.caretInset * 2.0f},
+                         rectToken(spec.caretLineRole),
+                         {},
+                         false,
+                         true);
       }
     } else {
-      PanelSpec caretPanel;
-      caretPanel.rectStyle = rectToken(spec.caretBackgroundRole);
-      caretPanel.bounds = Bounds{glyphX, glyphY, spec.caretSize, spec.caretSize};
-      rowInternal.createPanel(caretPanel);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
+                       rectToken(spec.caretBackgroundRole),
+                       {},
+                       false,
+                       true);
 
-      PanelSpec caretDot;
-      caretDot.rectStyle = rectToken(spec.caretLineRole);
       float dot = std::max(2.0f, spec.caretThickness);
-      caretDot.bounds = Bounds{glyphX + spec.caretSize * 0.5f - dot * 0.5f,
-                               glyphY + spec.caretSize * 0.5f - dot * 0.5f,
-                               dot,
-                               dot};
-      rowInternal.createPanel(caretDot);
+      create_rect_node(frame(),
+                       rowId,
+                       Rect{glyphX + spec.caretSize * 0.5f - dot * 0.5f,
+                            glyphY + spec.caretSize * 0.5f - dot * 0.5f,
+                            dot,
+                            dot},
+                       rectToken(spec.caretLineRole),
+                       {},
+                       false,
+                       true);
     }
 
     float textX = spec.rowStartX + 20.0f + indent;
     TextRole textRole = row.selected ? spec.selectedTextRole : spec.textRole;
     float lineHeight = row.selected ? selectedTextHeight : rowTextHeight;
     float textY = (spec.rowHeight - lineHeight) * 0.5f;
-    LabelSpec rowLabel;
-    rowLabel.text = row.label;
-    rowLabel.textStyle = textToken(textRole);
     float labelWidth = std::max(0.0f, rowWidth - spec.rowWidthInset - textX);
-    rowLabel.bounds = Bounds{textX, textY, labelWidth, lineHeight};
-    rowInternal.createLabel(rowLabel);
+    create_text_node(frame(),
+                     rowId,
+                     Rect{textX, textY, labelWidth, lineHeight},
+                     row.label,
+                     textToken(textRole),
+                     {},
+                     PrimeFrame::TextAlign::Start,
+                     PrimeFrame::WrapMode::None,
+                     labelWidth,
+                     true);
   }
 
 
@@ -2462,10 +2362,13 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
     float trackY = spec.scrollBar.padding;
     float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);
     float trackW = spec.scrollBar.width;
-    PanelSpec trackPanel;
-    trackPanel.rectStyle = spec.scrollBar.trackStyle;
-    trackPanel.bounds = Bounds{trackX, trackY, trackW, trackH};
-    treeNodeInternal.createPanel(trackPanel);
+    create_rect_node(frame(),
+                     treeNode.nodeId(),
+                     Rect{trackX, trackY, trackW, trackH},
+                     spec.scrollBar.trackStyle,
+                     {},
+                     false,
+                     true);
 
     float thumbH = trackH * spec.scrollBar.thumbFraction;
     thumbH = std::max(thumbH, spec.scrollBar.minThumbHeight);
@@ -2475,23 +2378,20 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
     float maxOffset = std::max(0.0f, trackH - thumbH);
     float progress = std::clamp(spec.scrollBar.thumbProgress, 0.0f, 1.0f);
     float thumbY = trackY + maxOffset * progress;
-    PanelSpec thumbPanel;
-    thumbPanel.rectStyle = spec.scrollBar.thumbStyle;
-    thumbPanel.bounds = Bounds{trackX, thumbY, trackW, thumbH};
-    treeNodeInternal.createPanel(thumbPanel);
+    create_rect_node(frame(),
+                     treeNode.nodeId(),
+                     Rect{trackX, thumbY, trackW, thumbH},
+                     spec.scrollBar.thumbStyle,
+                     {},
+                     false,
+                     true);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);
 }
 
-UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
-  return createRoot(frame, size_from_bounds(bounds));
-}
-
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
-  Bounds rootBounds = resolve_bounds(Bounds{}, size);
-  rootBounds.x = 0.0f;
-  rootBounds.y = 0.0f;
+  Rect rootBounds = resolve_rect(size);
   PrimeFrame::NodeId id = create_node(frame, PrimeFrame::NodeId{}, rootBounds,
                                       nullptr,
                                       PrimeFrame::LayoutType::None,
@@ -2502,10 +2402,6 @@ UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
   return UiNode(frame, id);
 }
 
-UiNode createStudioRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
-  return createStudioRoot(frame, size_from_bounds(bounds));
-}
-
 UiNode createStudioRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
   ensure_studio_theme(frame);
   return createRoot(frame, size);
@@ -2513,21 +2409,19 @@ UiNode createStudioRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
 
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
   ensure_studio_theme(frame);
-  Bounds shellBounds = resolve_bounds(spec.bounds, spec.size);
-  shellBounds.x = 0.0f;
-  shellBounds.y = 0.0f;
+  Rect shellBounds = resolve_rect(spec.size);
   float width = shellBounds.width;
   float height = shellBounds.height;
   float contentH = std::max(0.0f, height - spec.topbarHeight - spec.statusHeight);
   float contentW = std::max(0.0f, width - spec.sidebarWidth - spec.inspectorWidth);
-
-  Bounds topbarBounds{0.0f, 0.0f, width, spec.topbarHeight};
-  Bounds statusBounds{0.0f, height - spec.statusHeight, width, spec.statusHeight};
-  Bounds sidebarBounds{0.0f, spec.topbarHeight, spec.sidebarWidth, contentH};
-  Bounds contentBounds{spec.sidebarWidth, spec.topbarHeight, contentW, contentH};
-  Bounds inspectorBounds{width - spec.inspectorWidth, spec.topbarHeight, spec.inspectorWidth, contentH};
-
-  UiNode root = createRoot(frame, size_from_bounds(shellBounds));
+  SizeSpec shellSize = spec.size;
+  if (!shellSize.preferredWidth.has_value() && width > 0.0f) {
+    shellSize.preferredWidth = width;
+  }
+  if (!shellSize.preferredHeight.has_value() && height > 0.0f) {
+    shellSize.preferredHeight = height;
+  }
+  UiNode root = createRoot(frame, shellSize);
   StackSpec overlaySpec;
   overlaySpec.size.preferredWidth = width;
   overlaySpec.size.preferredHeight = height;
@@ -2579,17 +2473,34 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
   UiNode status = shellStack.createPanel(statusSpec);
 
   if (spec.drawDividers) {
-    UiNode rootInternal(frame, root.nodeId(), true);
-    DividerSpec divider;
-    divider.rectStyle = rectToken(spec.dividerRole);
-    divider.bounds = Bounds{0.0f, spec.topbarHeight, width, 1.0f};
-    rootInternal.createDivider(divider);
-    divider.bounds = Bounds{spec.sidebarWidth - 1.0f, spec.topbarHeight, 1.0f, contentH};
-    rootInternal.createDivider(divider);
-    divider.bounds = Bounds{width - spec.inspectorWidth, spec.topbarHeight, 1.0f, contentH};
-    rootInternal.createDivider(divider);
-    divider.bounds = Bounds{0.0f, height - spec.statusHeight, width, 1.0f};
-    rootInternal.createDivider(divider);
+    create_rect_node(frame,
+                     root.nodeId(),
+                     Rect{0.0f, spec.topbarHeight, width, 1.0f},
+                     rectToken(spec.dividerRole),
+                     {},
+                     false,
+                     true);
+    create_rect_node(frame,
+                     root.nodeId(),
+                     Rect{spec.sidebarWidth - 1.0f, spec.topbarHeight, 1.0f, contentH},
+                     rectToken(spec.dividerRole),
+                     {},
+                     false,
+                     true);
+    create_rect_node(frame,
+                     root.nodeId(),
+                     Rect{width - spec.inspectorWidth, spec.topbarHeight, 1.0f, contentH},
+                     rectToken(spec.dividerRole),
+                     {},
+                     false,
+                     true);
+    create_rect_node(frame,
+                     root.nodeId(),
+                     Rect{0.0f, height - spec.statusHeight, width, 1.0f},
+                     rectToken(spec.dividerRole),
+                     {},
+                     false,
+                     true);
   }
 
   return ShellLayout{
@@ -2599,20 +2510,8 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
       status,
       sidebar,
       content,
-      inspector,
-      shellBounds,
-      topbarBounds,
-      statusBounds,
-      sidebarBounds,
-      contentBounds,
-      inspectorBounds
+      inspector
   };
-}
-
-ShellSpec makeShellSpec(Bounds const& bounds) {
-  ShellSpec spec;
-  spec.size = size_from_bounds(bounds);
-  return spec;
 }
 
 ShellSpec makeShellSpec(SizeSpec const& size) {

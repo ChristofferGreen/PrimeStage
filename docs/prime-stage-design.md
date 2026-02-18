@@ -77,6 +77,10 @@ root.createVerticalLayout(layoutSpec, [](UiNode& col) {
 
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
 All widget specs use `std::optional` for optional fields.
+Container sizing and layout metadata are unified via `ContainerSpec`, which is shared by
+`StackSpec` and `PanelSpec` to keep padding/gap/clip/visibility consistent across containers.
+`ScrollView` returns a small struct that exposes both the root node and a dedicated content node
+so callers can attach children and apply scroll offsets without mixing in scrollbar primitives.
 
 ### UiNode Shape (Draft)
 
@@ -94,7 +98,7 @@ struct UiNode {
   UiNode createEditBox(EditBoxSpec const& spec, EditBoxCallbacks const& callbacks = {});
   UiNode createImage(ImageSpec const& spec);
 
-  UiNode createScrollView(ScrollViewSpec const& spec);
+  ScrollView createScrollView(ScrollViewSpec const& spec);
   UiNode createListView(ListViewSpec const& spec);
   UiNode createTable(TableSpec const& spec);
   UiNode createTreeView(TreeViewSpec const& spec);

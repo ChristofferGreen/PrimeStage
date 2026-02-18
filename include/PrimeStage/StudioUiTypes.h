@@ -88,7 +88,6 @@ struct TableColumn {
 };
 
 struct TableSpec {
-  Bounds bounds;
   float headerInset = 6.0f;
   float headerHeight = 20.0f;
   float rowHeight = 28.0f;
@@ -108,7 +107,6 @@ struct TableSpec {
 };
 
 struct SectionHeaderSpec {
-  Bounds bounds;
   std::string title;
   float accentWidth = 3.0f;
   float textInsetX = 16.0f;
@@ -123,7 +121,6 @@ struct SectionHeaderSpec {
 };
 
 struct SectionPanelSpec {
-  Bounds bounds;
   std::string title;
   RectRole panelRole = RectRole::PanelAlt;
   RectRole headerRole = RectRole::PanelStrong;
@@ -149,7 +146,6 @@ struct PropertyRow {
 };
 
 struct PropertyListSpec {
-  Bounds bounds;
   float rowHeight = 12.0f;
   float rowGap = 12.0f;
   float labelInsetX = 0.0f;
@@ -163,7 +159,6 @@ struct PropertyListSpec {
 };
 
 struct ProgressBarSpec {
-  Bounds bounds;
   float value = 0.0f;
   float minFillWidth = 0.0f;
   RectRole trackRole = RectRole::PanelStrong;
@@ -172,7 +167,6 @@ struct ProgressBarSpec {
 };
 
 struct StatusBarSpec {
-  Bounds bounds;
   std::string leftText;
   std::string rightText;
   float paddingX = 16.0f;
@@ -183,7 +177,6 @@ struct StatusBarSpec {
 };
 
 struct ShellSpec {
-  Bounds bounds;
   SizeSpec size;
   float topbarHeight = StudioDefaults::EdgeBarHeight;
   float statusHeight = StudioDefaults::StatusHeight;
@@ -205,7 +198,6 @@ struct CardSpec {
 };
 
 struct CardGridSpec {
-  Bounds bounds;
   float cardWidth = 180.0f;
   float cardHeight = 120.0f;
   float gapX = 16.0f;
@@ -226,7 +218,6 @@ enum class ButtonVariant {
 };
 
 struct ScrollHintsSpec {
-  Bounds bounds;
   bool showVertical = true;
   bool showHorizontal = true;
   float verticalThumbLength = 120.0f;
@@ -246,7 +237,6 @@ struct TreeNode {
 };
 
 struct TreeViewSpec {
-  Bounds bounds;
   float rowStartX = 8.0f;
   float rowStartY = 36.0f;
   float rowWidthInset = 20.0f;
@@ -286,25 +276,9 @@ struct TreeViewSpec {
   SizeSpec size;
 };
 
-struct RowLayout {
-  Bounds bounds;
-  float gap = StudioDefaults::PanelInset;
-  float cursorLeft = 0.0f;
-  float cursorRight = 0.0f;
-
-  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
-  RowLayout(Bounds const& bounds, float gap = StudioDefaults::PanelInset);
-  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
-  Bounds takeLeft(float width, float height = 0.0f);
-  [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
-  Bounds takeRight(float width, float height = 0.0f);
-};
-
 struct SectionPanel {
   UiNode panel;
   UiNode content;
-  Bounds headerBounds;
-  Bounds contentBounds;
 };
 
 struct ShellLayout {
@@ -315,12 +289,6 @@ struct ShellLayout {
   UiNode sidebar;
   UiNode content;
   UiNode inspector;
-  Bounds bounds;
-  Bounds topbarBounds;
-  Bounds statusBounds;
-  Bounds sidebarBounds;
-  Bounds contentBounds;
-  Bounds inspectorBounds;
 };
 
 } // namespace PrimeStage::Studio
