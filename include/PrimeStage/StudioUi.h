@@ -5,3 +5,5 @@
 #endif
 
 #include "PrimeStage/Ui.h"
+#include "PrimeStage/StudioUiMethods.h"
+#include "PrimeStage/StudioUiTypes.h"

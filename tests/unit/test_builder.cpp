@@ -52,11 +52,16 @@ TEST_CASE("PrimeStage role helpers create panels and labels") {
   PrimeStage::SizeSpec panelSize;
   panelSize.preferredWidth = 20.0f;
   panelSize.preferredHeight = 10.0f;
-  PrimeStage::UiNode panel = root.createPanel(PrimeStage::RectRole::PanelStrong, panelSize);
+  PrimeStage::UiNode panel = PrimeStage::createPanel(root,
+                                                     PrimeStage::RectRole::PanelStrong,
+                                                     panelSize);
   PrimeStage::SizeSpec labelSize;
   labelSize.preferredWidth = 10.0f;
   labelSize.preferredHeight = 8.0f;
-  PrimeStage::UiNode label = panel.createLabel("Hello", PrimeStage::TextRole::SmallMuted, labelSize);
+  PrimeStage::UiNode label = PrimeStage::createLabel(panel,
+                                                     "Hello",
+                                                     PrimeStage::TextRole::SmallMuted,
+                                                     labelSize);
   CHECK(frame.getNode(panel.nodeId()) != nullptr);
   CHECK(frame.getNode(label.nodeId()) != nullptr);
 }
@@ -68,9 +73,10 @@ TEST_CASE("PrimeStage paragraph creates a node") {
 
   PrimeStage::SizeSpec paragraphSize;
   paragraphSize.preferredWidth = 160.0f;
-  PrimeStage::UiNode paragraph = root.createParagraph("Line one\nLine two",
-                                                      PrimeStage::TextRole::SmallMuted,
-                                                      paragraphSize);
+  PrimeStage::UiNode paragraph = PrimeStage::createParagraph(root,
+                                                             "Line one\nLine two",
+                                                             PrimeStage::TextRole::SmallMuted,
+                                                             paragraphSize);
   CHECK(frame.getNode(paragraph.nodeId()) != nullptr);
 }
 
@@ -82,10 +88,11 @@ TEST_CASE("PrimeStage text line creates a node") {
   PrimeStage::SizeSpec lineSize;
   lineSize.preferredWidth = 160.0f;
   lineSize.preferredHeight = 20.0f;
-  PrimeStage::UiNode line = root.createTextLine("Title",
-                                                PrimeStage::TextRole::BodyBright,
-                                                lineSize,
-                                                PrimeFrame::TextAlign::Center);
+  PrimeStage::UiNode line = PrimeStage::createTextLine(root,
+                                                       "Title",
+                                                       PrimeStage::TextRole::BodyBright,
+                                                       lineSize,
+                                                       PrimeFrame::TextAlign::Center);
   CHECK(frame.getNode(line.nodeId()) != nullptr);
 }
 
@@ -108,7 +115,7 @@ TEST_CASE("PrimeStage table creates a node") {
       {"Row", "Ready"},
       {"Row", "Ready"}
   };
-  PrimeStage::UiNode table = root.createTable(tableSpec);
+  PrimeStage::UiNode table = PrimeStage::createTable(root, tableSpec);
   CHECK(frame.getNode(table.nodeId()) != nullptr);
 }
 
@@ -121,7 +128,7 @@ TEST_CASE("PrimeStage tree view creates a node") {
   spec.size.preferredWidth = 200.0f;
   spec.size.preferredHeight = 120.0f;
   spec.nodes = {PrimeStage::TreeNode{"Root", {PrimeStage::TreeNode{"Child"}}, true, false}};
-  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeStage::UiNode tree = PrimeStage::createTreeView(root, spec);
   CHECK(frame.getNode(tree.nodeId()) != nullptr);
 }
 
@@ -133,9 +140,10 @@ TEST_CASE("PrimeStage section header creates a node") {
   PrimeStage::SizeSpec size;
   size.preferredWidth = 100.0f;
   size.preferredHeight = 20.0f;
-  PrimeStage::UiNode header = root.createSectionHeader(size,
-                                                       "Header",
-                                                       PrimeStage::TextRole::SmallBright);
+  PrimeStage::UiNode header = PrimeStage::createSectionHeader(root,
+                                                              size,
+                                                              "Header",
+                                                              PrimeStage::TextRole::SmallBright);
   CHECK(frame.getNode(header.nodeId()) != nullptr);
 }
 
@@ -148,7 +156,7 @@ TEST_CASE("PrimeStage section panel creates a node") {
   spec.size.preferredWidth = 180.0f;
   spec.size.preferredHeight = 80.0f;
   spec.title = "Section";
-  PrimeStage::SectionPanel panel = root.createSectionPanel(spec);
+  PrimeStage::SectionPanel panel = PrimeStage::createSectionPanel(root, spec);
   CHECK(frame.getNode(panel.panel.nodeId()) != nullptr);
   CHECK(frame.getNode(panel.content.nodeId()) != nullptr);
 }
@@ -220,7 +228,7 @@ TEST_CASE("PrimeStage status bar creates a node") {
   spec.size.preferredHeight = 24.0f;
   spec.leftText = "Ready";
   spec.rightText = "Demo";
-  PrimeStage::UiNode bar = root.createStatusBar(spec);
+  PrimeStage::UiNode bar = PrimeStage::createStatusBar(root, spec);
   CHECK(frame.getNode(bar.nodeId()) != nullptr);
 }
 
@@ -235,7 +243,7 @@ TEST_CASE("PrimeStage property list creates a node") {
       {"Key", "Value"},
       {"Key2", "Value2"}
   };
-  PrimeStage::UiNode list = root.createPropertyList(spec);
+  PrimeStage::UiNode list = PrimeStage::createPropertyList(root, spec);
   CHECK(frame.getNode(list.nodeId()) != nullptr);
 }
 
@@ -248,7 +256,7 @@ TEST_CASE("PrimeStage card grid creates a node") {
   spec.size.preferredWidth = 280.0f;
   spec.size.preferredHeight = 120.0f;
   spec.cards = {{"Card", "Detail"}, {"Card", "Detail"}};
-  PrimeStage::UiNode grid = root.createCardGrid(spec);
+  PrimeStage::UiNode grid = PrimeStage::createCardGrid(root, spec);
   CHECK(frame.getNode(grid.nodeId()) != nullptr);
 }
 
@@ -261,6 +269,6 @@ TEST_CASE("PrimeStage progress bar creates a node") {
   spec.size.preferredWidth = 120.0f;
   spec.size.preferredHeight = 10.0f;
   spec.value = 0.5f;
-  PrimeStage::UiNode bar = root.createProgressBar(spec);
+  PrimeStage::UiNode bar = PrimeStage::createProgressBar(root, spec);
   CHECK(frame.getNode(bar.nodeId()) != nullptr);
 }

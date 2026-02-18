@@ -69,18 +69,20 @@ int main(int argc, char** argv) {
     row.createDivider(rectToken(RectRole::Divider),
                       fixed(UiDefaults::DividerThickness, UiDefaults::ControlHeight));
     row.createSpacer(fixed(UiDefaults::PanelInset, UiDefaults::ControlHeight));
-    row.createTextField("Search...", {});
+    createTextField(row, "Search...", {});
 
     SizeSpec spacer;
     spacer.stretchX = 1.0f;
     row.createSpacer(spacer);
 
-    row.createButton("Share",
-                     ButtonVariant::Default,
-                     {});
-    row.createButton("Run",
-                     ButtonVariant::Primary,
-                     {});
+    createButton(row,
+                 "Share",
+                 ButtonVariant::Default,
+                 {});
+    createButton(row,
+                 "Run",
+                 ButtonVariant::Primary,
+                 {});
   };
 
   auto create_sidebar = [&]() {
@@ -162,7 +164,7 @@ int main(int argc, char** argv) {
         false};
 
     treeSpec.nodes = {treeRoot};
-    treePanel.createTreeView(treeSpec);
+    createTreeView(treePanel, treeSpec);
   };
 
   auto create_content = [&]() {
@@ -180,7 +182,7 @@ int main(int argc, char** argv) {
     SizeSpec overviewSize;
     overviewSize.preferredWidth = sectionWidth;
     overviewSize.preferredHeight = UiDefaults::SectionHeaderHeight;
-    column.createSectionHeader(overviewSize, "Overview", TextRole::TitleBright);
+    createSectionHeader(column, overviewSize, "Overview", TextRole::TitleBright);
 
     PanelSpec boardSpec;
     boardSpec.rectStyle = rectToken(RectRole::Panel);
@@ -217,16 +219,17 @@ int main(int argc, char** argv) {
     SizeSpec buttonSpacer;
     buttonSpacer.stretchX = 1.0f;
     boardButtons.createSpacer(buttonSpacer);
-    boardButtons.createButton("Primary Action", ButtonVariant::Primary, {});
+    createButton(boardButtons, "Primary Action", ButtonVariant::Primary, {});
 
     SizeSpec highlightSize;
     highlightSize.preferredWidth = sectionWidth;
     highlightSize.preferredHeight = UiDefaults::HeaderHeight;
-    column.createSectionHeader(highlightSize,
-                               "Highlights",
-                               TextRole::SmallBright,
-                               true,
-                               UiDefaults::HeaderDividerOffset);
+    createSectionHeader(column,
+                        highlightSize,
+                        "Highlights",
+                        TextRole::SmallBright,
+                        true,
+                        UiDefaults::HeaderDividerOffset);
 
     CardGridSpec cardSpec;
     cardSpec.size.preferredWidth = sectionWidth;
@@ -238,7 +241,7 @@ int main(int argc, char** argv) {
         {"Card", "Detail"},
         {"Card", "Detail"}
     };
-    column.createCardGrid(cardSpec);
+    createCardGrid(column, cardSpec);
 
     float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
     float firstColWidth = contentW - UiDefaults::TableStatusOffset;
@@ -260,12 +263,12 @@ int main(int argc, char** argv) {
         {"Item Row", "Ready"},
         {"Item Row", "Ready"}
     };
-    column.createTable(tableSpec);
+    createTable(column, tableSpec);
 
     ScrollHintsSpec scrollSpec;
     scrollSpec.size.preferredWidth = contentW;
     scrollSpec.size.preferredHeight = contentH;
-    centerPane.createScrollHints(scrollSpec);
+    createScrollHints(centerPane, scrollSpec);
   };
 
   auto create_inspector = [&]() {
@@ -287,24 +290,26 @@ int main(int argc, char** argv) {
     SizeSpec inspectorHeaderSize;
     inspectorHeaderSize.preferredWidth = sectionWidth;
     inspectorHeaderSize.preferredHeight = UiDefaults::SectionHeaderHeight;
-    column.createSectionHeader(inspectorHeaderSize,
-                               "Inspector",
-                               TextRole::BodyBright);
+    createSectionHeader(column,
+                        inspectorHeaderSize,
+                        "Inspector",
+                        TextRole::BodyBright);
 
     SizeSpec propsSize;
     propsSize.preferredWidth = sectionWidth;
     propsSize.preferredHeight = UiDefaults::PanelHeightS;
-    SectionPanel propsPanel = column.createSectionPanel(propsSize, "Properties");
+    SectionPanel propsPanel = createSectionPanel(column, propsSize, "Properties");
 
     SizeSpec transformSize;
     transformSize.preferredWidth = sectionWidth;
     transformSize.preferredHeight = UiDefaults::PanelHeightM + opacityBarH;
-    SectionPanel transformPanel = column.createSectionPanel(transformSize, "Transform");
+    SectionPanel transformPanel = createSectionPanel(column, transformSize, "Transform");
 
     SizeSpec propsListSize;
     propsListSize.preferredWidth = propsPanel.contentBounds.width;
-    propsPanel.content.createPropertyList(propsListSize,
-                                          {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
+    createPropertyList(propsPanel.content,
+                       propsListSize,
+                       {{"Name", "SceneRoot"}, {"Tag", "Environment"}});
 
     StackSpec transformStackSpec;
     transformStackSpec.size.preferredWidth = transformPanel.contentBounds.width;
@@ -314,8 +319,9 @@ int main(int argc, char** argv) {
 
     SizeSpec transformListSize;
     transformListSize.preferredWidth = transformPanel.contentBounds.width;
-    transformStack.createPropertyList(transformListSize,
-                                      {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
+    createPropertyList(transformStack,
+                       transformListSize,
+                       {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
 
     StackSpec opacityOverlaySpec;
     opacityOverlaySpec.size.preferredWidth = transformPanel.contentBounds.width;
@@ -325,7 +331,7 @@ int main(int argc, char** argv) {
     SizeSpec opacityBarSize;
     opacityBarSize.preferredWidth = transformPanel.contentBounds.width;
     opacityBarSize.preferredHeight = opacityBarH;
-    opacityOverlay.createProgressBar(opacityBarSize, 0.85f);
+    createProgressBar(opacityOverlay, opacityBarSize, 0.85f);
 
     PropertyListSpec opacitySpec;
     opacitySpec.size.preferredWidth = transformPanel.contentBounds.width;
@@ -335,7 +341,7 @@ int main(int argc, char** argv) {
     opacitySpec.labelRole = TextRole::SmallBright;
     opacitySpec.valueRole = TextRole::SmallBright;
     opacitySpec.rows = {{"Opacity", "85%"}};
-    opacityOverlay.createPropertyList(opacitySpec);
+    createPropertyList(opacityOverlay, opacitySpec);
 
     SizeSpec footerSpacer;
     footerSpacer.stretchY = 1.0f;
@@ -344,9 +350,10 @@ int main(int argc, char** argv) {
     SizeSpec publishSize;
     publishSize.preferredWidth = sectionWidth;
     publishSize.stretchX = 1.0f;
-    column.createButton("Publish",
-                        ButtonVariant::Primary,
-                        publishSize);
+    createButton(column,
+                 "Publish",
+                 ButtonVariant::Primary,
+                 publishSize);
 
   };
 

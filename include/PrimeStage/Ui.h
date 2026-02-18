@@ -177,18 +177,13 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float thumbHeight,
                              float thumbOffset);
 
-#ifdef PRIMESTAGE_STUDIO_UI
-#include "PrimeStage/StudioUiTypes.h"
-struct SectionPanel;
-struct ShellLayout;
-#endif
-
 class UiNode {
 public:
   UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute = false);
 
   PrimeFrame::NodeId nodeId() const { return id_; }
   PrimeFrame::Frame& frame() const { return frame_.get(); }
+  bool allowAbsolute() const { return allowAbsolute_; }
 
   UiNode& setSize(SizeSpec const& size);
 
@@ -252,10 +247,6 @@ public:
   UiNode createTextField(TextFieldSpec const& spec);
   UiNode createScrollView(ScrollViewSpec const& spec);
 
-#ifdef PRIMESTAGE_STUDIO_UI
-#include "PrimeStage/StudioUiMethods.inl"
-#endif
-
 private:
   Bounds sanitizeBounds(Bounds bounds) const;
   Bounds resolveLayoutBounds(Bounds const& bounds, SizeSpec const& size) const;
@@ -264,38 +255,5 @@ private:
   PrimeFrame::NodeId id_{};
   bool allowAbsolute_ = false;
 };
-
-#ifdef PRIMESTAGE_STUDIO_UI
-struct SectionPanel {
-  UiNode panel;
-  UiNode content;
-  Bounds headerBounds;
-  Bounds contentBounds;
-};
-
-struct ShellLayout {
-  UiNode root;
-  UiNode background;
-  UiNode topbar;
-  UiNode status;
-  UiNode sidebar;
-  UiNode content;
-  UiNode inspector;
-  Bounds bounds;
-  Bounds topbarBounds;
-  Bounds statusBounds;
-  Bounds sidebarBounds;
-  Bounds contentBounds;
-  Bounds inspectorBounds;
-};
-
-[[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds);
-UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size);
-ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec);
-[[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
-ShellSpec makeShellSpec(Bounds const& bounds);
-ShellSpec makeShellSpec(SizeSpec const& size);
-#endif
 
 } // namespace PrimeStage

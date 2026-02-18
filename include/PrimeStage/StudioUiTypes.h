@@ -1,6 +1,8 @@
 #pragma once
 
-// Intended for inclusion from PrimeStage/Ui.h when PRIMESTAGE_STUDIO_UI is defined.
+#include "PrimeStage/Ui.h"
+
+namespace PrimeStage {
 
 enum class RectRole : PrimeFrame::RectStyleToken {
   Background = 0,
@@ -297,3 +299,28 @@ struct RowLayout {
   [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
   Bounds takeRight(float width, float height = 0.0f);
 };
+
+struct SectionPanel {
+  UiNode panel;
+  UiNode content;
+  Bounds headerBounds;
+  Bounds contentBounds;
+};
+
+struct ShellLayout {
+  UiNode root;
+  UiNode background;
+  UiNode topbar;
+  UiNode status;
+  UiNode sidebar;
+  UiNode content;
+  UiNode inspector;
+  Bounds bounds;
+  Bounds topbarBounds;
+  Bounds statusBounds;
+  Bounds sidebarBounds;
+  Bounds contentBounds;
+  Bounds inspectorBounds;
+};
+
+} // namespace PrimeStage
