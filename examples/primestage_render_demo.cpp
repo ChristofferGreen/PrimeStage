@@ -324,6 +324,7 @@ int main(int argc, char** argv) {
 
     SizeSpec opacityBarSize;
     opacityBarSize.preferredWidth = transformPanel.contentBounds.width;
+    opacityBarSize.preferredHeight = opacityBarH;
     transformStack.createProgressBar(opacityBarSize, 0.85f);
 
     SizeSpec footerSpacer;
