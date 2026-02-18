@@ -6,7 +6,7 @@ static PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame, float width, floa
   PrimeStage::SizeSpec size;
   size.preferredWidth = width;
   size.preferredHeight = height;
-  return PrimeStage::createRoot(frame, size);
+  return PrimeStage::createStudioRoot(frame, size);
 }
 
 TEST_CASE("PrimeStage UiNode builds panels and labels") {

@@ -17,6 +17,16 @@ struct Bounds {
   float height = 0.0f;
 };
 
+struct UiDefaults {
+  static constexpr float DividerThickness = 1.0f;
+  static constexpr float PanelInset = 12.0f;
+  static constexpr float ControlHeight = 32.0f;
+  static constexpr float ControlWidthM = 88.0f;
+  static constexpr float ControlWidthL = 120.0f;
+  static constexpr float FieldWidthL = 360.0f;
+  static constexpr float PanelHeightM = 140.0f;
+};
+
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;

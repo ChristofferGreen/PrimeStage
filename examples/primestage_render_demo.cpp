@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
     std::filesystem::create_directories(outFile.parent_path());
   }
 
-  constexpr float kWidth = UiDefaults::CanvasWidth;
-  constexpr float kHeight = UiDefaults::CanvasHeight;
-  constexpr float opacityBarH = UiDefaults::OpacityBarHeight;
+  constexpr float kWidth = StudioDefaults::CanvasWidth;
+  constexpr float kHeight = StudioDefaults::CanvasHeight;
+  constexpr float opacityBarH = StudioDefaults::OpacityBarHeight;
 
   Frame frame;
 
@@ -46,12 +46,12 @@ int main(int argc, char** argv) {
   auto create_topbar = [&]() {
     StackSpec rowSpec;
     rowSpec.size.preferredWidth = shellWidth;
-    rowSpec.size.preferredHeight = UiDefaults::EdgeBarHeight;
+    rowSpec.size.preferredHeight = StudioDefaults::EdgeBarHeight;
     rowSpec.padding = Insets{0.0f,
-                             UiDefaults::PanelInset,
+                             StudioDefaults::PanelInset,
                              0.0f,
-                             UiDefaults::PanelInset};
-    rowSpec.gap = UiDefaults::PanelInset;
+                             StudioDefaults::PanelInset};
+    rowSpec.gap = StudioDefaults::PanelInset;
 
     UiNode row = edgeBar.createHorizontalStack(rowSpec);
 
@@ -62,13 +62,14 @@ int main(int argc, char** argv) {
       return size;
     };
 
-    row.createTextLine("PrimeFrame Studio",
-                       TextRole::TitleBright,
-                       fixed(UiDefaults::TitleBlockWidth, UiDefaults::ControlHeight),
-                       PrimeFrame::TextAlign::Center);
+    createTextLine(row,
+                   "PrimeFrame Studio",
+                   TextRole::TitleBright,
+                   fixed(StudioDefaults::TitleBlockWidth, StudioDefaults::ControlHeight),
+                   PrimeFrame::TextAlign::Center);
     row.createDivider(rectToken(RectRole::Divider),
-                      fixed(UiDefaults::DividerThickness, UiDefaults::ControlHeight));
-    row.createSpacer(fixed(UiDefaults::PanelInset, UiDefaults::ControlHeight));
+                      fixed(StudioDefaults::DividerThickness, StudioDefaults::ControlHeight));
+    row.createSpacer(fixed(StudioDefaults::PanelInset, StudioDefaults::ControlHeight));
     createTextField(row, "Search...", {});
 
     SizeSpec spacer;
@@ -89,37 +90,37 @@ int main(int argc, char** argv) {
     StackSpec columnSpec;
     columnSpec.size.preferredWidth = sidebarW;
     columnSpec.size.preferredHeight = sidebarBounds.height;
-    columnSpec.padding = Insets{UiDefaults::PanelInset,
-                                UiDefaults::PanelInset,
-                                UiDefaults::PanelInset,
-                                UiDefaults::PanelInset};
-    columnSpec.gap = UiDefaults::PanelInset;
+    columnSpec.padding = Insets{StudioDefaults::PanelInset,
+                                StudioDefaults::PanelInset,
+                                StudioDefaults::PanelInset,
+                                StudioDefaults::PanelInset};
+    columnSpec.gap = StudioDefaults::PanelInset;
     UiNode column = leftRail.createVerticalStack(columnSpec);
 
     PanelSpec headerSpec;
     headerSpec.rectStyle = rectToken(RectRole::PanelStrong);
     headerSpec.layout = PrimeFrame::LayoutType::HorizontalStack;
-    headerSpec.size.preferredHeight = UiDefaults::HeaderHeight;
+    headerSpec.size.preferredHeight = StudioDefaults::HeaderHeight;
     UiNode header = column.createPanel(headerSpec);
 
     SizeSpec accentSize;
-    accentSize.preferredWidth = UiDefaults::AccentThickness;
-    accentSize.preferredHeight = UiDefaults::HeaderHeight;
+    accentSize.preferredWidth = StudioDefaults::AccentThickness;
+    accentSize.preferredHeight = StudioDefaults::HeaderHeight;
     header.createPanel(rectToken(RectRole::Accent), accentSize);
 
     SizeSpec indentSize;
-    indentSize.preferredWidth = UiDefaults::LabelIndent;
-    indentSize.preferredHeight = UiDefaults::HeaderHeight;
+    indentSize.preferredWidth = StudioDefaults::LabelIndent;
+    indentSize.preferredHeight = StudioDefaults::HeaderHeight;
     header.createSpacer(indentSize);
 
     SizeSpec headerTextSize;
     headerTextSize.stretchX = 1.0f;
-    headerTextSize.preferredHeight = UiDefaults::HeaderHeight;
-    header.createTextLine("Scene", TextRole::BodyBright, headerTextSize);
+    headerTextSize.preferredHeight = StudioDefaults::HeaderHeight;
+    createTextLine(header, "Scene", TextRole::BodyBright, headerTextSize);
 
     SizeSpec hierarchyTextSize;
-    hierarchyTextSize.preferredHeight = UiDefaults::HeaderHeight;
-    column.createTextLine("Hierarchy", TextRole::SmallMuted, hierarchyTextSize);
+    hierarchyTextSize.preferredHeight = StudioDefaults::HeaderHeight;
+    createTextLine(column, "Hierarchy", TextRole::SmallMuted, hierarchyTextSize);
 
     PanelSpec treePanelSpec;
     treePanelSpec.rectStyle = rectToken(RectRole::Panel);
@@ -128,18 +129,18 @@ int main(int argc, char** argv) {
     UiNode treePanel = column.createPanel(treePanelSpec);
 
     TreeViewSpec treeSpec;
-    float treeWidth = std::max(0.0f, sidebarW - UiDefaults::PanelInset * 2.0f);
-    float treeHeight = std::max(0.0f, sidebarBounds.height - UiDefaults::PanelInset * 2.0f -
-                                        UiDefaults::HeaderHeight * 2.0f - UiDefaults::PanelInset);
+    float treeWidth = std::max(0.0f, sidebarW - StudioDefaults::PanelInset * 2.0f);
+    float treeHeight = std::max(0.0f, sidebarBounds.height - StudioDefaults::PanelInset * 2.0f -
+                                        StudioDefaults::HeaderHeight * 2.0f - StudioDefaults::PanelInset);
     treeSpec.size.preferredWidth = treeWidth;
     treeSpec.size.preferredHeight = treeHeight;
     treeSpec.showHeaderDivider = true;
-    treeSpec.headerDividerY = UiDefaults::TreeHeaderDividerY;
+    treeSpec.headerDividerY = StudioDefaults::TreeHeaderDividerY;
     float treeTrackH = treeHeight - treeSpec.scrollBar.padding * 2.0f;
     setScrollBarThumbPixels(treeSpec.scrollBar,
                             treeTrackH,
-                            UiDefaults::ScrollThumbHeight,
-                            UiDefaults::ScrollThumbOffset - treeSpec.scrollBar.padding);
+                            StudioDefaults::ScrollThumbHeight,
+                            StudioDefaults::ScrollThumbOffset - treeSpec.scrollBar.padding);
 
     TreeNode treeRoot{
         "Root",
@@ -171,50 +172,51 @@ int main(int argc, char** argv) {
     StackSpec columnSpec;
     columnSpec.size.preferredWidth = contentW;
     columnSpec.size.preferredHeight = contentH;
-    columnSpec.padding = Insets{UiDefaults::SurfaceInset,
-                                UiDefaults::SectionHeaderOffsetY,
-                                UiDefaults::SurfaceInset,
-                                UiDefaults::SurfaceInset};
-    columnSpec.gap = UiDefaults::SectionGap;
+    columnSpec.padding = Insets{StudioDefaults::SurfaceInset,
+                                StudioDefaults::SectionHeaderOffsetY,
+                                StudioDefaults::SurfaceInset,
+                                StudioDefaults::SurfaceInset};
+    columnSpec.gap = StudioDefaults::SectionGap;
     UiNode column = centerPane.createVerticalStack(columnSpec);
 
-    float sectionWidth = contentW - UiDefaults::SurfaceInset * 2.0f;
+    float sectionWidth = contentW - StudioDefaults::SurfaceInset * 2.0f;
     SizeSpec overviewSize;
     overviewSize.preferredWidth = sectionWidth;
-    overviewSize.preferredHeight = UiDefaults::SectionHeaderHeight;
+    overviewSize.preferredHeight = StudioDefaults::SectionHeaderHeight;
     createSectionHeader(column, overviewSize, "Overview", TextRole::TitleBright);
 
     PanelSpec boardSpec;
     boardSpec.rectStyle = rectToken(RectRole::Panel);
     boardSpec.layout = PrimeFrame::LayoutType::VerticalStack;
-    boardSpec.padding = Insets{UiDefaults::SurfaceInset,
-                               UiDefaults::PanelInset,
-                               UiDefaults::SurfaceInset,
-                               UiDefaults::PanelInset};
-    boardSpec.gap = UiDefaults::PanelInset;
+    boardSpec.padding = Insets{StudioDefaults::SurfaceInset,
+                               StudioDefaults::PanelInset,
+                               StudioDefaults::SurfaceInset,
+                               StudioDefaults::PanelInset};
+    boardSpec.gap = StudioDefaults::PanelInset;
     boardSpec.size.preferredWidth = sectionWidth;
-    boardSpec.size.preferredHeight = UiDefaults::PanelHeightL +
-                                     UiDefaults::ControlHeight +
-                                     UiDefaults::PanelInset;
+    boardSpec.size.preferredHeight = StudioDefaults::PanelHeightL +
+                                     StudioDefaults::ControlHeight +
+                                     StudioDefaults::PanelInset;
     UiNode boardPanel = column.createPanel(boardSpec);
 
-    float boardTextWidth = std::max(0.0f, sectionWidth - UiDefaults::SurfaceInset * 2.0f);
+    float boardTextWidth = std::max(0.0f, sectionWidth - StudioDefaults::SurfaceInset * 2.0f);
     SizeSpec titleSize;
     titleSize.preferredWidth = boardTextWidth;
-    titleSize.preferredHeight = UiDefaults::TitleHeight;
-    boardPanel.createTextLine("Active Board", TextRole::SmallMuted, titleSize);
+    titleSize.preferredHeight = StudioDefaults::TitleHeight;
+    createTextLine(boardPanel, "Active Board", TextRole::SmallMuted, titleSize);
 
     SizeSpec paragraphSize;
     paragraphSize.preferredWidth = boardTextWidth;
-    boardPanel.createParagraph("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n"
-                               "Sed do eiusmod tempor incididunt ut labore et dolore.\n"
-                               "Ut enim ad minim veniam, quis nostrud exercitation.",
-                               TextRole::SmallMuted,
-                               paragraphSize);
+    createParagraph(boardPanel,
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n"
+                    "Sed do eiusmod tempor incididunt ut labore et dolore.\n"
+                    "Ut enim ad minim veniam, quis nostrud exercitation.",
+                    TextRole::SmallMuted,
+                    paragraphSize);
 
     StackSpec buttonRowSpec;
     buttonRowSpec.size.preferredWidth = boardTextWidth;
-    buttonRowSpec.size.preferredHeight = UiDefaults::ControlHeight;
+    buttonRowSpec.size.preferredHeight = StudioDefaults::ControlHeight;
     UiNode boardButtons = boardPanel.createHorizontalStack(buttonRowSpec);
     SizeSpec buttonSpacer;
     buttonSpacer.stretchX = 1.0f;
@@ -223,18 +225,18 @@ int main(int argc, char** argv) {
 
     SizeSpec highlightSize;
     highlightSize.preferredWidth = sectionWidth;
-    highlightSize.preferredHeight = UiDefaults::HeaderHeight;
+    highlightSize.preferredHeight = StudioDefaults::HeaderHeight;
     createSectionHeader(column,
                         highlightSize,
                         "Highlights",
                         TextRole::SmallBright,
                         true,
-                        UiDefaults::HeaderDividerOffset);
+                        StudioDefaults::HeaderDividerOffset);
 
     CardGridSpec cardSpec;
     cardSpec.size.preferredWidth = sectionWidth;
-    cardSpec.size.preferredHeight = UiDefaults::CardHeight;
-    cardSpec.gapX = UiDefaults::PanelInset;
+    cardSpec.size.preferredHeight = StudioDefaults::CardHeight;
+    cardSpec.gapX = StudioDefaults::PanelInset;
     cardSpec.cardWidth = (sectionWidth - cardSpec.gapX * 2.0f) / 3.0f;
     cardSpec.cards = {
         {"Card", "Detail"},
@@ -243,8 +245,8 @@ int main(int argc, char** argv) {
     };
     createCardGrid(column, cardSpec);
 
-    float tableWidth = contentW - UiDefaults::SurfaceInset - UiDefaults::TableRightInset;
-    float firstColWidth = contentW - UiDefaults::TableStatusOffset;
+    float tableWidth = contentW - StudioDefaults::SurfaceInset - StudioDefaults::TableRightInset;
+    float firstColWidth = contentW - StudioDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
@@ -275,21 +277,21 @@ int main(int argc, char** argv) {
     StackSpec columnSpec;
     columnSpec.size.preferredWidth = inspectorW;
     columnSpec.size.preferredHeight = inspectorBounds.height;
-    columnSpec.padding = Insets{UiDefaults::SurfaceInset,
-                                UiDefaults::SurfaceInset,
-                                UiDefaults::SurfaceInset,
-                                UiDefaults::SurfaceInset};
-    columnSpec.gap = UiDefaults::PanelGap;
+    columnSpec.padding = Insets{StudioDefaults::SurfaceInset,
+                                StudioDefaults::SurfaceInset,
+                                StudioDefaults::SurfaceInset,
+                                StudioDefaults::SurfaceInset};
+    columnSpec.gap = StudioDefaults::PanelGap;
     UiNode column = rightRail.createVerticalStack(columnSpec);
 
     SizeSpec headerSpacer;
-    headerSpacer.preferredHeight = UiDefaults::SectionHeaderOffsetY;
+    headerSpacer.preferredHeight = StudioDefaults::SectionHeaderOffsetY;
     column.createSpacer(headerSpacer);
 
-    float sectionWidth = inspectorW - UiDefaults::SurfaceInset * 2.0f;
+    float sectionWidth = inspectorW - StudioDefaults::SurfaceInset * 2.0f;
     SizeSpec inspectorHeaderSize;
     inspectorHeaderSize.preferredWidth = sectionWidth;
-    inspectorHeaderSize.preferredHeight = UiDefaults::SectionHeaderHeight;
+    inspectorHeaderSize.preferredHeight = StudioDefaults::SectionHeaderHeight;
     createSectionHeader(column,
                         inspectorHeaderSize,
                         "Inspector",
@@ -297,12 +299,12 @@ int main(int argc, char** argv) {
 
     SizeSpec propsSize;
     propsSize.preferredWidth = sectionWidth;
-    propsSize.preferredHeight = UiDefaults::PanelHeightS;
+    propsSize.preferredHeight = StudioDefaults::PanelHeightS;
     SectionPanel propsPanel = createSectionPanel(column, propsSize, "Properties");
 
     SizeSpec transformSize;
     transformSize.preferredWidth = sectionWidth;
-    transformSize.preferredHeight = UiDefaults::PanelHeightM + opacityBarH;
+    transformSize.preferredHeight = StudioDefaults::PanelHeightM + opacityBarH;
     SectionPanel transformPanel = createSectionPanel(column, transformSize, "Transform");
 
     SizeSpec propsListSize;
@@ -314,7 +316,7 @@ int main(int argc, char** argv) {
     StackSpec transformStackSpec;
     transformStackSpec.size.preferredWidth = transformPanel.contentBounds.width;
     transformStackSpec.size.preferredHeight = transformPanel.contentBounds.height;
-    transformStackSpec.gap = UiDefaults::PanelInset;
+    transformStackSpec.gap = StudioDefaults::PanelInset;
     UiNode transformStack = transformPanel.content.createVerticalStack(transformStackSpec);
 
     SizeSpec transformListSize;
@@ -360,20 +362,20 @@ int main(int argc, char** argv) {
   auto create_status = [&]() {
     StackSpec rowSpec;
     rowSpec.size.preferredWidth = shellWidth;
-    rowSpec.size.preferredHeight = UiDefaults::StatusHeight;
-    rowSpec.padding = Insets{UiDefaults::SurfaceInset, 0.0f, UiDefaults::SurfaceInset, 0.0f};
-    rowSpec.gap = UiDefaults::PanelInset;
+    rowSpec.size.preferredHeight = StudioDefaults::StatusHeight;
+    rowSpec.padding = Insets{StudioDefaults::SurfaceInset, 0.0f, StudioDefaults::SurfaceInset, 0.0f};
+    rowSpec.gap = StudioDefaults::PanelInset;
     UiNode bar = statusBar.createHorizontalStack(rowSpec);
 
     SizeSpec lineSize;
-    lineSize.preferredHeight = UiDefaults::StatusHeight;
-    bar.createTextLine("Ready", TextRole::SmallMuted, lineSize);
+    lineSize.preferredHeight = StudioDefaults::StatusHeight;
+    createTextLine(bar, "Ready", TextRole::SmallMuted, lineSize);
 
     SizeSpec barSpacer;
     barSpacer.stretchX = 1.0f;
     bar.createSpacer(barSpacer);
 
-    bar.createTextLine("PrimeFrame Demo", TextRole::SmallMuted, lineSize);
+    createTextLine(bar, "PrimeFrame Demo", TextRole::SmallMuted, lineSize);
   };
 
   create_topbar();

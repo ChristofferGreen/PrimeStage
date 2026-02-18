@@ -29,7 +29,7 @@ enum class TextRole : PrimeFrame::TextStyleToken {
   SmallMuted
 };
 
-struct UiDefaults {
+struct StudioDefaults {
   static constexpr float CanvasWidth = 1100.0f;
   static constexpr float CanvasHeight = 700.0f;
   static constexpr float EdgeBarHeight = 56.0f;
@@ -185,10 +185,10 @@ struct StatusBarSpec {
 struct ShellSpec {
   Bounds bounds;
   SizeSpec size;
-  float topbarHeight = UiDefaults::EdgeBarHeight;
-  float statusHeight = UiDefaults::StatusHeight;
-  float sidebarWidth = UiDefaults::PrimaryRailWidth;
-  float inspectorWidth = UiDefaults::SecondaryRailWidth;
+  float topbarHeight = StudioDefaults::EdgeBarHeight;
+  float statusHeight = StudioDefaults::StatusHeight;
+  float sidebarWidth = StudioDefaults::PrimaryRailWidth;
+  float inspectorWidth = StudioDefaults::SecondaryRailWidth;
   RectRole backgroundRole = RectRole::Background;
   RectRole topbarRole = RectRole::Topbar;
   RectRole statusRole = RectRole::Statusbar;
@@ -288,12 +288,12 @@ struct TreeViewSpec {
 
 struct RowLayout {
   Bounds bounds;
-  float gap = UiDefaults::PanelInset;
+  float gap = StudioDefaults::PanelInset;
   float cursorLeft = 0.0f;
   float cursorRight = 0.0f;
 
   [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
-  RowLayout(Bounds const& bounds, float gap = UiDefaults::PanelInset);
+  RowLayout(Bounds const& bounds, float gap = StudioDefaults::PanelInset);
   [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]
   Bounds takeLeft(float width, float height = 0.0f);
   [[deprecated("RowLayout returns absolute bounds; prefer automatic layout stacks instead.")]]

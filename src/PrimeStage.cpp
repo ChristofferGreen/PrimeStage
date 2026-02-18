@@ -505,6 +505,17 @@ bool is_default_theme(PrimeFrame::Theme const& theme) {
   return true;
 }
 
+static void ensure_studio_theme(PrimeFrame::Frame& frame) {
+  PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (!theme) {
+    return;
+  }
+  if (theme->palette.empty() || theme->rectStyles.empty() || theme->textStyles.empty() ||
+      is_default_theme(*theme)) {
+    applyStudioTheme(frame);
+  }
+}
+
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
     : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
 
@@ -589,11 +600,11 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
   return createPanel(spec);
 }
 
-UiNode createPanel(UiNode const& parent, RectRole role, Bounds const& bounds) {
+UiNode createPanel(UiNode& parent, RectRole role, Bounds const& bounds) {
   return createPanel(parent, role, size_from_bounds(bounds));
 }
 
-UiNode createPanel(UiNode const& parent, RectRole role, SizeSpec const& size) {
+UiNode createPanel(UiNode& parent, RectRole role, SizeSpec const& size) {
   return parent.createPanel(rectToken(role), size);
 }
 
@@ -655,11 +666,11 @@ UiNode UiNode::createLabel(std::string_view text,
   return createLabel(spec);
 }
 
-UiNode createLabel(UiNode const& parent, std::string_view text, TextRole role, Bounds const& bounds) {
+UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, Bounds const& bounds) {
   return createLabel(parent, text, role, size_from_bounds(bounds));
 }
 
-UiNode createLabel(UiNode const& parent, std::string_view text, TextRole role, SizeSpec const& size) {
+UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, SizeSpec const& size) {
   return parent.createLabel(text, textToken(role), size);
 }
 
@@ -732,14 +743,14 @@ UiNode UiNode::createParagraph(std::string_view text,
   return createParagraph(spec);
 }
 
-UiNode createParagraph(UiNode const& parent,
+UiNode createParagraph(UiNode& parent,
                        Bounds const& bounds,
                        std::string_view text,
                        TextRole role) {
   return createParagraph(parent, text, role, size_from_bounds(bounds));
 }
 
-UiNode createParagraph(UiNode const& parent,
+UiNode createParagraph(UiNode& parent,
                        std::string_view text,
                        TextRole role,
                        SizeSpec const& size) {
@@ -825,7 +836,7 @@ UiNode UiNode::createTextLine(std::string_view text,
   return createTextLine(spec);
 }
 
-UiNode createTextLine(UiNode const& parent,
+UiNode createTextLine(UiNode& parent,
                       Bounds const& bounds,
                       std::string_view text,
                       TextRole role,
@@ -833,7 +844,7 @@ UiNode createTextLine(UiNode const& parent,
   return createTextLine(parent, text, role, size_from_bounds(bounds), align);
 }
 
-UiNode createTextLine(UiNode const& parent,
+UiNode createTextLine(UiNode& parent,
                       std::string_view text,
                       TextRole role,
                       SizeSpec const& size,
@@ -1097,7 +1108,7 @@ UiNode createTable(UiNode const& parent,
   return createTable(parent, spec);
 }
 
-UiNode createSectionHeader(UiNode const& parent, SectionHeaderSpec const& spec) {
+UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
@@ -1109,7 +1120,7 @@ UiNode createSectionHeader(UiNode const& parent, SectionHeaderSpec const& spec) 
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
-    bounds.height = UiDefaults::SectionHeaderHeight;
+    bounds.height = StudioDefaults::SectionHeaderHeight;
   }
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
@@ -1159,7 +1170,7 @@ UiNode createSectionHeader(UiNode const& parent, SectionHeaderSpec const& spec) 
   return UiNode(frame(), header.nodeId(), allowAbsolute_);
 }
 
-UiNode createSectionHeader(UiNode const& parent,
+UiNode createSectionHeader(UiNode& parent,
                            Bounds const& bounds,
                            std::string_view title,
                            TextRole role) {
@@ -1170,7 +1181,7 @@ UiNode createSectionHeader(UiNode const& parent,
   return createSectionHeader(parent, spec);
 }
 
-UiNode createSectionHeader(UiNode const& parent,
+UiNode createSectionHeader(UiNode& parent,
                            Bounds const& bounds,
                            std::string_view title,
                            TextRole role,
@@ -1185,7 +1196,7 @@ UiNode createSectionHeader(UiNode const& parent,
   return createSectionHeader(parent, spec);
 }
 
-UiNode createSectionHeader(UiNode const& parent,
+UiNode createSectionHeader(UiNode& parent,
                            SizeSpec const& size,
                            std::string_view title,
                            TextRole role) {
@@ -1196,7 +1207,7 @@ UiNode createSectionHeader(UiNode const& parent,
   return createSectionHeader(parent, spec);
 }
 
-UiNode createSectionHeader(UiNode const& parent,
+UiNode createSectionHeader(UiNode& parent,
                            SizeSpec const& size,
                            std::string_view title,
                            TextRole role,
@@ -1211,7 +1222,7 @@ UiNode createSectionHeader(UiNode const& parent,
   return createSectionHeader(parent, spec);
 }
 
-SectionPanel createSectionPanel(UiNode const& parent, SectionPanelSpec const& spec) {
+SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   bool allowAbsolute_ = parent.allowAbsolute();
   auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
@@ -1290,14 +1301,14 @@ SectionPanel createSectionPanel(UiNode const& parent, SectionPanelSpec const& sp
   return out;
 }
 
-SectionPanel createSectionPanel(UiNode const& parent, Bounds const& bounds, std::string_view title) {
+SectionPanel createSectionPanel(UiNode& parent, Bounds const& bounds, std::string_view title) {
   SectionPanelSpec spec;
   spec.size = size_from_bounds(bounds);
   spec.title = std::string(title);
   return createSectionPanel(parent, spec);
 }
 
-SectionPanel createSectionPanel(UiNode const& parent, SizeSpec const& size, std::string_view title) {
+SectionPanel createSectionPanel(UiNode& parent, SizeSpec const& size, std::string_view title) {
   SectionPanelSpec spec;
   spec.size = size;
   spec.title = std::string(title);
@@ -1434,7 +1445,7 @@ UiNode createPropertyRow(UiNode const& parent,
   return createPropertyList(parent, spec);
 }
 
-UiNode createProgressBar(UiNode const& parent, ProgressBarSpec const& spec) {
+UiNode createProgressBar(UiNode& parent, ProgressBarSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   auto resolveLayoutBounds = [&](Bounds const& bounds, SizeSpec const& size) {
     return resolve_layout_bounds(parent, bounds, size);
@@ -1447,10 +1458,10 @@ UiNode createProgressBar(UiNode const& parent, ProgressBarSpec const& spec) {
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f) {
     if (bounds.width <= 0.0f) {
-      bounds.width = UiDefaults::ControlWidthL;
+      bounds.width = StudioDefaults::ControlWidthL;
     }
     if (bounds.height <= 0.0f) {
-      bounds.height = UiDefaults::OpacityBarHeight;
+      bounds.height = StudioDefaults::OpacityBarHeight;
     }
   }
   PanelSpec panel;
@@ -1473,18 +1484,18 @@ UiNode createProgressBar(UiNode const& parent, ProgressBarSpec const& spec) {
   return bar;
 }
 
-UiNode createProgressBar(UiNode const& parent, Bounds const& bounds, float value) {
+UiNode createProgressBar(UiNode& parent, Bounds const& bounds, float value) {
   return createProgressBar(parent, size_from_bounds(bounds), value);
 }
 
-UiNode createProgressBar(UiNode const& parent, SizeSpec const& size, float value) {
+UiNode createProgressBar(UiNode& parent, SizeSpec const& size, float value) {
   ProgressBarSpec spec;
   spec.size = size;
   spec.value = value;
   return createProgressBar(parent, spec);
 }
 
-UiNode createCardGrid(UiNode const& parent, CardGridSpec const& spec) {
+UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
@@ -1571,7 +1582,7 @@ UiNode createCardGrid(UiNode const& parent, CardGridSpec const& spec) {
   return UiNode(frame(), gridId, allowAbsolute_);
 }
 
-UiNode createCardGrid(UiNode const& parent, Bounds const& bounds, std::vector<CardSpec> cards) {
+UiNode createCardGrid(UiNode& parent, Bounds const& bounds, std::vector<CardSpec> cards) {
   CardGridSpec spec;
   spec.size = size_from_bounds(bounds);
   spec.cards = std::move(cards);
@@ -1640,14 +1651,14 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
-UiNode createButton(UiNode const& parent,
+UiNode createButton(UiNode& parent,
                     Bounds const& bounds,
                     std::string_view label,
                     ButtonVariant variant) {
   return createButton(parent, label, variant, size_from_bounds(bounds));
 }
 
-UiNode createButton(UiNode const& parent,
+UiNode createButton(UiNode& parent,
                     std::string_view label,
                     ButtonVariant variant,
                     SizeSpec const& size) {
@@ -1722,11 +1733,11 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }
 
-UiNode createTextField(UiNode const& parent, Bounds const& bounds, std::string_view placeholder) {
+UiNode createTextField(UiNode& parent, Bounds const& bounds, std::string_view placeholder) {
   return createTextField(parent, placeholder, size_from_bounds(bounds));
 }
 
-UiNode createTextField(UiNode const& parent, std::string_view placeholder, SizeSpec const& size) {
+UiNode createTextField(UiNode& parent, std::string_view placeholder, SizeSpec const& size) {
   TextFieldSpec spec;
   spec.placeholder = std::string(placeholder);
   spec.size = size;
@@ -1736,7 +1747,7 @@ UiNode createTextField(UiNode const& parent, std::string_view placeholder, SizeS
   return parent.createTextField(spec);
 }
 
-UiNode createStatusBar(UiNode const& parent, StatusBarSpec const& spec) {
+UiNode createStatusBar(UiNode& parent, StatusBarSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
   PrimeFrame::NodeId id_ = parent.nodeId();
   bool allowAbsolute_ = parent.allowAbsolute();
@@ -1748,7 +1759,7 @@ UiNode createStatusBar(UiNode const& parent, StatusBarSpec const& spec) {
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
-    bounds.height = UiDefaults::StatusHeight;
+    bounds.height = StudioDefaults::StatusHeight;
   }
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
@@ -1815,7 +1826,7 @@ UiNode createStatusBar(UiNode const& parent, StatusBarSpec const& spec) {
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);
 }
 
-UiNode createStatusBar(UiNode const& parent,
+UiNode createStatusBar(UiNode& parent,
                        Bounds const& bounds,
                        std::string_view leftText,
                        std::string_view rightText) {
@@ -1826,7 +1837,7 @@ UiNode createStatusBar(UiNode const& parent,
   return createStatusBar(parent, spec);
 }
 
-UiNode createStatusBar(UiNode const& parent,
+UiNode createStatusBar(UiNode& parent,
                        SizeSpec const& size,
                        std::string_view leftText,
                        std::string_view rightText) {
@@ -1907,7 +1918,7 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
   return UiNode(frame(), scrollId, allowAbsolute_);
 }
 
-UiNode createScrollHints(UiNode const& parent, ScrollHintsSpec const& spec) {
+UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
   view.bounds = spec.bounds;
   view.size = spec.size;
@@ -1915,8 +1926,8 @@ UiNode createScrollHints(UiNode const& parent, ScrollHintsSpec const& spec) {
       !view.size.preferredHeight.has_value() &&
       view.size.stretchX <= 0.0f &&
       view.size.stretchY <= 0.0f) {
-    view.size.preferredWidth = UiDefaults::FieldWidthL;
-    view.size.preferredHeight = UiDefaults::PanelHeightM;
+    view.size.preferredWidth = StudioDefaults::FieldWidthL;
+    view.size.preferredHeight = StudioDefaults::PanelHeightM;
   }
   view.showVertical = spec.showVertical;
   view.showHorizontal = spec.showHorizontal;
@@ -1933,7 +1944,7 @@ UiNode createScrollHints(UiNode const& parent, ScrollHintsSpec const& spec) {
   return parent.createScrollView(view);
 }
 
-UiNode createScrollHints(UiNode const& parent, Bounds const& bounds) {
+UiNode createScrollHints(UiNode& parent, Bounds const& bounds) {
   ScrollHintsSpec spec;
   spec.size = size_from_bounds(bounds);
   return createScrollHints(parent, spec);
@@ -2150,11 +2161,6 @@ UiNode createRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
 }
 
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
-  PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
-  if (theme && (theme->palette.empty() || theme->rectStyles.empty() || theme->textStyles.empty() ||
-                is_default_theme(*theme))) {
-    applyStudioTheme(frame);
-  }
   Bounds rootBounds = resolve_bounds(Bounds{}, size);
   rootBounds.x = 0.0f;
   rootBounds.y = 0.0f;
@@ -2168,7 +2174,17 @@ UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
   return UiNode(frame, id);
 }
 
+UiNode createStudioRoot(PrimeFrame::Frame& frame, Bounds const& bounds) {
+  return createStudioRoot(frame, size_from_bounds(bounds));
+}
+
+UiNode createStudioRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
+  ensure_studio_theme(frame);
+  return createRoot(frame, size);
+}
+
 ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec) {
+  ensure_studio_theme(frame);
   Bounds shellBounds = resolve_bounds(spec.bounds, spec.size);
   shellBounds.x = 0.0f;
   shellBounds.y = 0.0f;
