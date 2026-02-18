@@ -124,19 +124,42 @@ int main(int argc, char** argv) {
 
     PanelSpec treePanelSpec;
     treePanelSpec.rectStyle = rectToken(RectRole::Panel);
+    treePanelSpec.layout = PrimeFrame::LayoutType::VerticalStack;
     treePanelSpec.size.stretchX = 1.0f;
     treePanelSpec.size.stretchY = 1.0f;
     UiNode treePanel = column.createPanel(treePanelSpec);
 
     TreeViewSpec treeSpec;
-    float treeWidth = std::max(0.0f, sidebarW - StudioDefaults::PanelInset * 2.0f);
-    float treeHeight = std::max(0.0f, sidebarBounds.height - StudioDefaults::PanelInset * 2.0f -
-                                        StudioDefaults::HeaderHeight * 2.0f - StudioDefaults::PanelInset);
-    treeSpec.size.preferredWidth = treeWidth;
-    treeSpec.size.preferredHeight = treeHeight;
-    treeSpec.showHeaderDivider = true;
-    treeSpec.headerDividerY = StudioDefaults::TreeHeaderDividerY;
-    float treeTrackH = treeHeight - treeSpec.scrollBar.padding * 2.0f;
+    treeSpec.size.stretchX = 1.0f;
+    treeSpec.size.stretchY = 1.0f;
+    treeSpec.showHeaderDivider = false;
+    treeSpec.rowStartX = 12.0f;
+    treeSpec.rowStartY = 4.0f;
+    treeSpec.headerDividerY = 0.0f;
+    treeSpec.rowWidthInset = 28.0f;
+    treeSpec.rowHeight = 24.0f;
+    treeSpec.rowGap = 2.0f;
+    treeSpec.indent = 14.0f;
+    treeSpec.caretBaseX = 12.0f;
+    treeSpec.caretSize = 12.0f;
+    treeSpec.caretInset = 2.0f;
+    treeSpec.caretThickness = 2.5f;
+    treeSpec.caretMaskPad = 1.0f;
+    treeSpec.connectorThickness = 2.0f;
+    treeSpec.linkEndInset = 0.0f;
+    treeSpec.selectionAccentWidth = 2.0f;
+    treeSpec.rowRole = RectRole::PanelAlt;
+    treeSpec.rowAltRole = RectRole::Panel;
+    treeSpec.caretBackgroundRole = RectRole::PanelStrong;
+    treeSpec.caretLineRole = RectRole::Accent;
+    treeSpec.connectorRole = RectRole::Accent;
+    treeSpec.textRole = TextRole::SmallBright;
+    treeSpec.selectedTextRole = TextRole::SmallBright;
+    float treePanelHeight = sidebarBounds.height - StudioDefaults::HeaderHeight * 2.0f -
+                            StudioDefaults::PanelInset * 4.0f;
+    treeSpec.size.preferredWidth = sidebarW - StudioDefaults::PanelInset * 2.0f;
+    treeSpec.size.preferredHeight = std::max(0.0f, treePanelHeight);
+    float treeTrackH = std::max(0.0f, treePanelHeight - treeSpec.scrollBar.padding * 2.0f);
     setScrollBarThumbPixels(treeSpec.scrollBar,
                             treeTrackH,
                             StudioDefaults::ScrollThumbHeight,
@@ -170,8 +193,12 @@ int main(int argc, char** argv) {
 
   auto create_content = [&]() {
     StackSpec columnSpec;
-    columnSpec.size.preferredWidth = contentW;
-    columnSpec.size.preferredHeight = contentH;
+    float scrollGutterX = StudioDefaults::TableRightInset;
+    float scrollGutterY = StudioDefaults::PanelInset;
+    float columnWidth = std::max(0.0f, contentW - scrollGutterX);
+    float columnHeight = std::max(0.0f, contentH - scrollGutterY);
+    columnSpec.size.preferredWidth = columnWidth;
+    columnSpec.size.preferredHeight = columnHeight;
     columnSpec.padding = Insets{StudioDefaults::SurfaceInset,
                                 StudioDefaults::SectionHeaderOffsetY,
                                 StudioDefaults::SurfaceInset,
@@ -179,7 +206,7 @@ int main(int argc, char** argv) {
     columnSpec.gap = StudioDefaults::SectionGap;
     UiNode column = centerPane.createVerticalStack(columnSpec);
 
-    float sectionWidth = contentW - StudioDefaults::SurfaceInset * 2.0f;
+    float sectionWidth = columnWidth - StudioDefaults::SurfaceInset * 2.0f;
     SizeSpec overviewSize;
     overviewSize.preferredWidth = sectionWidth;
     overviewSize.preferredHeight = StudioDefaults::SectionHeaderHeight;
@@ -245,8 +272,8 @@ int main(int argc, char** argv) {
     };
     createCardGrid(column, cardSpec);
 
-    float tableWidth = contentW - StudioDefaults::SurfaceInset - StudioDefaults::TableRightInset;
-    float firstColWidth = contentW - StudioDefaults::TableStatusOffset;
+    float tableWidth = sectionWidth;
+    float firstColWidth = tableWidth - StudioDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
     TableSpec tableSpec;
@@ -267,10 +294,31 @@ int main(int argc, char** argv) {
     };
     createTable(column, tableSpec);
 
-    ScrollHintsSpec scrollSpec;
-    scrollSpec.size.preferredWidth = contentW;
-    scrollSpec.size.preferredHeight = contentH;
-    createScrollHints(centerPane, scrollSpec);
+    SizeSpec tableSpacer;
+    tableSpacer.preferredHeight = StudioDefaults::PanelInset;
+    column.createSpacer(tableSpacer);
+
+    UiNode contentInternal(frame, centerPane.nodeId(), true);
+
+    ScrollHintsSpec scrollVertical;
+    scrollVertical.bounds = Bounds{columnWidth,
+                                   0.0f,
+                                   scrollGutterX,
+                                   columnHeight};
+    scrollVertical.size.preferredWidth = scrollVertical.bounds.width;
+    scrollVertical.size.preferredHeight = scrollVertical.bounds.height;
+    scrollVertical.showHorizontal = false;
+    createScrollHints(contentInternal, scrollVertical);
+
+    ScrollHintsSpec scrollHorizontal;
+    scrollHorizontal.bounds = Bounds{0.0f,
+                                     columnHeight,
+                                     columnWidth,
+                                     scrollGutterY};
+    scrollHorizontal.size.preferredWidth = scrollHorizontal.bounds.width;
+    scrollHorizontal.size.preferredHeight = scrollHorizontal.bounds.height;
+    scrollHorizontal.showVertical = false;
+    createScrollHints(contentInternal, scrollHorizontal);
   };
 
   auto create_inspector = [&]() {
