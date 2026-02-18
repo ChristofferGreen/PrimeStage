@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     row.createDivider(rectToken(RectRole::Divider),
                       fixed(UiDefaults::DividerThickness, UiDefaults::ControlHeight));
     row.createSpacer(fixed(UiDefaults::PanelInset, UiDefaults::ControlHeight));
-    row.createTextField("Search...", fixed(UiDefaults::FieldWidthL, UiDefaults::ControlHeight));
+    row.createTextField("Search...", {});
 
     SizeSpec spacer;
     spacer.stretchX = 1.0f;
@@ -77,10 +77,10 @@ int main(int argc, char** argv) {
 
     row.createButton("Share",
                      ButtonVariant::Default,
-                     fixed(UiDefaults::ControlWidthM, UiDefaults::ControlHeight));
+                     {});
     row.createButton("Run",
                      ButtonVariant::Primary,
-                     fixed(UiDefaults::ControlWidthM, UiDefaults::ControlHeight));
+                     {});
   };
 
   auto create_sidebar = [&]() {
@@ -217,10 +217,7 @@ int main(int argc, char** argv) {
     SizeSpec buttonSpacer;
     buttonSpacer.stretchX = 1.0f;
     boardButtons.createSpacer(buttonSpacer);
-    SizeSpec buttonSize;
-    buttonSize.preferredWidth = UiDefaults::ControlWidthL;
-    buttonSize.preferredHeight = UiDefaults::ControlHeight;
-    boardButtons.createButton("Primary Action", ButtonVariant::Primary, buttonSize);
+    boardButtons.createButton("Primary Action", ButtonVariant::Primary, {});
 
     SizeSpec highlightSize;
     highlightSize.preferredWidth = sectionWidth;
@@ -335,8 +332,7 @@ int main(int argc, char** argv) {
     column.createSpacer(footerSpacer);
 
     SizeSpec publishSize;
-    publishSize.preferredWidth = sectionWidth;
-    publishSize.preferredHeight = UiDefaults::ControlHeight;
+    publishSize.stretchX = 1.0f;
     column.createButton("Publish",
                         ButtonVariant::Primary,
                         publishSize);
