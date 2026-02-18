@@ -59,7 +59,7 @@ struct CallbackHandle {
 ## Widget Authoring API
 Widgets are exposed as free-standing functions that return a fluent `UiNode` value type.
 This keeps authoring terse while avoiding pointers or heap allocation.
-Core primitives live in `PrimeStage/Ui.h`; the Studio kit (roles, defaults, composite widgets) lives in `PrimeStage/StudioUi.h`.
+Core primitives live in `PrimeStage/Ui.h`; the Studio kit (roles, defaults, composite widgets) lives in `PrimeStage/StudioUi.h` under `PrimeStage::Studio`.
 
 Example:
 

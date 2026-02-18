@@ -2,11 +2,13 @@
 
 #include "third_party/doctest.h"
 
+namespace Studio = PrimeStage::Studio;
+
 static PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame, float width, float height) {
   PrimeStage::SizeSpec size;
   size.preferredWidth = width;
   size.preferredHeight = height;
-  return PrimeStage::createStudioRoot(frame, size);
+  return Studio::createStudioRoot(frame, size);
 }
 
 TEST_CASE("PrimeStage UiNode builds panels and labels") {
@@ -23,7 +25,7 @@ TEST_CASE("PrimeStage UiNode builds panels and labels") {
   PrimeStage::PanelSpec panelSpec;
   panelSpec.size.preferredWidth = 40.0f;
   panelSpec.size.preferredHeight = 20.0f;
-  panelSpec.rectStyle = PrimeStage::rectToken(PrimeStage::RectRole::Panel);
+  panelSpec.rectStyle = Studio::rectToken(Studio::RectRole::Panel);
   PrimeStage::UiNode panel = root.createPanel(panelSpec);
   PrimeFrame::Node const* panelNode = frame.getNode(panel.nodeId());
   REQUIRE(panelNode != nullptr);
@@ -36,7 +38,7 @@ TEST_CASE("PrimeStage UiNode builds panels and labels") {
   labelSpec.size.preferredWidth = 10.0f;
   labelSpec.size.preferredHeight = 8.0f;
   labelSpec.text = "Label";
-  labelSpec.textStyle = PrimeStage::textToken(PrimeStage::TextRole::BodyBright);
+  labelSpec.textStyle = Studio::textToken(Studio::TextRole::BodyBright);
   PrimeStage::UiNode label = panel.createLabel(labelSpec);
   PrimeFrame::Node const* labelNode = frame.getNode(label.nodeId());
   REQUIRE(labelNode != nullptr);
@@ -52,122 +54,122 @@ TEST_CASE("PrimeStage role helpers create panels and labels") {
   PrimeStage::SizeSpec panelSize;
   panelSize.preferredWidth = 20.0f;
   panelSize.preferredHeight = 10.0f;
-  PrimeStage::UiNode panel = PrimeStage::createPanel(root,
-                                                     PrimeStage::RectRole::PanelStrong,
-                                                     panelSize);
+  PrimeStage::UiNode panel = Studio::createPanel(root,
+                                                 Studio::RectRole::PanelStrong,
+                                                 panelSize);
   PrimeStage::SizeSpec labelSize;
   labelSize.preferredWidth = 10.0f;
   labelSize.preferredHeight = 8.0f;
-  PrimeStage::UiNode label = PrimeStage::createLabel(panel,
-                                                     "Hello",
-                                                     PrimeStage::TextRole::SmallMuted,
-                                                     labelSize);
+  PrimeStage::UiNode label = Studio::createLabel(panel,
+                                                 "Hello",
+                                                 Studio::TextRole::SmallMuted,
+                                                 labelSize);
   CHECK(frame.getNode(panel.nodeId()) != nullptr);
   CHECK(frame.getNode(label.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage paragraph creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 80.0f);
 
   PrimeStage::SizeSpec paragraphSize;
   paragraphSize.preferredWidth = 160.0f;
-  PrimeStage::UiNode paragraph = PrimeStage::createParagraph(root,
-                                                             "Line one\nLine two",
-                                                             PrimeStage::TextRole::SmallMuted,
-                                                             paragraphSize);
+  PrimeStage::UiNode paragraph = Studio::createParagraph(root,
+                                                         "Line one\nLine two",
+                                                         Studio::TextRole::SmallMuted,
+                                                         paragraphSize);
   CHECK(frame.getNode(paragraph.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage text line creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
 
   PrimeStage::SizeSpec lineSize;
   lineSize.preferredWidth = 160.0f;
   lineSize.preferredHeight = 20.0f;
-  PrimeStage::UiNode line = PrimeStage::createTextLine(root,
-                                                       "Title",
-                                                       PrimeStage::TextRole::BodyBright,
-                                                       lineSize,
-                                                       PrimeFrame::TextAlign::Center);
+  PrimeStage::UiNode line = Studio::createTextLine(root,
+                                                   "Title",
+                                                   Studio::TextRole::BodyBright,
+                                                   lineSize,
+                                                   PrimeFrame::TextAlign::Center);
   CHECK(frame.getNode(line.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage table creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
-  PrimeStage::TableSpec tableSpec;
+  Studio::TableSpec tableSpec;
   tableSpec.size.preferredWidth = 180.0f;
   tableSpec.columns = {
-      PrimeStage::TableColumn{"Item", 100.0f,
-                              PrimeStage::TextRole::SmallBright,
-                              PrimeStage::TextRole::SmallBright},
-      PrimeStage::TableColumn{"Status", 80.0f,
-                              PrimeStage::TextRole::SmallBright,
-                              PrimeStage::TextRole::SmallMuted}
+      Studio::TableColumn{"Item", 100.0f,
+                              Studio::TextRole::SmallBright,
+                              Studio::TextRole::SmallBright},
+      Studio::TableColumn{"Status", 80.0f,
+                              Studio::TextRole::SmallBright,
+                              Studio::TextRole::SmallMuted}
   };
   tableSpec.rows = {
       {"Row", "Ready"},
       {"Row", "Ready"}
   };
-  PrimeStage::UiNode table = PrimeStage::createTable(root, tableSpec);
+  PrimeStage::UiNode table = Studio::createTable(root, tableSpec);
   CHECK(frame.getNode(table.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage tree view creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
-  PrimeStage::TreeViewSpec spec;
+  Studio::TreeViewSpec spec;
   spec.size.preferredWidth = 200.0f;
   spec.size.preferredHeight = 120.0f;
-  spec.nodes = {PrimeStage::TreeNode{"Root", {PrimeStage::TreeNode{"Child"}}, true, false}};
-  PrimeStage::UiNode tree = PrimeStage::createTreeView(root, spec);
+  spec.nodes = {Studio::TreeNode{"Root", {Studio::TreeNode{"Child"}}, true, false}};
+  PrimeStage::UiNode tree = Studio::createTreeView(root, spec);
   CHECK(frame.getNode(tree.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage section header creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 120.0f, 40.0f);
 
   PrimeStage::SizeSpec size;
   size.preferredWidth = 100.0f;
   size.preferredHeight = 20.0f;
-  PrimeStage::UiNode header = PrimeStage::createSectionHeader(root,
-                                                              size,
-                                                              "Header",
-                                                              PrimeStage::TextRole::SmallBright);
+  PrimeStage::UiNode header = Studio::createSectionHeader(root,
+                                                          size,
+                                                          "Header",
+                                                          Studio::TextRole::SmallBright);
   CHECK(frame.getNode(header.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage section panel creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
-  PrimeStage::SectionPanelSpec spec;
+  Studio::SectionPanelSpec spec;
   spec.size.preferredWidth = 180.0f;
   spec.size.preferredHeight = 80.0f;
   spec.title = "Section";
-  PrimeStage::SectionPanel panel = PrimeStage::createSectionPanel(root, spec);
+  Studio::SectionPanel panel = Studio::createSectionPanel(root, spec);
   CHECK(frame.getNode(panel.panel.nodeId()) != nullptr);
   CHECK(frame.getNode(panel.content.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage shell creates a layout") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
-  PrimeStage::ShellSpec spec;
+  Studio::applyStudioTheme(frame);
+  Studio::ShellSpec spec;
   spec.size.preferredWidth = 320.0f;
   spec.size.preferredHeight = 180.0f;
-  PrimeStage::ShellLayout layout = PrimeStage::createShell(frame, spec);
+  Studio::ShellLayout layout = Studio::createShell(frame, spec);
   CHECK(frame.getNode(layout.root.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.topbar.nodeId()) != nullptr);
   CHECK(frame.getNode(layout.status.nodeId()) != nullptr);
@@ -178,7 +180,7 @@ TEST_CASE("PrimeStage shell creates a layout") {
 
 TEST_CASE("PrimeStage scroll view creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   PrimeStage::ScrollViewSpec spec;
@@ -192,22 +194,22 @@ TEST_CASE("PrimeStage scroll view creates a node") {
 
 TEST_CASE("PrimeStage button creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 120.0f, 40.0f);
 
   PrimeStage::ButtonSpec spec;
   spec.size.preferredWidth = 80.0f;
   spec.size.preferredHeight = 24.0f;
   spec.label = "Click";
-  spec.backgroundStyle = PrimeStage::rectToken(PrimeStage::RectRole::Accent);
-  spec.textStyle = PrimeStage::textToken(PrimeStage::TextRole::BodyBright);
+  spec.backgroundStyle = Studio::rectToken(Studio::RectRole::Accent);
+  spec.textStyle = Studio::textToken(Studio::TextRole::BodyBright);
   PrimeStage::UiNode button = root.createButton(spec);
   CHECK(frame.getNode(button.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage text field creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
 
   PrimeStage::TextFieldSpec spec;
@@ -220,55 +222,55 @@ TEST_CASE("PrimeStage text field creates a node") {
 
 TEST_CASE("PrimeStage status bar creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 30.0f);
 
-  PrimeStage::StatusBarSpec spec;
+  Studio::StatusBarSpec spec;
   spec.size.preferredWidth = 200.0f;
   spec.size.preferredHeight = 24.0f;
   spec.leftText = "Ready";
   spec.rightText = "Demo";
-  PrimeStage::UiNode bar = PrimeStage::createStatusBar(root, spec);
+  PrimeStage::UiNode bar = Studio::createStatusBar(root, spec);
   CHECK(frame.getNode(bar.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage property list creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 80.0f);
 
-  PrimeStage::PropertyListSpec spec;
+  Studio::PropertyListSpec spec;
   spec.size.preferredWidth = 180.0f;
   spec.rows = {
       {"Key", "Value"},
       {"Key2", "Value2"}
   };
-  PrimeStage::UiNode list = PrimeStage::createPropertyList(root, spec);
+  PrimeStage::UiNode list = Studio::createPropertyList(root, spec);
   CHECK(frame.getNode(list.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage card grid creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 300.0f, 200.0f);
 
-  PrimeStage::CardGridSpec spec;
+  Studio::CardGridSpec spec;
   spec.size.preferredWidth = 280.0f;
   spec.size.preferredHeight = 120.0f;
   spec.cards = {{"Card", "Detail"}, {"Card", "Detail"}};
-  PrimeStage::UiNode grid = PrimeStage::createCardGrid(root, spec);
+  PrimeStage::UiNode grid = Studio::createCardGrid(root, spec);
   CHECK(frame.getNode(grid.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage progress bar creates a node") {
   PrimeFrame::Frame frame;
-  PrimeStage::applyStudioTheme(frame);
+  Studio::applyStudioTheme(frame);
   PrimeStage::UiNode root = createRoot(frame, 120.0f, 24.0f);
 
-  PrimeStage::ProgressBarSpec spec;
+  Studio::ProgressBarSpec spec;
   spec.size.preferredWidth = 120.0f;
   spec.size.preferredHeight = 10.0f;
   spec.value = 0.5f;
-  PrimeStage::UiNode bar = PrimeStage::createProgressBar(root, spec);
+  PrimeStage::UiNode bar = Studio::createProgressBar(root, spec);
   CHECK(frame.getNode(bar.nodeId()) != nullptr);
 }

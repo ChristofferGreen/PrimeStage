@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-namespace PrimeStage {
+namespace PrimeStage::Studio {
 
 [[deprecated("Use SizeSpec-based overloads to avoid absolute layout.")]]
 UiNode createPanel(UiNode& parent, RectRole role, Bounds const& bounds);
@@ -123,4 +123,4 @@ ShellLayout createShell(PrimeFrame::Frame& frame, ShellSpec const& spec);
 ShellSpec makeShellSpec(Bounds const& bounds);
 ShellSpec makeShellSpec(SizeSpec const& size);
 
-} // namespace PrimeStage
+} // namespace PrimeStage::Studio

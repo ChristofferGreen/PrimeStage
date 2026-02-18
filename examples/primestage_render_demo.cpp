@@ -10,6 +10,7 @@
 
 using namespace PrimeFrame;
 using namespace PrimeStage;
+using namespace PrimeStage::Studio;
 
 int main(int argc, char** argv) {
   std::string outPath = argc > 1 ? argv[1] : "screenshots/primeframe_ui.png";

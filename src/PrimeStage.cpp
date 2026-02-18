@@ -309,11 +309,11 @@ struct FlatTreeRow {
   std::vector<int> ancestors;
 };
 
-void flatten_tree(std::vector<TreeNode> const& nodes,
+void flatten_tree(std::vector<Studio::TreeNode> const& nodes,
                   int depth,
                   std::vector<int>& depthStack,
                   std::vector<FlatTreeRow>& out) {
-  for (TreeNode const& node : nodes) {
+  for (Studio::TreeNode const& node : nodes) {
     int parentIndex = depth > 0 && depth - 1 < static_cast<int>(depthStack.size())
                           ? depthStack[static_cast<size_t>(depth - 1)]
                           : -1;
@@ -390,6 +390,8 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
   spec.thumbFraction = std::clamp(thumb / track, 0.0f, 1.0f);
   spec.thumbProgress = std::clamp(thumbOffset / maxOffset, 0.0f, 1.0f);
 }
+
+namespace Studio {
 
 RowLayout::RowLayout(Bounds const& bounds, float gap)
     : bounds(bounds),
@@ -520,6 +522,8 @@ static void ensure_studio_theme(PrimeFrame::Frame& frame) {
   }
 }
 
+} // namespace Studio
+
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
     : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
 
@@ -604,6 +608,8 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
   return createPanel(spec);
 }
 
+namespace Studio {
+
 UiNode createPanel(UiNode& parent, RectRole role, Bounds const& bounds) {
   return createPanel(parent, role, size_from_bounds(bounds));
 }
@@ -611,6 +617,8 @@ UiNode createPanel(UiNode& parent, RectRole role, Bounds const& bounds) {
 UiNode createPanel(UiNode& parent, RectRole role, SizeSpec const& size) {
   return parent.createPanel(rectToken(role), size);
 }
+
+} // namespace Studio
 
 UiNode UiNode::createLabel(LabelSpec const& spec) {
   LabelSpec resolved = spec;
@@ -670,6 +678,8 @@ UiNode UiNode::createLabel(std::string_view text,
   return createLabel(spec);
 }
 
+namespace Studio {
+
 UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, Bounds const& bounds) {
   return createLabel(parent, text, role, size_from_bounds(bounds));
 }
@@ -677,6 +687,8 @@ UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, Bounds 
 UiNode createLabel(UiNode& parent, std::string_view text, TextRole role, SizeSpec const& size) {
   return parent.createLabel(text, textToken(role), size);
 }
+
+} // namespace Studio
 
 UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
@@ -747,6 +759,8 @@ UiNode UiNode::createParagraph(std::string_view text,
   return createParagraph(spec);
 }
 
+namespace Studio {
+
 UiNode createParagraph(UiNode& parent,
                        Bounds const& bounds,
                        std::string_view text,
@@ -760,6 +774,8 @@ UiNode createParagraph(UiNode& parent,
                        SizeSpec const& size) {
   return parent.createParagraph(text, textToken(role), size);
 }
+
+} // namespace Studio
 
 UiNode UiNode::createTextLine(TextLineSpec const& spec) {
   PrimeFrame::TextStyleToken token = spec.textStyle;
@@ -840,6 +856,8 @@ UiNode UiNode::createTextLine(std::string_view text,
   return createTextLine(spec);
 }
 
+namespace Studio {
+
 UiNode createTextLine(UiNode& parent,
                       Bounds const& bounds,
                       std::string_view text,
@@ -855,6 +873,8 @@ UiNode createTextLine(UiNode& parent,
                       PrimeFrame::TextAlign align) {
   return parent.createTextLine(text, textToken(role), size, align);
 }
+
+} // namespace Studio
 
 UiNode UiNode::createDivider(DividerSpec const& spec) {
   DividerSpec resolved = spec;
@@ -931,6 +951,8 @@ Bounds resolve_layout_bounds(UiNode const& parent, Bounds const& bounds, SizeSpe
 }
 
 } // namespace
+
+namespace Studio {
 
 UiNode createTable(UiNode const& parent, TableSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
@@ -1817,6 +1839,8 @@ UiNode createCardGrid(UiNode& parent, Bounds const& bounds, std::vector<CardSpec
   return createCardGrid(parent, spec);
 }
 
+} // namespace Studio
+
 UiNode UiNode::createButton(ButtonSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if (bounds.height <= 0.0f &&
@@ -1879,6 +1903,8 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
+namespace Studio {
+
 UiNode createButton(UiNode& parent,
                     Bounds const& bounds,
                     std::string_view label,
@@ -1902,6 +1928,8 @@ UiNode createButton(UiNode& parent,
   }
   return parent.createButton(spec);
 }
+
+} // namespace Studio
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
@@ -1960,6 +1988,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }
+
+namespace Studio {
 
 UiNode createTextField(UiNode& parent, Bounds const& bounds, std::string_view placeholder) {
   return createTextField(parent, placeholder, size_from_bounds(bounds));
@@ -2076,6 +2106,8 @@ UiNode createStatusBar(UiNode& parent,
   return createStatusBar(parent, spec);
 }
 
+} // namespace Studio
+
 UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
   Bounds bounds = resolveLayoutBounds(spec.bounds, spec.size);
   if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
@@ -2145,6 +2177,8 @@ UiNode UiNode::createScrollView(ScrollViewSpec const& spec) {
 
   return UiNode(frame(), scrollId, allowAbsolute_);
 }
+
+namespace Studio {
 
 UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec) {
   ScrollViewSpec view;
@@ -2586,6 +2620,8 @@ ShellSpec makeShellSpec(SizeSpec const& size) {
   spec.size = size;
   return spec;
 }
+
+} // namespace Studio
 
 Version getVersion() {
   return Version{};

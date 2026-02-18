@@ -2,7 +2,7 @@
 
 #include "PrimeStage/Ui.h"
 
-namespace PrimeStage {
+namespace PrimeStage::Studio {
 
 enum class RectRole : PrimeFrame::RectStyleToken {
   Background = 0,
@@ -323,4 +323,4 @@ struct ShellLayout {
   Bounds inspectorBounds;
 };
 
-} // namespace PrimeStage
+} // namespace PrimeStage::Studio
