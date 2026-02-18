@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
 
     SizeSpec transformSize;
     transformSize.preferredWidth = sectionWidth;
-    transformSize.preferredHeight = UiDefaults::PanelHeightM;
+    transformSize.preferredHeight = UiDefaults::PanelHeightM + opacityBarH;
     SectionPanel transformPanel = column.createSectionPanel(transformSize, "Transform");
 
     SizeSpec propsListSize;
@@ -317,21 +317,32 @@ int main(int argc, char** argv) {
     transformStack.createPropertyList(transformListSize,
                                       {{"Position", "0, 0, 0"}, {"Scale", "1, 1, 1"}});
 
-    SizeSpec opacityRowSize;
-    opacityRowSize.preferredWidth = transformPanel.contentBounds.width;
-    opacityRowSize.preferredHeight = opacityBarH;
-    transformStack.createPropertyRow(opacityRowSize, "Opacity", "85%");
+    StackSpec opacityOverlaySpec;
+    opacityOverlaySpec.size.preferredWidth = transformPanel.contentBounds.width;
+    opacityOverlaySpec.size.preferredHeight = opacityBarH;
+    UiNode opacityOverlay = transformStack.createOverlay(opacityOverlaySpec);
 
     SizeSpec opacityBarSize;
     opacityBarSize.preferredWidth = transformPanel.contentBounds.width;
     opacityBarSize.preferredHeight = opacityBarH;
-    transformStack.createProgressBar(opacityBarSize, 0.85f);
+    opacityOverlay.createProgressBar(opacityBarSize, 0.85f);
+
+    PropertyListSpec opacitySpec;
+    opacitySpec.size.preferredWidth = transformPanel.contentBounds.width;
+    opacitySpec.size.preferredHeight = opacityBarH;
+    opacitySpec.rowHeight = opacityBarH;
+    opacitySpec.rowGap = 0.0f;
+    opacitySpec.labelRole = TextRole::SmallBright;
+    opacitySpec.valueRole = TextRole::SmallBright;
+    opacitySpec.rows = {{"Opacity", "85%"}};
+    opacityOverlay.createPropertyList(opacitySpec);
 
     SizeSpec footerSpacer;
     footerSpacer.stretchY = 1.0f;
     column.createSpacer(footerSpacer);
 
     SizeSpec publishSize;
+    publishSize.preferredWidth = sectionWidth;
     publishSize.stretchX = 1.0f;
     column.createButton("Publish",
                         ButtonVariant::Primary,
