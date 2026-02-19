@@ -165,6 +165,88 @@ int main(int argc, char** argv) {
     scrollContent.createLabel(item);
   }
 
+  StackSpec dataRow;
+  dataRow.size.stretchX = 1.0f;
+  dataRow.size.preferredHeight = 180.0f;
+  dataRow.gap = 16.0f;
+  UiNode dataRowNode = column.createHorizontalStack(dataRow);
+
+  TreeViewSpec treeSpec;
+  treeSpec.size.preferredWidth = 260.0f;
+  treeSpec.size.preferredHeight = 180.0f;
+  treeSpec.rowStartX = 10.0f;
+  treeSpec.rowStartY = 6.0f;
+  treeSpec.rowWidthInset = 18.0f;
+  treeSpec.rowHeight = 22.0f;
+  treeSpec.rowGap = 2.0f;
+  treeSpec.indent = 14.0f;
+  treeSpec.caretBaseX = 10.0f;
+  treeSpec.caretSize = 10.0f;
+  treeSpec.caretInset = 2.0f;
+  treeSpec.caretThickness = 2.0f;
+  treeSpec.caretMaskPad = 1.0f;
+  treeSpec.connectorThickness = 2.0f;
+  treeSpec.selectionAccentWidth = 3.0f;
+  treeSpec.rowStyle = Studio::rectToken(Studio::RectRole::PanelAlt);
+  treeSpec.rowAltStyle = Studio::rectToken(Studio::RectRole::Panel);
+  treeSpec.selectionStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  treeSpec.selectionAccentStyle = Studio::rectToken(Studio::RectRole::Accent);
+  treeSpec.caretBackgroundStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  treeSpec.caretLineStyle = Studio::rectToken(Studio::RectRole::Accent);
+  treeSpec.connectorStyle = Studio::rectToken(Studio::RectRole::Accent);
+  treeSpec.textStyle = Studio::textToken(Studio::TextRole::SmallBright);
+  treeSpec.selectedTextStyle = Studio::textToken(Studio::TextRole::SmallBright);
+  treeSpec.scrollBar.trackStyle = Studio::rectToken(Studio::RectRole::ScrollTrack);
+  treeSpec.scrollBar.thumbStyle = Studio::rectToken(Studio::RectRole::ScrollThumb);
+
+  TreeNode widgetsRoot{
+      "Widgets",
+      {
+          TreeNode{"Controls",
+                   {TreeNode{"Button"}, TreeNode{"Checkbox"}, TreeNode{"Slider"}},
+                   true,
+                   false},
+          TreeNode{"Data",
+                   {TreeNode{"Table"}, TreeNode{"TreeView"}},
+                   true,
+                   true},
+          TreeNode{"Containers",
+                   {TreeNode{"Panel"}, TreeNode{"ScrollView"}},
+                   true,
+                   false}
+      },
+      true,
+      false};
+
+  treeSpec.nodes = {widgetsRoot};
+  dataRowNode.createTreeView(treeSpec);
+
+  TableSpec tableSpec;
+  tableSpec.size.stretchX = 1.0f;
+  tableSpec.size.preferredHeight = 180.0f;
+  tableSpec.headerHeight = 22.0f;
+  tableSpec.rowHeight = 24.0f;
+  tableSpec.headerPaddingX = 12.0f;
+  tableSpec.cellPaddingX = 12.0f;
+  tableSpec.headerStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  tableSpec.rowStyle = Studio::rectToken(Studio::RectRole::Panel);
+  tableSpec.rowAltStyle = Studio::rectToken(Studio::RectRole::PanelAlt);
+  tableSpec.dividerStyle = Studio::rectToken(Studio::RectRole::Divider);
+  tableSpec.columns = {
+      TableColumn{"Name", 0.0f, Studio::textToken(Studio::TextRole::SmallBright),
+                  Studio::textToken(Studio::TextRole::SmallBright)},
+      TableColumn{"State", 120.0f, Studio::textToken(Studio::TextRole::SmallMuted),
+                  Studio::textToken(Studio::TextRole::SmallMuted)}
+  };
+  tableSpec.rows = {
+      {"Button", "Active"},
+      {"Text Field", "Idle"},
+      {"Slider", "Active"},
+      {"Checkbox", "Disabled"},
+      {"Tree View", "Active"}
+  };
+  dataRowNode.createTable(tableSpec);
+
   RenderOptions options;
   options.clearColor = Rgba8{10, 12, 18, 255};
   renderFrameToPng(frame, outPath, options);

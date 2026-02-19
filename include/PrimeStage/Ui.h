@@ -211,12 +211,13 @@ struct ScrollAxisSpec {
 
 struct ScrollBarSpec {
   bool enabled = true;
+  bool autoThumb = true;
   float inset = 10.0f;
   float padding = 8.0f;
   float width = 6.0f;
   float minThumbHeight = 16.0f;
   float thumbFraction = 0.18f;
-  float thumbProgress = 0.1f;
+  float thumbProgress = 0.0f;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleToken thumbStyle = 0;
 };

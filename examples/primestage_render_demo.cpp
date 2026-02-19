@@ -158,11 +158,6 @@ int main(int argc, char** argv) {
                             StudioDefaults::PanelInset * 4.0f;
     treeSpec.base.size.preferredWidth = sidebarW - StudioDefaults::PanelInset * 2.0f;
     treeSpec.base.size.preferredHeight = std::max(0.0f, treePanelHeight);
-    float treeTrackH = std::max(0.0f, treePanelHeight - treeSpec.base.scrollBar.padding * 2.0f);
-    setScrollBarThumbPixels(treeSpec.base.scrollBar,
-                            treeTrackH,
-                            StudioDefaults::ScrollThumbHeight,
-                            StudioDefaults::ScrollThumbOffset - treeSpec.base.scrollBar.padding);
 
     Studio::TreeNode treeRoot{
         "Root",

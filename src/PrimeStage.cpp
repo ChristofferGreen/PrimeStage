@@ -411,6 +411,7 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
                              float thumbOffset) {
+  spec.autoThumb = false;
   float track = std::max(1.0f, trackHeight);
   float thumb = std::max(0.0f, std::min(thumbHeight, track));
   float maxOffset = std::max(1.0f, track - thumb);
@@ -1530,11 +1531,27 @@ UiNode UiNode::createTable(TableSpec const& spec) {
   size_t dividerCount = spec.columns.size() > 1 ? spec.columns.size() - 1 : 0;
   float dividerTotal = dividerWidth * static_cast<float>(dividerCount);
 
+  auto compute_auto_width = [&](size_t colIndex, TableColumn const& col) {
+    float paddingX = std::max(spec.headerPaddingX, spec.cellPaddingX);
+    float maxText = estimate_text_width(frame(), col.headerStyle, col.label);
+    for (auto const& row : spec.rows) {
+      if (colIndex < row.size()) {
+        std::string_view cell = row[colIndex];
+        float cellWidth = estimate_text_width(frame(), col.cellStyle, cell);
+        if (cellWidth > maxText) {
+          maxText = cellWidth;
+        }
+      }
+    }
+    return maxText + paddingX;
+  };
+
   std::vector<float> columnWidths;
   columnWidths.reserve(spec.columns.size());
   float fixedWidth = 0.0f;
   size_t autoCount = 0;
-  for (TableColumn const& col : spec.columns) {
+  for (size_t colIndex = 0; colIndex < spec.columns.size(); ++colIndex) {
+    TableColumn const& col = spec.columns[colIndex];
     if (col.width > 0.0f) {
       columnWidths.push_back(col.width);
       fixedWidth += col.width;
@@ -1550,6 +1567,13 @@ UiNode UiNode::createTable(TableSpec const& spec) {
     for (float& width : columnWidths) {
       if (width == 0.0f) {
         width = autoWidth;
+      }
+    }
+  }
+  if (autoCount > 0 && (availableWidth <= fixedWidth || tableWidth <= 0.0f)) {
+    for (size_t colIndex = 0; colIndex < columnWidths.size(); ++colIndex) {
+      if (columnWidths[colIndex] <= 0.0f) {
+        columnWidths[colIndex] = compute_auto_width(colIndex, spec.columns[colIndex]);
       }
     }
   }
@@ -2553,6 +2577,11 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   std::vector<int> depthStack;
   flatten_tree(spec.nodes, 0, depthStack, rows);
 
+  float rowsHeight = rows.empty()
+                         ? spec.rowHeight
+                         : static_cast<float>(rows.size()) * spec.rowHeight +
+                               static_cast<float>(rows.size() - 1) * spec.rowGap;
+
   std::vector<int> firstChild(rows.size(), -1);
   std::vector<int> lastChild(rows.size(), -1);
   for (size_t i = 0; i < rows.size(); ++i) {
@@ -2581,10 +2610,6 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       bounds.width = maxLabelWidth;
     }
     if (bounds.height <= 0.0f) {
-      float rowsHeight = rows.empty()
-                             ? spec.rowHeight
-                             : static_cast<float>(rows.size()) * spec.rowHeight +
-                                   static_cast<float>(rows.size() - 1) * spec.rowGap;
       bounds.height = spec.rowStartY + rowsHeight;
     }
   }
@@ -2826,13 +2851,25 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                      false,
                      spec.visible);
 
-    float thumbH = trackH * spec.scrollBar.thumbFraction;
+    float contentHeight = spec.rowStartY + rowsHeight;
+    float thumbFraction = spec.scrollBar.thumbFraction;
+    float thumbProgress = spec.scrollBar.thumbProgress;
+    if (spec.scrollBar.autoThumb) {
+      if (contentHeight > 0.0f && bounds.height > 0.0f) {
+        thumbFraction = std::clamp(bounds.height / contentHeight, 0.0f, 1.0f);
+      } else {
+        thumbFraction = 1.0f;
+      }
+      thumbProgress = std::clamp(thumbProgress, 0.0f, 1.0f);
+    }
+
+    float thumbH = trackH * thumbFraction;
     thumbH = std::max(thumbH, spec.scrollBar.minThumbHeight);
     if (thumbH > trackH) {
       thumbH = trackH;
     }
     float maxOffset = std::max(0.0f, trackH - thumbH);
-    float progress = std::clamp(spec.scrollBar.thumbProgress, 0.0f, 1.0f);
+    float progress = std::clamp(thumbProgress, 0.0f, 1.0f);
     float thumbY = trackY + maxOffset * progress;
     create_rect_node(frame(),
                      treeNode.nodeId(),
