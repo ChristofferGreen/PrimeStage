@@ -128,25 +128,25 @@ int main(int argc, char** argv) {
     treePanelSpec.size.stretchY = 1.0f;
     UiNode treePanel = column.createPanel(treePanelSpec);
 
-    TreeViewSpec treeSpec;
-    treeSpec.size.stretchX = 1.0f;
-    treeSpec.size.stretchY = 1.0f;
-    treeSpec.showHeaderDivider = false;
-    treeSpec.rowStartX = 12.0f;
-    treeSpec.rowStartY = 4.0f;
-    treeSpec.headerDividerY = 0.0f;
-    treeSpec.rowWidthInset = 28.0f;
-    treeSpec.rowHeight = 24.0f;
-    treeSpec.rowGap = 2.0f;
-    treeSpec.indent = 14.0f;
-    treeSpec.caretBaseX = 12.0f;
-    treeSpec.caretSize = 12.0f;
-    treeSpec.caretInset = 2.0f;
-    treeSpec.caretThickness = 2.5f;
-    treeSpec.caretMaskPad = 1.0f;
-    treeSpec.connectorThickness = 2.0f;
-    treeSpec.linkEndInset = 0.0f;
-    treeSpec.selectionAccentWidth = 2.0f;
+    Studio::TreeViewSpec treeSpec;
+    treeSpec.base.size.stretchX = 1.0f;
+    treeSpec.base.size.stretchY = 1.0f;
+    treeSpec.base.showHeaderDivider = false;
+    treeSpec.base.rowStartX = 12.0f;
+    treeSpec.base.rowStartY = 4.0f;
+    treeSpec.base.headerDividerY = 0.0f;
+    treeSpec.base.rowWidthInset = 28.0f;
+    treeSpec.base.rowHeight = 24.0f;
+    treeSpec.base.rowGap = 2.0f;
+    treeSpec.base.indent = 14.0f;
+    treeSpec.base.caretBaseX = 12.0f;
+    treeSpec.base.caretSize = 12.0f;
+    treeSpec.base.caretInset = 2.0f;
+    treeSpec.base.caretThickness = 2.5f;
+    treeSpec.base.caretMaskPad = 1.0f;
+    treeSpec.base.connectorThickness = 2.0f;
+    treeSpec.base.linkEndInset = 0.0f;
+    treeSpec.base.selectionAccentWidth = 2.0f;
     treeSpec.rowRole = RectRole::PanelAlt;
     treeSpec.rowAltRole = RectRole::Panel;
     treeSpec.caretBackgroundRole = RectRole::PanelStrong;
@@ -156,27 +156,27 @@ int main(int argc, char** argv) {
     treeSpec.selectedTextRole = TextRole::SmallBright;
     float treePanelHeight = contentH - StudioDefaults::HeaderHeight * 2.0f -
                             StudioDefaults::PanelInset * 4.0f;
-    treeSpec.size.preferredWidth = sidebarW - StudioDefaults::PanelInset * 2.0f;
-    treeSpec.size.preferredHeight = std::max(0.0f, treePanelHeight);
-    float treeTrackH = std::max(0.0f, treePanelHeight - treeSpec.scrollBar.padding * 2.0f);
-    setScrollBarThumbPixels(treeSpec.scrollBar,
+    treeSpec.base.size.preferredWidth = sidebarW - StudioDefaults::PanelInset * 2.0f;
+    treeSpec.base.size.preferredHeight = std::max(0.0f, treePanelHeight);
+    float treeTrackH = std::max(0.0f, treePanelHeight - treeSpec.base.scrollBar.padding * 2.0f);
+    setScrollBarThumbPixels(treeSpec.base.scrollBar,
                             treeTrackH,
                             StudioDefaults::ScrollThumbHeight,
-                            StudioDefaults::ScrollThumbOffset - treeSpec.scrollBar.padding);
+                            StudioDefaults::ScrollThumbOffset - treeSpec.base.scrollBar.padding);
 
-    TreeNode treeRoot{
+    Studio::TreeNode treeRoot{
         "Root",
         {
-            TreeNode{"World",
-                     {TreeNode{"Camera"}, TreeNode{"Lights"}, TreeNode{"Environment"}},
+            Studio::TreeNode{"World",
+                     {Studio::TreeNode{"Camera"}, Studio::TreeNode{"Lights"}, Studio::TreeNode{"Environment"}},
                      true,
                      false},
-            TreeNode{"UI",
+            Studio::TreeNode{"UI",
                      {
-                         TreeNode{"Sidebar"},
-                         TreeNode{"Toolbar", {TreeNode{"Buttons"}}, false, false},
-                         TreeNode{"Panels",
-                                  {TreeNode{"TreeView", {}, true, true}, TreeNode{"Rows"}},
+                         Studio::TreeNode{"Sidebar"},
+                         Studio::TreeNode{"Toolbar", {Studio::TreeNode{"Buttons"}}, false, false},
+                         Studio::TreeNode{"Panels",
+                                  {Studio::TreeNode{"TreeView", {}, true, true}, Studio::TreeNode{"Rows"}},
                                   true,
                                   false}
                      },
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
         true,
         false};
 
-    treeSpec.nodes = {treeRoot};
+    treeSpec.base.nodes = {treeRoot};
     createTreeView(treePanel, treeSpec);
   };
 
@@ -275,15 +275,15 @@ int main(int argc, char** argv) {
     float firstColWidth = tableWidth - StudioDefaults::TableStatusOffset;
     float secondColWidth = tableWidth - firstColWidth;
 
-    TableSpec tableSpec;
-    tableSpec.size.preferredWidth = tableWidth;
-    tableSpec.size.stretchY = 1.0f;
-    tableSpec.showHeaderDividers = false;
+    Studio::TableSpec tableSpec;
+    tableSpec.base.size.preferredWidth = tableWidth;
+    tableSpec.base.size.stretchY = 1.0f;
+    tableSpec.base.showHeaderDividers = false;
     tableSpec.columns = {
-        TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
-        TableColumn{"Status", secondColWidth, TextRole::SmallBright, TextRole::SmallMuted}
+        Studio::TableColumn{"Item", firstColWidth, TextRole::SmallBright, TextRole::SmallBright},
+        Studio::TableColumn{"Status", secondColWidth, TextRole::SmallBright, TextRole::SmallMuted}
     };
-    tableSpec.rows = {
+    tableSpec.base.rows = {
         {"Item Row", "Ready"},
         {"Item Row", "Ready"},
         {"Item Row", "Ready"},

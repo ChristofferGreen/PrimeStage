@@ -221,6 +221,76 @@ struct ScrollBarSpec {
   PrimeFrame::RectStyleToken thumbStyle = 0;
 };
 
+struct TableColumn {
+  std::string_view label;
+  float width = 0.0f;
+  PrimeFrame::TextStyleToken headerStyle = 0;
+  PrimeFrame::TextStyleToken cellStyle = 0;
+};
+
+struct TableSpec {
+  float headerInset = 6.0f;
+  float headerHeight = 20.0f;
+  float rowHeight = 28.0f;
+  float rowGap = 0.0f;
+  float headerPaddingX = 16.0f;
+  float cellPaddingX = 16.0f;
+  PrimeFrame::RectStyleToken headerStyle = 0;
+  PrimeFrame::RectStyleToken rowStyle = 0;
+  PrimeFrame::RectStyleToken rowAltStyle = 0;
+  PrimeFrame::RectStyleToken dividerStyle = 0;
+  bool showHeaderDividers = true;
+  bool showColumnDividers = true;
+  bool clipChildren = true;
+  bool visible = true;
+  std::vector<TableColumn> columns;
+  std::vector<std::vector<std::string_view>> rows;
+  SizeSpec size;
+};
+
+struct TreeNode {
+  std::string_view label;
+  std::vector<TreeNode> children;
+  bool expanded = true;
+  bool selected = false;
+};
+
+struct TreeViewSpec {
+  float rowStartX = 8.0f;
+  float rowStartY = 36.0f;
+  float rowWidthInset = 20.0f;
+  float rowHeight = 22.0f;
+  float rowGap = 0.0f;
+  float indent = 12.0f;
+  float caretBaseX = 14.0f;
+  float caretSize = 10.0f;
+  float caretInset = 2.0f;
+  float caretThickness = 2.0f;
+  float caretMaskPad = 2.0f;
+  float connectorThickness = 1.0f;
+  float linkEndInset = 4.0f;
+  float selectionAccentWidth = 3.0f;
+  bool showHeaderDivider = false;
+  float headerDividerY = 0.0f;
+  bool showConnectors = true;
+  bool showCaretMasks = true;
+  bool showScrollBar = true;
+  bool clipChildren = true;
+  bool visible = true;
+  PrimeFrame::RectStyleToken rowStyle = 0;
+  PrimeFrame::RectStyleToken rowAltStyle = 0;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
+  PrimeFrame::RectStyleToken selectionAccentStyle = 0;
+  PrimeFrame::RectStyleToken caretBackgroundStyle = 0;
+  PrimeFrame::RectStyleToken caretLineStyle = 0;
+  PrimeFrame::RectStyleToken connectorStyle = 0;
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::TextStyleToken selectedTextStyle = 0;
+  ScrollBarSpec scrollBar{};
+  std::vector<TreeNode> nodes;
+  SizeSpec size;
+};
+
 struct ScrollViewSpec {
   bool clipChildren = true;
   bool showVertical = true;
@@ -298,6 +368,8 @@ public:
   UiNode createTabs(TabsSpec const& spec);
   UiNode createDropdown(DropdownSpec const& spec);
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  UiNode createTable(TableSpec const& spec);
+  UiNode createTreeView(TreeViewSpec const& spec);
   ScrollView createScrollView(ScrollViewSpec const& spec);
 
 private:

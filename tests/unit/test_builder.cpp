@@ -104,7 +104,7 @@ TEST_CASE("PrimeStage table creates a node") {
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   Studio::TableSpec tableSpec;
-  tableSpec.size.preferredWidth = 180.0f;
+  tableSpec.base.size.preferredWidth = 180.0f;
   tableSpec.columns = {
       Studio::TableColumn{"Item", 100.0f,
                               Studio::TextRole::SmallBright,
@@ -113,7 +113,7 @@ TEST_CASE("PrimeStage table creates a node") {
                               Studio::TextRole::SmallBright,
                               Studio::TextRole::SmallMuted}
   };
-  tableSpec.rows = {
+  tableSpec.base.rows = {
       {"Row", "Ready"},
       {"Row", "Ready"}
   };
@@ -127,9 +127,9 @@ TEST_CASE("PrimeStage tree view creates a node") {
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 120.0f);
 
   Studio::TreeViewSpec spec;
-  spec.size.preferredWidth = 200.0f;
-  spec.size.preferredHeight = 120.0f;
-  spec.nodes = {Studio::TreeNode{"Root", {Studio::TreeNode{"Child"}}, true, false}};
+  spec.base.size.preferredWidth = 200.0f;
+  spec.base.size.preferredHeight = 120.0f;
+  spec.base.nodes = {Studio::TreeNode{"Root", {Studio::TreeNode{"Child"}}, true, false}};
   PrimeStage::UiNode tree = Studio::createTreeView(root, spec);
   CHECK(frame.getNode(tree.nodeId()) != nullptr);
 }

@@ -359,11 +359,11 @@ struct FlatTreeRow {
   std::vector<int> ancestors;
 };
 
-void flatten_tree(std::vector<Studio::TreeNode> const& nodes,
+void flatten_tree(std::vector<TreeNode> const& nodes,
                   int depth,
                   std::vector<int>& depthStack,
                   std::vector<FlatTreeRow>& out) {
-  for (Studio::TreeNode const& node : nodes) {
+  for (TreeNode const& node : nodes) {
     int parentIndex = depth > 0 && depth - 1 < static_cast<int>(depthStack.size())
                           ? depthStack[static_cast<size_t>(depth - 1)]
                           : -1;
@@ -846,6 +846,55 @@ UiNode createTextLine(UiNode& parent,
                       SizeSpec const& size,
                       PrimeFrame::TextAlign align) {
   return parent.createTextLine(text, textToken(role), size, align);
+}
+
+} // namespace Studio
+
+namespace Studio {
+
+UiNode createTable(UiNode& parent, TableSpec const& spec) {
+  PrimeStage::TableSpec tableSpec = spec.base;
+  tableSpec.headerStyle = rectToken(spec.headerRole);
+  tableSpec.rowStyle = rectToken(spec.rowRole);
+  tableSpec.rowAltStyle = rectToken(spec.rowAltRole);
+  tableSpec.dividerStyle = rectToken(spec.dividerRole);
+
+  if (!spec.columns.empty()) {
+    tableSpec.columns.clear();
+    tableSpec.columns.reserve(spec.columns.size());
+    for (TableColumn const& col : spec.columns) {
+      PrimeStage::TableColumn core;
+      core.label = col.label;
+      core.width = col.width;
+      core.headerStyle = textToken(col.headerRole);
+      core.cellStyle = textToken(col.cellRole);
+      tableSpec.columns.push_back(core);
+    }
+  }
+
+  return parent.createTable(tableSpec);
+}
+
+UiNode createTreeView(UiNode& parent, TreeViewSpec const& spec) {
+  PrimeStage::TreeViewSpec treeSpec = spec.base;
+  treeSpec.rowStyle = rectToken(spec.rowRole);
+  treeSpec.rowAltStyle = rectToken(spec.rowAltRole);
+  treeSpec.selectionStyle = rectToken(spec.selectionRole);
+  treeSpec.selectionAccentStyle = rectToken(spec.selectionAccentRole);
+  treeSpec.caretBackgroundStyle = rectToken(spec.caretBackgroundRole);
+  treeSpec.caretLineStyle = rectToken(spec.caretLineRole);
+  treeSpec.connectorStyle = rectToken(spec.connectorRole);
+  treeSpec.textStyle = textToken(spec.textRole);
+  treeSpec.selectedTextStyle = textToken(spec.selectedTextRole);
+
+  if (treeSpec.scrollBar.trackStyle == 0) {
+    treeSpec.scrollBar.trackStyle = rectToken(RectRole::ScrollTrack);
+  }
+  if (treeSpec.scrollBar.thumbStyle == 0) {
+    treeSpec.scrollBar.thumbStyle = rectToken(RectRole::ScrollThumb);
+  }
+
+  return parent.createTreeView(treeSpec);
 }
 
 } // namespace Studio
@@ -1418,12 +1467,9 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);
 }
 
-namespace Studio {
-
-UiNode createTable(UiNode const& parent, TableSpec const& spec) {
-  auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
-  PrimeFrame::NodeId id_ = parent.nodeId();
-  bool allowAbsolute_ = parent.allowAbsolute();
+UiNode UiNode::createTable(TableSpec const& spec) {
+  PrimeFrame::NodeId id_ = nodeId();
+  bool allowAbsolute_ = allowAbsolute();
   Rect tableBounds = resolve_rect(spec.size);
   size_t rowCount = spec.rows.size();
   float rowsHeight = 0.0f;
@@ -1447,11 +1493,11 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
         inferredWidth += col.width;
         continue;
       }
-      float maxText = estimate_text_width(frame(), textToken(col.headerRole), col.label);
+      float maxText = estimate_text_width(frame(), col.headerStyle, col.label);
       for (auto const& row : spec.rows) {
         if (colIndex < row.size()) {
           std::string_view cell = row[colIndex];
-          float cellWidth = estimate_text_width(frame(), textToken(col.cellRole), cell);
+          float cellWidth = estimate_text_width(frame(), col.cellStyle, cell);
           if (cellWidth > maxText) {
             maxText = cellWidth;
           }
@@ -1474,6 +1520,7 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
   tableSpec.size = tableSize;
   tableSpec.gap = 0.0f;
   tableSpec.clipChildren = spec.clipChildren;
+  tableSpec.visible = spec.visible;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode tableNode = parentNode.createVerticalStack(tableSpec);
 
@@ -1516,7 +1563,7 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
                          float height,
                          float paddingX,
                          std::string_view text,
-                         TextRole role) {
+                         PrimeFrame::TextStyleToken role) {
     SizeSpec cellSize;
     if (width > 0.0f) {
       cellSize.preferredWidth = width;
@@ -1533,19 +1580,25 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
                                             padding,
                                             0.0f,
                                             false,
-                                            true);
+                                            spec.visible);
     UiNode cell(frame(), cellId, rowNode.allowAbsolute());
     SizeSpec textSize;
     textSize.stretchX = 1.0f;
     if (height > 0.0f) {
       textSize.preferredHeight = height;
     }
-    cell.createTextLine(text, textToken(role), textSize, PrimeFrame::TextAlign::Start);
+    TextLineSpec textSpec;
+    textSpec.text = text;
+    textSpec.textStyle = role;
+    textSpec.size = textSize;
+    textSpec.visible = spec.visible;
+    cell.createTextLine(textSpec);
   };
 
   if (spec.showHeaderDividers) {
     DividerSpec divider;
-    divider.rectStyle = rectToken(spec.dividerRole);
+    divider.rectStyle = spec.dividerStyle;
+    divider.visible = spec.visible;
     divider.size.stretchX = 1.0f;
     divider.size.preferredHeight = 1.0f;
     tableNode.createDivider(divider);
@@ -1559,10 +1612,11 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
 
   if (spec.headerHeight > 0.0f && !spec.columns.empty()) {
     PanelSpec headerPanel;
-    headerPanel.rectStyle = rectToken(spec.headerRole);
+    headerPanel.rectStyle = spec.headerStyle;
     headerPanel.layout = PrimeFrame::LayoutType::HorizontalStack;
     headerPanel.size.preferredHeight = spec.headerHeight;
     headerPanel.size.stretchX = 1.0f;
+    headerPanel.visible = spec.visible;
     UiNode headerRow = tableNode.createPanel(headerPanel);
 
     for (size_t colIndex = 0; colIndex < spec.columns.size(); ++colIndex) {
@@ -1573,10 +1627,11 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
                   spec.headerHeight,
                   spec.headerPaddingX,
                   col.label,
-                  col.headerRole);
+                  col.headerStyle);
       if (spec.showColumnDividers && colIndex + 1 < spec.columns.size()) {
         DividerSpec divider;
-        divider.rectStyle = rectToken(spec.dividerRole);
+        divider.rectStyle = spec.dividerStyle;
+        divider.visible = spec.visible;
         divider.size.preferredWidth = dividerWidth;
         divider.size.preferredHeight = spec.headerHeight;
         headerRow.createDivider(divider);
@@ -1586,7 +1641,8 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
 
   if (spec.showHeaderDividers) {
     DividerSpec divider;
-    divider.rectStyle = rectToken(spec.dividerRole);
+    divider.rectStyle = spec.dividerStyle;
+    divider.visible = spec.visible;
     divider.size.stretchX = 1.0f;
     divider.size.preferredHeight = 1.0f;
     tableNode.createDivider(divider);
@@ -1597,15 +1653,17 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
   rowsSpec.size.stretchY = spec.size.stretchY;
   rowsSpec.gap = spec.rowGap;
   rowsSpec.clipChildren = spec.clipChildren;
+  rowsSpec.visible = spec.visible;
   UiNode rowsNode = tableNode.createVerticalStack(rowsSpec);
 
   for (size_t rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
-    RectRole rowRole = (rowIndex % 2 == 0) ? spec.rowAltRole : spec.rowRole;
+    PrimeFrame::RectStyleToken rowRole = (rowIndex % 2 == 0) ? spec.rowAltStyle : spec.rowStyle;
     PanelSpec rowPanel;
-    rowPanel.rectStyle = rectToken(rowRole);
+    rowPanel.rectStyle = rowRole;
     rowPanel.layout = PrimeFrame::LayoutType::HorizontalStack;
     rowPanel.size.preferredHeight = spec.rowHeight;
     rowPanel.size.stretchX = 1.0f;
+    rowPanel.visible = spec.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
 
     for (size_t colIndex = 0; colIndex < spec.columns.size(); ++colIndex) {
@@ -1620,10 +1678,11 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
                   spec.rowHeight,
                   spec.cellPaddingX,
                   cellText,
-                  col.cellRole);
+                  col.cellStyle);
       if (spec.showColumnDividers && colIndex + 1 < spec.columns.size()) {
         DividerSpec divider;
-        divider.rectStyle = rectToken(spec.dividerRole);
+        divider.rectStyle = spec.dividerStyle;
+        divider.visible = spec.visible;
         divider.size.preferredWidth = dividerWidth;
         divider.size.preferredHeight = spec.rowHeight;
         rowNode.createDivider(divider);
@@ -1633,6 +1692,8 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
 
   return UiNode(frame(), tableNode.nodeId(), allowAbsolute_);
 }
+
+namespace Studio {
 
 UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec) {
   auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
@@ -2482,10 +2543,11 @@ UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec) {
   return parent.createScrollView(view).root;
 }
 
-UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
-  auto frame = [&]() -> PrimeFrame::Frame& { return parent.frame(); };
-  PrimeFrame::NodeId id_ = parent.nodeId();
-  bool allowAbsolute_ = parent.allowAbsolute();
+} // namespace Studio
+
+UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
+  PrimeFrame::NodeId id_ = nodeId();
+  bool allowAbsolute_ = allowAbsolute();
 
   std::vector<FlatTreeRow> rows;
   std::vector<int> depthStack;
@@ -2507,8 +2569,8 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     float maxLabelWidth = 0.0f;
     for (FlatTreeRow const& row : rows) {
-      TextRole role = row.selected ? spec.selectedTextRole : spec.textRole;
-      float textWidth = estimate_text_width(frame(), textToken(role), row.label);
+      PrimeFrame::TextStyleToken role = row.selected ? spec.selectedTextStyle : spec.textStyle;
+      float textWidth = estimate_text_width(frame(), role, row.label);
       float indent = row.depth > 0 ? spec.indent * static_cast<float>(row.depth) : 0.0f;
       float contentWidth = spec.rowWidthInset + 20.0f + indent + textWidth;
       if (contentWidth > maxLabelWidth) {
@@ -2546,12 +2608,13 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   treeSpec.padding.left = 0.0f;
   treeSpec.padding.top = spec.rowStartY;
   treeSpec.padding.right = 0.0f;
+  treeSpec.visible = spec.visible;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode treeNode = parentNode.createOverlay(treeSpec);
 
   float rowWidth = std::max(0.0f, bounds.width);
-  float rowTextHeight = resolve_line_height(frame(), textToken(spec.textRole));
-  float selectedTextHeight = resolve_line_height(frame(), textToken(spec.selectedTextRole));
+  float rowTextHeight = resolve_line_height(frame(), spec.textStyle);
+  float selectedTextHeight = resolve_line_height(frame(), spec.selectedTextStyle);
   float caretBaseX = std::max(0.0f, spec.caretBaseX);
 
   StackSpec rowsSpec;
@@ -2559,31 +2622,33 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
   rowsSpec.size.stretchY = spec.size.stretchY;
   rowsSpec.gap = spec.rowGap;
   rowsSpec.clipChildren = false;
+  rowsSpec.visible = spec.visible;
 
-  if (spec.showHeaderDivider) {
+  if (spec.showHeaderDivider && spec.visible) {
     float dividerY = spec.headerDividerY;
     add_divider_rect(frame(), treeNode.nodeId(),
                      Rect{0.0f, dividerY, rowWidth, spec.connectorThickness},
-                     rectToken(spec.connectorRole));
+                     spec.connectorStyle);
   }
 
   UiNode rowsNode = treeNode.createVerticalStack(rowsSpec);
 
   for (size_t i = 0; i < rows.size(); ++i) {
     FlatTreeRow const& row = rows[i];
-    RectRole rowRole = row.selected ? spec.selectionRole
-                                    : (i % 2 == 0 ? spec.rowAltRole : spec.rowRole);
+    PrimeFrame::RectStyleToken rowRole = row.selected ? spec.selectionStyle
+                                                      : (i % 2 == 0 ? spec.rowAltStyle : spec.rowStyle);
 
     PanelSpec rowPanel;
-    rowPanel.rectStyle = rectToken(rowRole);
+    rowPanel.rectStyle = rowRole;
     rowPanel.layout = PrimeFrame::LayoutType::Overlay;
     rowPanel.size.preferredHeight = spec.rowHeight;
     rowPanel.size.stretchX = 1.0f;
     rowPanel.clipChildren = false;
+    rowPanel.visible = spec.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
     PrimeFrame::NodeId rowId = rowNode.nodeId();
 
-    if (spec.showConnectors && row.depth > 0) {
+    if (spec.showConnectors && row.depth > 0 && spec.visible) {
       float halfThickness = spec.connectorThickness * 0.5f;
       float rowCenterY = spec.rowHeight * 0.5f;
       float rowTop = -spec.rowGap * 0.5f;
@@ -2621,7 +2686,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                            Rect{trunkX - halfThickness, segmentTop - halfThickness,
                                   spec.connectorThickness,
                                   (segmentBottom - segmentTop) + spec.connectorThickness},
-                           rectToken(spec.connectorRole));
+                           spec.connectorStyle);
         }
       };
 
@@ -2645,26 +2710,26 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
           add_divider_rect(frame(), rowNode.nodeId(),
                            Rect{linkStartX, rowCenterY - halfThickness,
                                   linkW, spec.connectorThickness},
-                           rectToken(spec.connectorRole));
+                           spec.connectorStyle);
         }
       }
     }
 
-    if (row.selected && spec.selectionAccentWidth > 0.0f) {
+    if (row.selected && spec.selectionAccentWidth > 0.0f && spec.visible) {
       create_rect_node(frame(),
                        rowId,
                        Rect{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight},
-                       rectToken(spec.selectionAccentRole),
+                       spec.selectionAccentStyle,
                        {},
                        false,
-                       true);
+                       spec.visible);
     }
 
     float indent = (row.depth > 0) ? spec.indent * static_cast<float>(row.depth) : 0.0f;
     float glyphX = caretBaseX + indent;
     float glyphY = (spec.rowHeight - spec.caretSize) * 0.5f;
 
-    if (spec.showCaretMasks && row.depth > 0) {
+    if (spec.showCaretMasks && row.depth > 0 && spec.visible) {
       float maskPad = spec.caretMaskPad;
       create_rect_node(frame(),
                        rowId,
@@ -2672,20 +2737,20 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                             glyphY - maskPad,
                             spec.caretSize + maskPad * 2.0f,
                             spec.caretSize + maskPad * 2.0f},
-                       rectToken(rowRole),
+                       rowRole,
                        {},
                        false,
-                       true);
+                       spec.visible);
     }
 
     if (row.hasChildren) {
       create_rect_node(frame(),
                        rowId,
                        Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
-                       rectToken(spec.caretBackgroundRole),
+                       spec.caretBackgroundStyle,
                        {},
                        false,
-                       true);
+                       spec.visible);
 
       create_rect_node(frame(),
                        rowId,
@@ -2693,10 +2758,10 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                             glyphY + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
                             spec.caretSize - spec.caretInset * 2.0f,
                             spec.caretThickness},
-                       rectToken(spec.caretLineRole),
+                       spec.caretLineStyle,
                        {},
                        false,
-                       true);
+                       spec.visible);
       if (!row.expanded) {
         create_rect_node(frame(),
                          rowId,
@@ -2704,19 +2769,19 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                               glyphY + spec.caretInset,
                               spec.caretThickness,
                               spec.caretSize - spec.caretInset * 2.0f},
-                         rectToken(spec.caretLineRole),
+                         spec.caretLineStyle,
                          {},
                          false,
-                         true);
+                         spec.visible);
       }
     } else {
       create_rect_node(frame(),
                        rowId,
                        Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
-                       rectToken(spec.caretBackgroundRole),
+                       spec.caretBackgroundStyle,
                        {},
                        false,
-                       true);
+                       spec.visible);
 
       float dot = std::max(2.0f, spec.caretThickness);
       create_rect_node(frame(),
@@ -2725,14 +2790,14 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                             glyphY + spec.caretSize * 0.5f - dot * 0.5f,
                             dot,
                             dot},
-                       rectToken(spec.caretLineRole),
+                       spec.caretLineStyle,
                        {},
                        false,
-                       true);
+                       spec.visible);
     }
 
     float textX = spec.rowStartX + 20.0f + indent;
-    TextRole textRole = row.selected ? spec.selectedTextRole : spec.textRole;
+    PrimeFrame::TextStyleToken textRole = row.selected ? spec.selectedTextStyle : spec.textStyle;
     float lineHeight = row.selected ? selectedTextHeight : rowTextHeight;
     float textY = (spec.rowHeight - lineHeight) * 0.5f;
     float labelWidth = std::max(0.0f, rowWidth - spec.rowWidthInset - textX);
@@ -2740,16 +2805,15 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                      rowId,
                      Rect{textX, textY, labelWidth, lineHeight},
                      row.label,
-                     textToken(textRole),
+                     textRole,
                      {},
                      PrimeFrame::TextAlign::Start,
                      PrimeFrame::WrapMode::None,
                      labelWidth,
-                     true);
+                     spec.visible);
   }
 
-
-  if (spec.showScrollBar && spec.scrollBar.enabled) {
+  if (spec.showScrollBar && spec.scrollBar.enabled && spec.visible) {
     float trackX = bounds.width - spec.scrollBar.inset;
     float trackY = spec.scrollBar.padding;
     float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);
@@ -2760,7 +2824,7 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                      spec.scrollBar.trackStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
 
     float thumbH = trackH * spec.scrollBar.thumbFraction;
     thumbH = std::max(thumbH, spec.scrollBar.minThumbHeight);
@@ -2776,11 +2840,13 @@ UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec) {
                      spec.scrollBar.thumbStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);
 }
+
+namespace Studio {
 
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size) {
   Rect rootBounds = resolve_rect(size);

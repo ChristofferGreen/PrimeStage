@@ -91,22 +91,12 @@ struct TableColumn {
 };
 
 struct TableSpec {
-  float headerInset = 6.0f;
-  float headerHeight = 20.0f;
-  float rowHeight = 28.0f;
-  float rowGap = 0.0f;
-  float headerPaddingX = 16.0f;
-  float cellPaddingX = 16.0f;
+  PrimeStage::TableSpec base{};
   RectRole headerRole = RectRole::PanelStrong;
   RectRole rowRole = RectRole::Panel;
   RectRole rowAltRole = RectRole::PanelAlt;
   RectRole dividerRole = RectRole::Divider;
-  bool showHeaderDividers = true;
-  bool showColumnDividers = true;
-  bool clipChildren = true;
   std::vector<TableColumn> columns;
-  std::vector<std::vector<std::string_view>> rows;
-  SizeSpec size;
 };
 
 struct SectionHeaderSpec {
@@ -232,34 +222,10 @@ struct ScrollHintsSpec {
   SizeSpec size;
 };
 
-struct TreeNode {
-  std::string_view label;
-  std::vector<TreeNode> children;
-  bool expanded = true;
-  bool selected = false;
-};
+using TreeNode = PrimeStage::TreeNode;
 
 struct TreeViewSpec {
-  float rowStartX = 8.0f;
-  float rowStartY = 36.0f;
-  float rowWidthInset = 20.0f;
-  float rowHeight = 22.0f;
-  float rowGap = 0.0f;
-  float indent = 12.0f;
-  float caretBaseX = 14.0f;
-  float caretSize = 10.0f;
-  float caretInset = 2.0f;
-  float caretThickness = 2.0f;
-  float caretMaskPad = 2.0f;
-  float connectorThickness = 1.0f;
-  float linkEndInset = 4.0f;
-  float selectionAccentWidth = 3.0f;
-  bool showHeaderDivider = false;
-  float headerDividerY = 0.0f;
-  bool showConnectors = true;
-  bool showCaretMasks = true;
-  bool showScrollBar = true;
-  bool clipChildren = true;
+  PrimeStage::TreeViewSpec base{};
   RectRole rowRole = RectRole::Panel;
   RectRole rowAltRole = RectRole::PanelAlt;
   RectRole selectionRole = RectRole::Selection;
@@ -269,14 +235,6 @@ struct TreeViewSpec {
   RectRole connectorRole = RectRole::ScrollTrack;
   TextRole textRole = TextRole::SmallMuted;
   TextRole selectedTextRole = TextRole::SmallBright;
-  ScrollBarSpec scrollBar = [] {
-    ScrollBarSpec spec;
-    spec.trackStyle = rectToken(RectRole::ScrollTrack);
-    spec.thumbStyle = rectToken(RectRole::ScrollThumb);
-    return spec;
-  }();
-  std::vector<TreeNode> nodes;
-  SizeSpec size;
 };
 
 struct SectionPanel {

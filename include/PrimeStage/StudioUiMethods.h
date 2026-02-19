@@ -15,7 +15,7 @@ UiNode createTextLine(UiNode& parent,
                       TextRole role,
                       SizeSpec const& size,
                       PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
-UiNode createTable(UiNode const& parent, TableSpec const& spec);
+UiNode createTable(UiNode& parent, TableSpec const& spec);
 UiNode createSectionHeader(UiNode& parent, SectionHeaderSpec const& spec);
 UiNode createSectionHeader(UiNode& parent,
                            SizeSpec const& size,
@@ -50,7 +50,7 @@ UiNode createButton(UiNode& parent,
                     SizeSpec const& size);
 UiNode createTextField(UiNode& parent, std::string_view placeholder, SizeSpec const& size);
 UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec);
-UiNode createTreeView(UiNode const& parent, TreeViewSpec const& spec);
+UiNode createTreeView(UiNode& parent, TreeViewSpec const& spec);
 
 UiNode createRoot(PrimeFrame::Frame& frame, SizeSpec const& size);
 UiNode createStudioRoot(PrimeFrame::Frame& frame, SizeSpec const& size);
