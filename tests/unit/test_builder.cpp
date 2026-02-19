@@ -221,6 +221,97 @@ TEST_CASE("PrimeStage text field creates a node") {
   CHECK(frame.getNode(field.nodeId()) != nullptr);
 }
 
+TEST_CASE("PrimeStage toggle creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 80.0f, 40.0f);
+
+  PrimeStage::ToggleSpec spec;
+  spec.size.preferredWidth = 48.0f;
+  spec.size.preferredHeight = 24.0f;
+  spec.trackStyle = Studio::rectToken(Studio::RectRole::Panel);
+  spec.knobStyle = Studio::rectToken(Studio::RectRole::Accent);
+  spec.on = true;
+  PrimeStage::UiNode toggle = root.createToggle(spec);
+  CHECK(frame.getNode(toggle.nodeId()) != nullptr);
+}
+
+TEST_CASE("PrimeStage checkbox creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 160.0f, 40.0f);
+
+  PrimeStage::CheckboxSpec spec;
+  spec.label = "Enabled";
+  spec.checked = true;
+  spec.boxStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  spec.checkStyle = Studio::rectToken(Studio::RectRole::Accent);
+  spec.textStyle = Studio::textToken(Studio::TextRole::BodyBright);
+  PrimeStage::UiNode checkbox = root.createCheckbox(spec);
+  CHECK(frame.getNode(checkbox.nodeId()) != nullptr);
+}
+
+TEST_CASE("PrimeStage slider creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
+
+  PrimeStage::SliderSpec spec;
+  spec.size.preferredWidth = 160.0f;
+  spec.size.preferredHeight = 24.0f;
+  spec.value = 0.6f;
+  spec.trackStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  spec.fillStyle = Studio::rectToken(Studio::RectRole::Accent);
+  spec.thumbStyle = Studio::rectToken(Studio::RectRole::PanelAlt);
+  PrimeStage::UiNode slider = root.createSlider(spec);
+  CHECK(frame.getNode(slider.nodeId()) != nullptr);
+}
+
+TEST_CASE("PrimeStage tabs creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 40.0f);
+
+  PrimeStage::TabsSpec spec;
+  spec.labels = {"Alpha", "Beta", "Gamma"};
+  spec.selectedIndex = 1;
+  spec.tabStyle = Studio::rectToken(Studio::RectRole::Panel);
+  spec.activeTabStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  spec.textStyle = Studio::textToken(Studio::TextRole::SmallMuted);
+  spec.activeTextStyle = Studio::textToken(Studio::TextRole::SmallBright);
+  PrimeStage::UiNode tabs = root.createTabs(spec);
+  CHECK(frame.getNode(tabs.nodeId()) != nullptr);
+}
+
+TEST_CASE("PrimeStage dropdown creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
+
+  PrimeStage::DropdownSpec spec;
+  spec.label = "Select";
+  spec.backgroundStyle = Studio::rectToken(Studio::RectRole::PanelAlt);
+  spec.textStyle = Studio::textToken(Studio::TextRole::BodyBright);
+  spec.indicatorStyle = Studio::textToken(Studio::TextRole::BodyMuted);
+  PrimeStage::UiNode dropdown = root.createDropdown(spec);
+  CHECK(frame.getNode(dropdown.nodeId()) != nullptr);
+}
+
+TEST_CASE("PrimeStage progress bar creates a node") {
+  PrimeFrame::Frame frame;
+  Studio::applyStudioTheme(frame);
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 40.0f);
+
+  PrimeStage::ProgressBarSpec spec;
+  spec.size.preferredWidth = 160.0f;
+  spec.size.preferredHeight = 12.0f;
+  spec.value = 0.45f;
+  spec.trackStyle = Studio::rectToken(Studio::RectRole::PanelStrong);
+  spec.fillStyle = Studio::rectToken(Studio::RectRole::Accent);
+  PrimeStage::UiNode bar = root.createProgressBar(spec);
+  CHECK(frame.getNode(bar.nodeId()) != nullptr);
+}
+
 TEST_CASE("PrimeStage status bar creates a node") {
   PrimeFrame::Frame frame;
   Studio::applyStudioTheme(frame);

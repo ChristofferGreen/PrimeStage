@@ -350,7 +350,7 @@ std::vector<std::string> wrap_text_lines(PrimeFrame::Frame& frame,
 }
 
 struct FlatTreeRow {
-  std::string label;
+  std::string_view label;
   int depth = 0;
   int parentIndex = -1;
   bool hasChildren = false;
@@ -530,6 +530,15 @@ static void ensure_studio_theme(PrimeFrame::Frame& frame) {
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
     : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
 
+UiNode& UiNode::setVisible(bool visible) {
+  PrimeFrame::Node* node = frame().getNode(id_);
+  if (!node) {
+    return *this;
+  }
+  node->visible = visible;
+  return *this;
+}
+
 UiNode& UiNode::setSize(SizeSpec const& size) {
   PrimeFrame::Node* node = frame().getNode(id_);
   if (!node) {
@@ -653,7 +662,7 @@ UiNode UiNode::createLabel(std::string_view text,
                            PrimeFrame::TextStyleToken textStyle,
                            SizeSpec const& size) {
   LabelSpec spec;
-  spec.text = std::string(text);
+  spec.text = text;
   spec.textStyle = textStyle;
   spec.size = size;
   return createLabel(spec);
@@ -733,7 +742,7 @@ UiNode UiNode::createParagraph(std::string_view text,
                                PrimeFrame::TextStyleToken textStyle,
                                SizeSpec const& size) {
   ParagraphSpec spec;
-  spec.text = std::string(text);
+  spec.text = text;
   spec.textStyle = textStyle;
   spec.size = size;
   return createParagraph(spec);
@@ -822,7 +831,7 @@ UiNode UiNode::createTextLine(std::string_view text,
                               SizeSpec const& size,
                               PrimeFrame::TextAlign align) {
   TextLineSpec spec;
-  spec.text = std::string(text);
+  spec.text = text;
   spec.textStyle = textStyle;
   spec.align = align;
   spec.size = size;
@@ -879,6 +888,536 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   return createSpacer(spec);
 }
 
+UiNode UiNode::createButton(ButtonSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    if (lineHeight > 0.0f) {
+      bounds.height = lineHeight;
+    }
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.label.empty()) {
+    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
+  }
+  if (bounds.width <= 0.0f &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    return UiNode(frame(), id_, allowAbsolute_);
+  }
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.backgroundStyle;
+  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  panel.visible = spec.visible;
+  UiNode button = createPanel(panel);
+  if (spec.label.empty() || !spec.visible) {
+    return UiNode(frame(), button.nodeId(), allowAbsolute_);
+  }
+  float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
+  float textX = spec.textInsetX;
+  float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
+  PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
+  if (spec.centerText) {
+    textX = (bounds.width - textWidth) * 0.5f;
+    if (textX < 0.0f) {
+      textX = 0.0f;
+    }
+    labelWidth = std::max(0.0f, textWidth);
+  }
+
+  if (!spec.centerText && textWidth > 0.0f) {
+    labelWidth = std::max(labelWidth, textWidth);
+  }
+
+  Rect textRect{textX, textY, labelWidth, lineHeight};
+  create_text_node(frame(),
+                   button.nodeId(),
+                   textRect,
+                   spec.label,
+                   spec.textStyle,
+                   spec.textStyleOverride,
+                   align,
+                   PrimeFrame::WrapMode::None,
+                   labelWidth,
+                   spec.visible);
+  return UiNode(frame(), button.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createTextField(TextFieldSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  std::string_view preview = spec.text;
+  PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
+  if (preview.empty() && spec.showPlaceholderWhenEmpty) {
+    preview = spec.placeholder;
+    previewStyle = spec.placeholderStyle;
+  }
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  if (lineHeight <= 0.0f && previewStyle != spec.textStyle) {
+    lineHeight = resolve_line_height(frame(), previewStyle);
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    if (lineHeight > 0.0f) {
+      bounds.height = lineHeight;
+    }
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !preview.empty()) {
+    float previewWidth = estimate_text_width(frame(), previewStyle, preview);
+    bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
+  }
+  if (bounds.width <= 0.0f &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    return UiNode(frame(), id_, allowAbsolute_);
+  }
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.backgroundStyle;
+  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  panel.visible = spec.visible;
+  UiNode field = createPanel(panel);
+
+  std::string_view content = spec.text;
+  PrimeFrame::TextStyleToken style = spec.textStyle;
+  PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
+  if (content.empty() && spec.showPlaceholderWhenEmpty) {
+    content = spec.placeholder;
+    style = spec.placeholderStyle;
+    overrideStyle = spec.placeholderStyleOverride;
+  }
+  if (content.empty() || !spec.visible) {
+    return UiNode(frame(), field.nodeId(), allowAbsolute_);
+  }
+
+  lineHeight = resolve_line_height(frame(), style);
+  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
+  float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
+
+  Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
+  create_text_node(frame(),
+                   field.nodeId(),
+                   textRect,
+                   content,
+                   style,
+                   overrideStyle,
+                   PrimeFrame::TextAlign::Start,
+                   PrimeFrame::WrapMode::None,
+                   textWidth,
+                   spec.visible);
+
+  return UiNode(frame(), field.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createToggle(ToggleSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    bounds.width = 40.0f;
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = 20.0f;
+  }
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.trackStyle;
+  panel.rectStyleOverride = spec.trackStyleOverride;
+  panel.visible = spec.visible;
+  UiNode toggle = createPanel(panel);
+  if (!spec.visible) {
+    return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
+  }
+
+  float inset = std::max(0.0f, spec.knobInset);
+  float knobSize = std::max(0.0f, bounds.height - inset * 2.0f);
+  float maxX = std::max(0.0f, bounds.width - knobSize);
+  float knobX = spec.on ? maxX - inset : inset;
+  knobX = std::clamp(knobX, 0.0f, maxX);
+  Rect knobRect{knobX, inset, knobSize, knobSize};
+  create_rect_node(frame(),
+                   toggle.nodeId(),
+                   knobRect,
+                   spec.knobStyle,
+                   spec.knobStyleOverride,
+                   false,
+                   spec.visible);
+  return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createCheckbox(CheckboxSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  float contentHeight = std::max(spec.boxSize, lineHeight);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = contentHeight;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    float labelWidth = spec.label.empty()
+                           ? 0.0f
+                           : estimate_text_width(frame(), spec.textStyle, spec.label);
+    float gap = spec.label.empty() ? 0.0f : spec.gap;
+    bounds.width = spec.boxSize + gap + labelWidth;
+  }
+  StackSpec rowSpec;
+  rowSpec.size = spec.size;
+  if (!rowSpec.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    rowSpec.size.preferredWidth = bounds.width;
+  }
+  if (!rowSpec.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    rowSpec.size.preferredHeight = bounds.height;
+  }
+  rowSpec.gap = spec.gap;
+  rowSpec.clipChildren = false;
+  rowSpec.visible = spec.visible;
+  UiNode row = createHorizontalStack(rowSpec);
+
+  PanelSpec box;
+  box.size.preferredWidth = spec.boxSize;
+  box.size.preferredHeight = spec.boxSize;
+  box.rectStyle = spec.boxStyle;
+  box.rectStyleOverride = spec.boxStyleOverride;
+  box.visible = spec.visible;
+  UiNode boxNode = row.createPanel(box);
+  if (spec.checked && spec.visible) {
+    float inset = std::max(0.0f, spec.checkInset);
+    float checkSize = std::max(0.0f, spec.boxSize - inset * 2.0f);
+    Rect checkRect{inset, inset, checkSize, checkSize};
+    create_rect_node(frame(),
+                     boxNode.nodeId(),
+                     checkRect,
+                     spec.checkStyle,
+                     spec.checkStyleOverride,
+                     false,
+                     spec.visible);
+  }
+
+  if (!spec.label.empty()) {
+    TextLineSpec text;
+    text.text = spec.label;
+    text.textStyle = spec.textStyle;
+    text.textStyleOverride = spec.textStyleOverride;
+    text.size.stretchX = 1.0f;
+    text.size.preferredHeight = bounds.height;
+    text.visible = spec.visible;
+    row.createTextLine(text);
+  }
+
+  return UiNode(frame(), row.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createSlider(SliderSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    bounds.width = spec.vertical ? 20.0f : 160.0f;
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = spec.vertical ? 160.0f : 20.0f;
+  }
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.trackStyle;
+  panel.rectStyleOverride = spec.trackStyleOverride;
+  panel.visible = spec.visible;
+  UiNode slider = createPanel(panel);
+  if (!spec.visible) {
+    return UiNode(frame(), slider.nodeId(), allowAbsolute_);
+  }
+
+  float t = std::clamp(spec.value, 0.0f, 1.0f);
+  float thumb = std::max(0.0f, spec.thumbSize);
+  if (spec.vertical) {
+    float trackW = std::min(bounds.width, std::max(0.0f, spec.trackThickness));
+    float trackX = (bounds.width - trackW) * 0.5f;
+    float fillH = bounds.height * t;
+    if (fillH > 0.0f) {
+      Rect fillRect{trackX, bounds.height - fillH, trackW, fillH};
+      create_rect_node(frame(),
+                       slider.nodeId(),
+                       fillRect,
+                       spec.fillStyle,
+                       spec.fillStyleOverride,
+                       false,
+                       spec.visible);
+    }
+    float thumbSize = std::min(thumb, std::min(bounds.width, bounds.height));
+    if (thumbSize > 0.0f) {
+      float thumbY = (1.0f - t) * (bounds.height - thumbSize);
+      Rect thumbRect{(bounds.width - thumbSize) * 0.5f, thumbY, thumbSize, thumbSize};
+      create_rect_node(frame(),
+                       slider.nodeId(),
+                       thumbRect,
+                       spec.thumbStyle,
+                       spec.thumbStyleOverride,
+                       false,
+                       spec.visible);
+    }
+  } else {
+    float trackH = std::min(bounds.height, std::max(0.0f, spec.trackThickness));
+    float trackY = (bounds.height - trackH) * 0.5f;
+    float fillW = bounds.width * t;
+    if (fillW > 0.0f) {
+      Rect fillRect{0.0f, trackY, fillW, trackH};
+      create_rect_node(frame(),
+                       slider.nodeId(),
+                       fillRect,
+                       spec.fillStyle,
+                       spec.fillStyleOverride,
+                       false,
+                       spec.visible);
+    }
+    float thumbSize = std::min(thumb, std::min(bounds.width, bounds.height));
+    if (thumbSize > 0.0f) {
+      float thumbX = t * (bounds.width - thumbSize);
+      Rect thumbRect{thumbX, (bounds.height - thumbSize) * 0.5f, thumbSize, thumbSize};
+      create_rect_node(frame(),
+                       slider.nodeId(),
+                       thumbRect,
+                       spec.thumbStyle,
+                       spec.thumbStyleOverride,
+                       false,
+                       spec.visible);
+    }
+  }
+
+  return UiNode(frame(), slider.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createTabs(TabsSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  float activeLineHeight = resolve_line_height(frame(), spec.activeTextStyle);
+  float tabLine = std::max(lineHeight, activeLineHeight);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = tabLine + spec.tabPaddingY * 2.0f;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.labels.empty()) {
+    float total = 0.0f;
+    for (size_t i = 0; i < spec.labels.size(); ++i) {
+      PrimeFrame::TextStyleToken token =
+          (static_cast<int>(i) == spec.selectedIndex) ? spec.activeTextStyle : spec.textStyle;
+      float textWidth = estimate_text_width(frame(), token, spec.labels[i]);
+      total += textWidth + spec.tabPaddingX * 2.0f;
+      if (i + 1 < spec.labels.size()) {
+        total += spec.gap;
+      }
+    }
+    bounds.width = total;
+  }
+
+  StackSpec rowSpec;
+  rowSpec.size = spec.size;
+  if (!rowSpec.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    rowSpec.size.preferredWidth = bounds.width;
+  }
+  if (!rowSpec.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    rowSpec.size.preferredHeight = bounds.height;
+  }
+  rowSpec.gap = spec.gap;
+  rowSpec.clipChildren = false;
+  rowSpec.visible = spec.visible;
+  UiNode row = createHorizontalStack(rowSpec);
+
+  for (size_t i = 0; i < spec.labels.size(); ++i) {
+    bool active = static_cast<int>(i) == spec.selectedIndex;
+    PrimeFrame::RectStyleToken rectStyle = active ? spec.activeTabStyle : spec.tabStyle;
+    PrimeFrame::RectStyleOverride rectOverride =
+        active ? spec.activeTabStyleOverride : spec.tabStyleOverride;
+    PrimeFrame::TextStyleToken textToken = active ? spec.activeTextStyle : spec.textStyle;
+    PrimeFrame::TextStyleOverride textOverride =
+        active ? spec.activeTextStyleOverride : spec.textStyleOverride;
+
+    float textWidth = estimate_text_width(frame(), textToken, spec.labels[i]);
+    PanelSpec tabPanel;
+    tabPanel.rectStyle = rectStyle;
+    tabPanel.rectStyleOverride = rectOverride;
+    tabPanel.size.preferredWidth = textWidth + spec.tabPaddingX * 2.0f;
+    tabPanel.size.preferredHeight = bounds.height;
+    tabPanel.visible = spec.visible;
+    UiNode tab = row.createPanel(tabPanel);
+
+    TextLineSpec textSpec;
+    textSpec.text = spec.labels[i];
+    textSpec.textStyle = textToken;
+    textSpec.textStyleOverride = textOverride;
+    textSpec.align = PrimeFrame::TextAlign::Center;
+    textSpec.size.stretchX = 1.0f;
+    textSpec.size.preferredHeight = bounds.height;
+    textSpec.visible = spec.visible;
+    tab.createTextLine(textSpec);
+  }
+
+  return UiNode(frame(), row.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createDropdown(DropdownSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  float lineHeight = resolve_line_height(frame(), spec.textStyle);
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = lineHeight + spec.paddingX;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    float labelWidth = spec.label.empty()
+                           ? 0.0f
+                           : estimate_text_width(frame(), spec.textStyle, spec.label);
+    float indicatorWidth = estimate_text_width(frame(), spec.indicatorStyle, spec.indicator);
+    float gap = spec.label.empty() ? 0.0f : spec.indicatorGap;
+    bounds.width = spec.paddingX * 2.0f + labelWidth + gap + indicatorWidth;
+  }
+
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.backgroundStyle;
+  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  panel.layout = PrimeFrame::LayoutType::HorizontalStack;
+  panel.padding.left = spec.paddingX;
+  panel.padding.right = spec.paddingX;
+  panel.gap = spec.indicatorGap;
+  panel.visible = spec.visible;
+  UiNode dropdown = createPanel(panel);
+
+  if (!spec.label.empty()) {
+    TextLineSpec labelText;
+    labelText.text = spec.label;
+    labelText.textStyle = spec.textStyle;
+    labelText.textStyleOverride = spec.textStyleOverride;
+    labelText.align = PrimeFrame::TextAlign::Start;
+    labelText.size.stretchX = 1.0f;
+    labelText.size.preferredHeight = bounds.height;
+    labelText.visible = spec.visible;
+    dropdown.createTextLine(labelText);
+  } else {
+    SizeSpec spacer;
+    spacer.stretchX = 1.0f;
+    spacer.preferredHeight = bounds.height;
+    dropdown.createSpacer(spacer);
+  }
+
+  TextLineSpec indicatorText;
+  indicatorText.text = spec.indicator;
+  indicatorText.textStyle = spec.indicatorStyle;
+  indicatorText.textStyleOverride = spec.indicatorStyleOverride;
+  indicatorText.align = PrimeFrame::TextAlign::Center;
+  indicatorText.size.preferredHeight = bounds.height;
+  indicatorText.visible = spec.visible;
+  dropdown.createTextLine(indicatorText);
+
+  return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    bounds.width = 140.0f;
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = 12.0f;
+  }
+  PanelSpec panel;
+  panel.size = spec.size;
+  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    panel.size.preferredWidth = bounds.width;
+  }
+  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    panel.size.preferredHeight = bounds.height;
+  }
+  panel.rectStyle = spec.trackStyle;
+  panel.rectStyleOverride = spec.trackStyleOverride;
+  panel.visible = spec.visible;
+  UiNode bar = createPanel(panel);
+  if (!spec.visible) {
+    return UiNode(frame(), bar.nodeId(), allowAbsolute_);
+  }
+
+  float t = std::clamp(spec.value, 0.0f, 1.0f);
+  float fillW = bounds.width * t;
+  if (spec.minFillWidth > 0.0f) {
+    fillW = std::max(fillW, spec.minFillWidth);
+  }
+  fillW = std::min(fillW, bounds.width);
+  if (fillW > 0.0f) {
+    Rect fillRect{0.0f, 0.0f, fillW, bounds.height};
+    create_rect_node(frame(),
+                     bar.nodeId(),
+                     fillRect,
+                     spec.fillStyle,
+                     spec.fillStyleOverride,
+                     false,
+                     spec.visible);
+  }
+
+  return UiNode(frame(), bar.nodeId(), allowAbsolute_);
+}
+
 namespace Studio {
 
 UiNode createTable(UiNode const& parent, TableSpec const& spec) {
@@ -911,7 +1450,7 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
       float maxText = estimate_text_width(frame(), textToken(col.headerRole), col.label);
       for (auto const& row : spec.rows) {
         if (colIndex < row.size()) {
-          std::string const& cell = row[colIndex];
+          std::string_view cell = row[colIndex];
           float cellWidth = estimate_text_width(frame(), textToken(col.cellRole), cell);
           if (cellWidth > maxText) {
             maxText = cellWidth;
@@ -1072,7 +1611,7 @@ UiNode createTable(UiNode const& parent, TableSpec const& spec) {
     for (size_t colIndex = 0; colIndex < spec.columns.size(); ++colIndex) {
       TableColumn const& col = spec.columns[colIndex];
       float colWidth = colIndex < columnWidths.size() ? columnWidths[colIndex] : 0.0f;
-      std::string cellText;
+      std::string_view cellText;
       if (rowIndex < spec.rows.size() && colIndex < spec.rows[rowIndex].size()) {
         cellText = spec.rows[rowIndex][colIndex];
       }
@@ -1177,7 +1716,7 @@ UiNode createSectionHeader(UiNode& parent,
                            TextRole role) {
   SectionHeaderSpec spec;
   spec.size = size;
-  spec.title = std::string(title);
+  spec.title = title;
   spec.textRole = role;
   return createSectionHeader(parent, spec);
 }
@@ -1190,7 +1729,7 @@ UiNode createSectionHeader(UiNode& parent,
                            float dividerOffsetY) {
   SectionHeaderSpec spec;
   spec.size = size;
-  spec.title = std::string(title);
+  spec.title = title;
   spec.textRole = role;
   spec.addDivider = addDivider;
   spec.dividerOffsetY = dividerOffsetY;
@@ -1340,7 +1879,7 @@ SectionPanel createSectionPanel(UiNode& parent, SectionPanelSpec const& spec) {
 SectionPanel createSectionPanel(UiNode& parent, SizeSpec const& size, std::string_view title) {
   SectionPanelSpec spec;
   spec.size = size;
-  spec.title = std::string(title);
+  spec.title = title;
   return createSectionPanel(parent, spec);
 }
 
@@ -1509,7 +2048,7 @@ UiNode createPropertyRow(UiNode const& parent,
   spec.size = size;
   spec.labelRole = role;
   spec.valueRole = role;
-  spec.rows = {{std::string(label), std::string(value)}};
+  spec.rows = {{label, value}};
   return createPropertyList(parent, spec);
 }
 
@@ -1677,76 +2216,6 @@ UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec) {
 
 } // namespace Studio
 
-UiNode UiNode::createButton(ButtonSpec const& spec) {
-  Rect bounds = resolve_rect(spec.size);
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    if (lineHeight > 0.0f) {
-      bounds.height = lineHeight;
-    }
-  }
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !spec.label.empty()) {
-    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
-  }
-  if (bounds.width <= 0.0f &&
-      bounds.height <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
-  }
-  PanelSpec panel;
-  panel.size = spec.size;
-  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    panel.size.preferredWidth = bounds.width;
-  }
-  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    panel.size.preferredHeight = bounds.height;
-  }
-  panel.rectStyle = spec.backgroundStyle;
-  panel.rectStyleOverride = spec.backgroundStyleOverride;
-  UiNode button = createPanel(panel);
-  if (spec.label.empty()) {
-    return UiNode(frame(), button.nodeId(), allowAbsolute_);
-  }
-  float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-  float textX = spec.textInsetX;
-  float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
-  PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
-  if (spec.centerText) {
-    textX = (bounds.width - textWidth) * 0.5f;
-    if (textX < 0.0f) {
-      textX = 0.0f;
-    }
-    labelWidth = std::max(0.0f, textWidth);
-  }
-
-  if (!spec.centerText && textWidth > 0.0f) {
-    labelWidth = std::max(labelWidth, textWidth);
-  }
-
-  Rect textRect{textX, textY, labelWidth, lineHeight};
-  create_text_node(frame(),
-                   button.nodeId(),
-                   textRect,
-                   spec.label,
-                   spec.textStyle,
-                   spec.textStyleOverride,
-                   align,
-                   PrimeFrame::WrapMode::None,
-                   labelWidth,
-                   true);
-  return UiNode(frame(), button.nodeId(), allowAbsolute_);
-}
-
 namespace Studio {
 
 UiNode createButton(UiNode& parent,
@@ -1754,7 +2223,7 @@ UiNode createButton(UiNode& parent,
                     ButtonVariant variant,
                     SizeSpec const& size) {
   ButtonSpec spec;
-  spec.label = std::string(label);
+  spec.label = label;
   spec.size = size;
   if (!spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
     spec.size.preferredHeight = StudioDefaults::ControlHeight;
@@ -1776,88 +2245,11 @@ UiNode createButton(UiNode& parent,
 
 } // namespace Studio
 
-UiNode UiNode::createTextField(TextFieldSpec const& spec) {
-  Rect bounds = resolve_rect(spec.size);
-  std::string_view preview = spec.text;
-  PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
-  if (preview.empty() && spec.showPlaceholderWhenEmpty) {
-    preview = spec.placeholder;
-    previewStyle = spec.placeholderStyle;
-  }
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
-  if (lineHeight <= 0.0f && previewStyle != spec.textStyle) {
-    lineHeight = resolve_line_height(frame(), previewStyle);
-  }
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    if (lineHeight > 0.0f) {
-      bounds.height = lineHeight;
-    }
-  }
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !preview.empty()) {
-    float previewWidth = estimate_text_width(frame(), previewStyle, preview);
-    bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
-  }
-  if (bounds.width <= 0.0f &&
-      bounds.height <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
-  }
-  PanelSpec panel;
-  panel.size = spec.size;
-  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    panel.size.preferredWidth = bounds.width;
-  }
-  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    panel.size.preferredHeight = bounds.height;
-  }
-  panel.rectStyle = spec.backgroundStyle;
-  panel.rectStyleOverride = spec.backgroundStyleOverride;
-  UiNode field = createPanel(panel);
-
-  std::string_view content = spec.text;
-  PrimeFrame::TextStyleToken style = spec.textStyle;
-  PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
-  if (content.empty() && spec.showPlaceholderWhenEmpty) {
-    content = spec.placeholder;
-    style = spec.placeholderStyle;
-    overrideStyle = spec.placeholderStyleOverride;
-  }
-  if (content.empty()) {
-    return UiNode(frame(), field.nodeId(), allowAbsolute_);
-  }
-
-  lineHeight = resolve_line_height(frame(), style);
-  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-  float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
-
-  Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
-  create_text_node(frame(),
-                   field.nodeId(),
-                   textRect,
-                   content,
-                   style,
-                   overrideStyle,
-                   PrimeFrame::TextAlign::Start,
-                   PrimeFrame::WrapMode::None,
-                   textWidth,
-                   true);
-
-  return UiNode(frame(), field.nodeId(), allowAbsolute_);
-}
-
 namespace Studio {
 
 UiNode createTextField(UiNode& parent, std::string_view placeholder, SizeSpec const& size) {
   TextFieldSpec spec;
-  spec.placeholder = std::string(placeholder);
+  spec.placeholder = placeholder;
   spec.size = size;
   if (!spec.size.preferredHeight.has_value() && spec.size.stretchY <= 0.0f) {
     spec.size.preferredHeight = StudioDefaults::ControlHeight;
@@ -1968,8 +2360,8 @@ UiNode createStatusBar(UiNode& parent,
                        std::string_view rightText) {
   StatusBarSpec spec;
   spec.size = size;
-  spec.leftText = std::string(leftText);
-  spec.rightText = std::string(rightText);
+  spec.leftText = leftText;
+  spec.rightText = rightText;
   return createStatusBar(parent, spec);
 }
 
@@ -1995,7 +2387,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                                             PrimeFrame::Insets{},
                                             0.0f,
                                             spec.clipChildren,
-                                            true);
+                                            spec.visible);
   SizeSpec contentSize;
   contentSize.stretchX = 1.0f;
   contentSize.stretchY = 1.0f;
@@ -2005,7 +2397,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                                              PrimeFrame::Insets{},
                                              0.0f,
                                              false,
-                                             true);
+                                             spec.visible);
 
   if (spec.showVertical && spec.vertical.enabled) {
     float trackW = spec.vertical.thickness;
@@ -2018,7 +2410,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                      spec.vertical.trackStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
 
     float thumbH = std::min(trackH, spec.vertical.thumbLength);
     float maxOffset = std::max(0.0f, trackH - thumbH);
@@ -2030,7 +2422,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                      spec.vertical.thumbStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
   }
 
   if (spec.showHorizontal && spec.horizontal.enabled) {
@@ -2044,7 +2436,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                      spec.horizontal.trackStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
 
     float thumbW = std::min(trackW, spec.horizontal.thumbLength);
     float maxOffset = std::max(0.0f, trackW - thumbW);
@@ -2056,7 +2448,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
                      spec.horizontal.thumbStyle,
                      {},
                      false,
-                     true);
+                     spec.visible);
   }
 
   return ScrollView{UiNode(frame(), scrollId, allowAbsolute_),

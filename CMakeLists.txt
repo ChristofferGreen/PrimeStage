@@ -117,4 +117,21 @@ if(PRIMESTAGE_BUILD_EXAMPLES)
     target_compile_definitions(primestage_render_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
   endif()
   ps_require_cxx23(primestage_render_demo)
+
+  add_executable(primestage_widgets_demo examples/primestage_widgets_demo.cpp)
+  target_link_libraries(primestage_widgets_demo PRIVATE PrimeStage PrimeFrame PrimeManifest)
+  target_include_directories(primestage_widgets_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  if(DEFINED primemanifest_SOURCE_DIR)
+    if(PRIMESTAGE_PM_FONTS)
+      target_compile_definitions(primestage_widgets_demo PRIVATE
+        PRIMESTAGE_BUNDLED_FONT_DIR=\"${PRIMESTAGE_PM_FONT_DIR}\"
+        PRIMESTAGE_HAS_BUNDLED_FONT=1
+      )
+    else()
+      target_compile_definitions(primestage_widgets_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
+    endif()
+  else()
+    target_compile_definitions(primestage_widgets_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
+  endif()
+  ps_require_cxx23(primestage_widgets_demo)
 endif()

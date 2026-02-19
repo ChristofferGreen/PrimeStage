@@ -2,9 +2,7 @@
 
 #include "PrimeFrame/Frame.h"
 
-#include <functional>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -39,7 +37,7 @@ struct PanelSpec : ContainerSpec {
 };
 
 struct LabelSpec {
-  std::string text;
+  std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -50,7 +48,7 @@ struct LabelSpec {
 };
 
 struct ParagraphSpec {
-  std::string text;
+  std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -63,7 +61,7 @@ struct ParagraphSpec {
 };
 
 struct TextLineSpec {
-  std::string text;
+  std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -85,7 +83,7 @@ struct SpacerSpec {
 };
 
 struct ButtonSpec {
-  std::string label;
+  std::string_view label;
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
@@ -93,12 +91,13 @@ struct ButtonSpec {
   float textInsetX = 16.0f;
   float textOffsetY = 0.0f;
   bool centerText = true;
+  bool visible = true;
   SizeSpec size;
 };
 
 struct TextFieldSpec {
-  std::string text;
-  std::string placeholder;
+  std::string_view text;
+  std::string_view placeholder;
   float paddingX = 16.0f;
   float textOffsetY = 0.0f;
   PrimeFrame::RectStyleToken backgroundStyle = 0;
@@ -108,6 +107,93 @@ struct TextFieldSpec {
   PrimeFrame::TextStyleToken placeholderStyle = 0;
   PrimeFrame::TextStyleOverride placeholderStyleOverride{};
   bool showPlaceholderWhenEmpty = true;
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct ToggleSpec {
+  bool on = false;
+  float knobInset = 2.0f;
+  PrimeFrame::RectStyleToken trackStyle = 0;
+  PrimeFrame::RectStyleOverride trackStyleOverride{};
+  PrimeFrame::RectStyleToken knobStyle = 0;
+  PrimeFrame::RectStyleOverride knobStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct CheckboxSpec {
+  std::string_view label;
+  bool checked = false;
+  float boxSize = 16.0f;
+  float checkInset = 3.0f;
+  float gap = 8.0f;
+  PrimeFrame::RectStyleToken boxStyle = 0;
+  PrimeFrame::RectStyleOverride boxStyleOverride{};
+  PrimeFrame::RectStyleToken checkStyle = 0;
+  PrimeFrame::RectStyleOverride checkStyleOverride{};
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::TextStyleOverride textStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct SliderSpec {
+  float value = 0.0f;
+  bool vertical = false;
+  float trackThickness = 6.0f;
+  float thumbSize = 14.0f;
+  PrimeFrame::RectStyleToken trackStyle = 0;
+  PrimeFrame::RectStyleOverride trackStyleOverride{};
+  PrimeFrame::RectStyleToken fillStyle = 0;
+  PrimeFrame::RectStyleOverride fillStyleOverride{};
+  PrimeFrame::RectStyleToken thumbStyle = 0;
+  PrimeFrame::RectStyleOverride thumbStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct TabsSpec {
+  std::vector<std::string_view> labels;
+  int selectedIndex = 0;
+  float tabPaddingX = 12.0f;
+  float tabPaddingY = 6.0f;
+  float gap = 4.0f;
+  PrimeFrame::RectStyleToken tabStyle = 0;
+  PrimeFrame::RectStyleOverride tabStyleOverride{};
+  PrimeFrame::RectStyleToken activeTabStyle = 0;
+  PrimeFrame::RectStyleOverride activeTabStyleOverride{};
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::TextStyleOverride textStyleOverride{};
+  PrimeFrame::TextStyleToken activeTextStyle = 0;
+  PrimeFrame::TextStyleOverride activeTextStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct DropdownSpec {
+  std::string_view label;
+  std::string_view indicator = "v";
+  float paddingX = 12.0f;
+  float indicatorGap = 8.0f;
+  PrimeFrame::RectStyleToken backgroundStyle = 0;
+  PrimeFrame::RectStyleOverride backgroundStyleOverride{};
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::TextStyleOverride textStyleOverride{};
+  PrimeFrame::TextStyleToken indicatorStyle = 0;
+  PrimeFrame::TextStyleOverride indicatorStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct ProgressBarSpec {
+  float value = 0.0f;
+  float minFillWidth = 0.0f;
+  PrimeFrame::RectStyleToken trackStyle = 0;
+  PrimeFrame::RectStyleOverride trackStyleOverride{};
+  PrimeFrame::RectStyleToken fillStyle = 0;
+  PrimeFrame::RectStyleOverride fillStyleOverride{};
+  bool visible = true;
   SizeSpec size;
 };
 
@@ -141,6 +227,7 @@ struct ScrollViewSpec {
   bool showHorizontal = true;
   ScrollAxisSpec vertical{};
   ScrollAxisSpec horizontal{};
+  bool visible = true;
   SizeSpec size;
 };
 
@@ -159,6 +246,7 @@ public:
   PrimeFrame::Frame& frame() const { return frame_.get(); }
   bool allowAbsolute() const { return allowAbsolute_; }
 
+  UiNode& setVisible(bool visible);
   UiNode& setSize(SizeSpec const& size);
 
   UiNode createVerticalStack(StackSpec const& spec);
@@ -204,6 +292,12 @@ public:
   UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
+  UiNode createToggle(ToggleSpec const& spec);
+  UiNode createCheckbox(CheckboxSpec const& spec);
+  UiNode createSlider(SliderSpec const& spec);
+  UiNode createTabs(TabsSpec const& spec);
+  UiNode createDropdown(DropdownSpec const& spec);
+  UiNode createProgressBar(ProgressBarSpec const& spec);
   ScrollView createScrollView(ScrollViewSpec const& spec);
 
 private:

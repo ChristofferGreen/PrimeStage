@@ -2,6 +2,9 @@
 
 #include "PrimeStage/Ui.h"
 
+#include <string_view>
+#include <vector>
+
 namespace PrimeStage::Studio {
 
 enum class RectRole : PrimeFrame::RectStyleToken {
@@ -81,7 +84,7 @@ PrimeFrame::TextStyleToken textToken(TextRole role);
 void applyStudioTheme(PrimeFrame::Frame& frame);
 
 struct TableColumn {
-  std::string label;
+  std::string_view label;
   float width = 0.0f;
   TextRole headerRole = TextRole::SmallBright;
   TextRole cellRole = TextRole::SmallMuted;
@@ -102,12 +105,12 @@ struct TableSpec {
   bool showColumnDividers = true;
   bool clipChildren = true;
   std::vector<TableColumn> columns;
-  std::vector<std::vector<std::string>> rows;
+  std::vector<std::vector<std::string_view>> rows;
   SizeSpec size;
 };
 
 struct SectionHeaderSpec {
-  std::string title;
+  std::string_view title;
   float accentWidth = 3.0f;
   float textInsetX = 16.0f;
   float textOffsetY = 0.0f;
@@ -121,7 +124,7 @@ struct SectionHeaderSpec {
 };
 
 struct SectionPanelSpec {
-  std::string title;
+  std::string_view title;
   RectRole panelRole = RectRole::PanelAlt;
   RectRole headerRole = RectRole::PanelStrong;
   RectRole accentRole = RectRole::Accent;
@@ -141,8 +144,8 @@ struct SectionPanelSpec {
 };
 
 struct PropertyRow {
-  std::string label;
-  std::string value;
+  std::string_view label;
+  std::string_view value;
 };
 
 struct PropertyListSpec {
@@ -167,8 +170,8 @@ struct ProgressBarSpec {
 };
 
 struct StatusBarSpec {
-  std::string leftText;
-  std::string rightText;
+  std::string_view leftText;
+  std::string_view rightText;
   float paddingX = 16.0f;
   RectRole backgroundRole = RectRole::Statusbar;
   TextRole leftRole = TextRole::SmallMuted;
@@ -193,8 +196,8 @@ struct ShellSpec {
 };
 
 struct CardSpec {
-  std::string title;
-  std::string subtitle;
+  std::string_view title;
+  std::string_view subtitle;
 };
 
 struct CardGridSpec {
@@ -230,7 +233,7 @@ struct ScrollHintsSpec {
 };
 
 struct TreeNode {
-  std::string label;
+  std::string_view label;
   std::vector<TreeNode> children;
   bool expanded = true;
   bool selected = false;
