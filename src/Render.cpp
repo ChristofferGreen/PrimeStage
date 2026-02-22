@@ -267,17 +267,20 @@ bool compute_target_size(PrimeFrame::Frame const& frame,
 
 } // namespace
 
-bool renderFrameToPng(PrimeFrame::Frame& frame,
-                      PrimeFrame::LayoutOutput const& layout,
-                      std::string_view path,
-                      RenderOptions const& options) {
-  ensure_fonts_loaded();
-
-  uint32_t widthPx = 0;
-  uint32_t heightPx = 0;
-  if (!compute_target_size(frame, layout, widthPx, heightPx)) {
+bool renderFrameToTarget(PrimeFrame::Frame& frame,
+                         PrimeFrame::LayoutOutput const& layout,
+                         RenderTarget const& target,
+                         RenderOptions const& options) {
+  if (target.width == 0 || target.height == 0 || target.pixels.empty()) {
     return false;
   }
+  if (target.stride < target.width * 4) {
+    return false;
+  }
+
+  ensure_fonts_loaded();
+
+  float scale = target.scale > 0.0f ? target.scale : 1.0f;
 
   PrimeFrame::RenderBatch pfBatch;
   PrimeFrame::flattenToRenderBatch(frame, layout, pfBatch);
@@ -295,31 +298,42 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
   for (PrimeFrame::DrawCommand const& cmd : pfBatch.commands) {
     if (cmd.type == PrimeFrame::CommandType::Rect ||
         cmd.type == PrimeFrame::CommandType::ImagePlaceholder) {
-      float rectW = static_cast<float>(cmd.x1 - cmd.x0);
-      float rectH = static_cast<float>(cmd.y1 - cmd.y0);
+      float logicalW = static_cast<float>(cmd.x1 - cmd.x0);
+      float logicalH = static_cast<float>(cmd.y1 - cmd.y0);
       float radius = 0.0f;
       if (options.roundedCorners) {
-        if (rectH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 11))) {
+        if (logicalH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 11))) {
           radius = 4.0f;
-        } else if (rectH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 10))) {
+        } else if (logicalH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 10))) {
           radius = 3.0f;
-        } else if (rectW <= 12.0f && rectH <= 12.0f &&
+        } else if (logicalW <= 12.0f && logicalH <= 12.0f &&
                    colors_close(cmd.rectStyle.fill, theme_color(theme, 7))) {
           radius = 2.0f;
-        } else if (rectH >= 30.0f && rectH <= 34.0f) {
+        } else if (logicalH >= 30.0f && logicalH <= 34.0f) {
           if (colors_close(cmd.rectStyle.fill, theme_color(theme, 8))) {
             radius = 6.0f;
           } else if (colors_close(cmd.rectStyle.fill, theme_color(theme, 5))) {
-            if (rectW <= 140.0f || rectW >= 300.0f) {
+            if (logicalW <= 140.0f || logicalW >= 300.0f) {
               radius = 6.0f;
             }
           }
-        } else if (rectH >= 110.0f && rectH <= 130.0f &&
+        } else if (logicalH >= 110.0f && logicalH <= 130.0f &&
                    colors_close(cmd.rectStyle.fill, theme_color(theme, 6))) {
           radius = 4.0f;
         }
       }
-      add_rect(batch, cmd, radius);
+      PrimeFrame::DrawCommand scaled = cmd;
+      scaled.x0 = static_cast<int>(std::lround(static_cast<float>(cmd.x0) * scale));
+      scaled.y0 = static_cast<int>(std::lround(static_cast<float>(cmd.y0) * scale));
+      scaled.x1 = static_cast<int>(std::lround(static_cast<float>(cmd.x1) * scale));
+      scaled.y1 = static_cast<int>(std::lround(static_cast<float>(cmd.y1) * scale));
+      if (cmd.clipEnabled) {
+        scaled.clip.x0 = static_cast<int>(std::lround(static_cast<float>(cmd.clip.x0) * scale));
+        scaled.clip.y0 = static_cast<int>(std::lround(static_cast<float>(cmd.clip.y0) * scale));
+        scaled.clip.x1 = static_cast<int>(std::lround(static_cast<float>(cmd.clip.x1) * scale));
+        scaled.clip.y1 = static_cast<int>(std::lround(static_cast<float>(cmd.clip.y1) * scale));
+      }
+      add_rect(batch, scaled, radius * scale);
     }
   }
 
@@ -328,41 +342,87 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
       continue;
     }
     PrimeManifest::Typography type = make_typography(cmd.textStyle);
+    type.size *= scale;
+    type.lineHeight *= scale;
+    type.tracking *= scale;
     uint32_t packed = pack_color(cmd.textStyle.color, 1.0f);
     uint8_t colorIndex = palette_index(batch, packed);
     ClipRect clip;
     if (cmd.clipEnabled) {
-      clip.x0 = cmd.clip.x0;
-      clip.y0 = cmd.clip.y0;
-      clip.x1 = cmd.clip.x1;
-      clip.y1 = cmd.clip.y1;
+      clip.x0 = static_cast<int32_t>(std::lround(static_cast<float>(cmd.clip.x0) * scale));
+      clip.y0 = static_cast<int32_t>(std::lround(static_cast<float>(cmd.clip.y0) * scale));
+      clip.x1 = static_cast<int32_t>(std::lround(static_cast<float>(cmd.clip.x1) * scale));
+      clip.y1 = static_cast<int32_t>(std::lround(static_cast<float>(cmd.clip.y1) * scale));
       clip.enabled = true;
     }
+    int32_t textX = static_cast<int32_t>(std::lround(static_cast<float>(cmd.x0) * scale));
+    int32_t textY = static_cast<int32_t>(std::lround(static_cast<float>(cmd.y0) * scale));
+
     uint8_t flags = clip.enabled ? PrimeManifest::TextFlagClip : 0u;
     auto result = PrimeManifest::AppendText(batch,
                                             cmd.text,
                                             type,
                                             1.0f,
-                                            cmd.x0,
-                                            cmd.y0,
+                                            textX,
+                                            textY,
                                             colorIndex,
                                             255,
                                             flags);
     if (result) {
       apply_text_clip(batch, result->textIndex, clip);
     } else {
-      float fallbackSize = std::max(10.0f, type.size * 0.9f);
-      add_bitmap_text(batch, cmd.text, cmd.x0, cmd.y0, fallbackSize, colorIndex, clip);
+      float fallbackSize = std::max(10.0f * scale, type.size * 0.9f);
+      add_bitmap_text(batch, cmd.text, textX, textY, fallbackSize, colorIndex, clip);
     }
   }
-  std::vector<uint8_t> buffer(widthPx * heightPx * 4, 0);
-  PrimeManifest::RenderTarget target{std::span<uint8_t>(buffer), widthPx, heightPx, widthPx * 4};
 
+  PrimeManifest::RenderTarget pmTarget{std::span<uint8_t>(target.pixels),
+                                       target.width,
+                                       target.height,
+                                       target.stride};
   PrimeManifest::OptimizedBatch optimized;
-  PrimeManifest::OptimizeRenderBatch(target, batch, optimized);
-  PrimeManifest::RenderOptimized(target, batch, optimized);
+  PrimeManifest::OptimizeRenderBatch(pmTarget, batch, optimized);
+  PrimeManifest::RenderOptimized(pmTarget, batch, optimized);
+  return true;
+}
 
-  return write_png(path, target);
+bool renderFrameToTarget(PrimeFrame::Frame& frame,
+                         RenderTarget const& target,
+                         RenderOptions const& options) {
+  PrimeFrame::LayoutEngine engine;
+  PrimeFrame::LayoutOutput layout;
+  PrimeFrame::LayoutOptions layoutOptions;
+  float scale = target.scale > 0.0f ? target.scale : 1.0f;
+  if (target.width > 0 && target.height > 0) {
+    layoutOptions.rootWidth = static_cast<float>(target.width) / scale;
+    layoutOptions.rootHeight = static_cast<float>(target.height) / scale;
+  }
+  engine.layout(frame, layout, layoutOptions);
+  return renderFrameToTarget(frame, layout, target, options);
+}
+
+bool renderFrameToPng(PrimeFrame::Frame& frame,
+                      PrimeFrame::LayoutOutput const& layout,
+                      std::string_view path,
+                      RenderOptions const& options) {
+  uint32_t widthPx = 0;
+  uint32_t heightPx = 0;
+  if (!compute_target_size(frame, layout, widthPx, heightPx)) {
+    return false;
+  }
+  std::vector<uint8_t> buffer(widthPx * heightPx * 4, 0);
+  RenderTarget target;
+  target.pixels = std::span<uint8_t>(buffer);
+  target.width = widthPx;
+  target.height = heightPx;
+  target.stride = widthPx * 4;
+  target.scale = 1.0f;
+
+  if (!renderFrameToTarget(frame, layout, target, options)) {
+    return false;
+  }
+  PrimeManifest::RenderTarget pmTarget{std::span<uint8_t>(buffer), widthPx, heightPx, widthPx * 4};
+  return write_png(path, pmTarget);
 }
 
 bool renderFrameToPng(PrimeFrame::Frame& frame,
@@ -375,6 +435,15 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
 }
 
 #else
+
+bool renderFrameToTarget(PrimeFrame::Frame&, PrimeFrame::LayoutOutput const&, RenderTarget const&,
+                         RenderOptions const&) {
+  return false;
+}
+
+bool renderFrameToTarget(PrimeFrame::Frame&, RenderTarget const&, RenderOptions const&) {
+  return false;
+}
 
 bool renderFrameToPng(PrimeFrame::Frame&, PrimeFrame::LayoutOutput const&, std::string_view,
                       RenderOptions const&) {

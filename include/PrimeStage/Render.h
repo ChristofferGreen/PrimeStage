@@ -4,6 +4,7 @@
 #include "PrimeFrame/Layout.h"
 
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace PrimeStage {
@@ -20,6 +21,23 @@ struct RenderOptions {
   Rgba8 clearColor{};
   bool roundedCorners = true;
 };
+
+struct RenderTarget {
+  std::span<uint8_t> pixels;
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t stride = 0;
+  float scale = 1.0f;
+};
+
+bool renderFrameToTarget(PrimeFrame::Frame& frame,
+                         PrimeFrame::LayoutOutput const& layout,
+                         RenderTarget const& target,
+                         RenderOptions const& options = {});
+
+bool renderFrameToTarget(PrimeFrame::Frame& frame,
+                         RenderTarget const& target,
+                         RenderOptions const& options = {});
 
 bool renderFrameToPng(PrimeFrame::Frame& frame,
                       PrimeFrame::LayoutOutput const& layout,

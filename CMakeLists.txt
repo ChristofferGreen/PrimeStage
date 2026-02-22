@@ -5,6 +5,11 @@ option(PRIMESTAGE_FETCH_PRIMEFRAME "Fetch PrimeFrame dependency" ON)
 set(PRIMEFRAME_GIT_REPOSITORY "git@github.com:ChristofferGreen/PrimeFrame.git" CACHE STRING "PrimeFrame git repository")
 set(PRIMEFRAME_GIT_TAG "master" CACHE STRING "PrimeFrame git tag or commit")
 
+option(PRIMESTAGE_ENABLE_PRIMEMANIFEST "Enable PrimeManifest integration" OFF)
+set(PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeManifest.git"
+    CACHE STRING "PrimeManifest git repository")
+set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "master" CACHE STRING "PrimeManifest git tag or commit")
+
 if(PRIMESTAGE_FETCH_PRIMEFRAME)
   include(FetchContent)
   FetchContent_Declare(PrimeFrame
@@ -55,6 +60,23 @@ if(TARGET PrimeFrame)
   target_link_libraries(PrimeStage PUBLIC PrimeFrame)
 endif()
 
+if(PRIMESTAGE_ENABLE_PRIMEMANIFEST AND NOT TARGET PrimeManifest)
+  include(FetchContent)
+  set(PRIMEMANIFEST_BUILD_TESTS OFF CACHE BOOL "Build PrimeManifest tests" FORCE)
+  set(PRIMEMANIFEST_BUILD_EXAMPLES OFF CACHE BOOL "Build PrimeManifest examples" FORCE)
+  FetchContent_Declare(
+    PrimeManifest
+    GIT_REPOSITORY ${PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY}
+    GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
+  )
+  FetchContent_MakeAvailable(PrimeManifest)
+endif()
+
+if(TARGET PrimeManifest)
+  target_link_libraries(PrimeStage PUBLIC PrimeManifest)
+  target_compile_definitions(PrimeStage PUBLIC PRIMESTAGE_HAS_PRIMEMANIFEST=1)
+endif()
+
 option(PRIMESTAGE_BUILD_TESTS "Build PrimeStage tests" ON)
 if(PRIMESTAGE_BUILD_TESTS)
   enable_testing()
@@ -75,18 +97,19 @@ if(PRIMESTAGE_BUILD_EXAMPLES)
   include(FetchContent)
 
   option(PRIMESTAGE_PRIMEMANIFEST_ENABLE_FONTS "Enable PrimeManifest font rendering for examples" ON)
-  set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "master" CACHE STRING "PrimeManifest git tag or commit")
 
   set(PRIMEMANIFEST_BUILD_TESTS OFF CACHE BOOL "Build PrimeManifest tests" FORCE)
   set(PRIMEMANIFEST_ENABLE_FONTS ${PRIMESTAGE_PRIMEMANIFEST_ENABLE_FONTS} CACHE BOOL "Enable PrimeManifest fonts" FORCE)
   set(PRIMEMANIFEST_BUILD_EXAMPLES OFF CACHE BOOL "Build PrimeManifest examples" FORCE)
 
-  FetchContent_Declare(
-    PrimeManifest
-    GIT_REPOSITORY https://github.com/ChristofferGreen/PrimeManifest.git
-    GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
-  )
-  FetchContent_MakeAvailable(PrimeManifest)
+  if(NOT TARGET PrimeManifest)
+    FetchContent_Declare(
+      PrimeManifest
+      GIT_REPOSITORY ${PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY}
+      GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
+    )
+    FetchContent_MakeAvailable(PrimeManifest)
+  endif()
 
   if(TARGET PrimeManifest)
     target_link_libraries(PrimeStage PUBLIC PrimeManifest)
