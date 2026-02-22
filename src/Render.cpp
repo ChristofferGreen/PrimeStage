@@ -344,7 +344,6 @@ bool renderFrameToTarget(PrimeFrame::Frame& frame,
     PrimeManifest::Typography type = make_typography(cmd.textStyle);
     type.size *= scale;
     type.lineHeight *= scale;
-    type.tracking *= scale;
     uint32_t packed = pack_color(cmd.textStyle.color, 1.0f);
     uint8_t colorIndex = palette_index(batch, packed);
     ClipRect clip;
