@@ -259,6 +259,221 @@ TEST_CASE("PrimeStage button drag outside cancels click and resets style") {
   CHECK(prim->rect.token == spec.backgroundStyle);
 }
 
+TEST_CASE("PrimeStage tree view hover/selection callbacks and double click toggle") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 160.0f);
+
+  PrimeStage::TreeViewSpec spec;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 120.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.rowStartX = 8.0f;
+  spec.rowWidthInset = 0.0f;
+  spec.rowStyle = 301u;
+  spec.rowAltStyle = 302u;
+  spec.hoverStyle = 303u;
+  spec.selectionStyle = 304u;
+  spec.selectionAccentStyle = 305u;
+  spec.textStyle = 401u;
+  spec.selectedTextStyle = 402u;
+  spec.doubleClickMs = 1000.0f;
+  spec.nodes = {
+      PrimeStage::TreeNode{"Root", {PrimeStage::TreeNode{"Child"}}, true, false},
+      PrimeStage::TreeNode{"Second", {}, true, false}
+  };
+
+  int hoverRow = -2;
+  int selectedRow = -2;
+  int expandedRow = -2;
+  bool expandedValue = false;
+  spec.callbacks.onHoverChanged = [&](int row) { hoverRow = row; };
+  spec.callbacks.onSelectionChanged = [&](PrimeStage::TreeViewRowInfo const& info) {
+    selectedRow = info.rowIndex;
+  };
+  spec.callbacks.onExpandedChanged = [&](PrimeStage::TreeViewRowInfo const& info, bool expanded) {
+    expandedRow = info.rowIndex;
+    expandedValue = expanded;
+  };
+
+  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 160.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(tree.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::Event move = makePointerEvent(PrimeFrame::EventType::PointerMove, 1,
+                                            out->absX + spec.rowStartX + 32.0f,
+                                            out->absY + spec.rowStartY + spec.rowHeight * 0.5f);
+  router.dispatch(move, frame, layout);
+  CHECK(hoverRow == 0);
+
+  PrimeFrame::Event down = makePointerEvent(PrimeFrame::EventType::PointerDown, 1, move.x, move.y);
+  router.dispatch(down, frame, layout);
+  CHECK(selectedRow == 0);
+
+  PrimeFrame::Event down2 = makePointerEvent(PrimeFrame::EventType::PointerDown, 1, move.x, move.y);
+  router.dispatch(down2, frame, layout);
+  CHECK(expandedRow == 0);
+  CHECK(expandedValue == false);
+
+  PrimeFrame::Event outMove = makePointerEvent(PrimeFrame::EventType::PointerMove, 1,
+                                               out->absX - 10.0f, out->absY - 10.0f);
+  router.dispatch(outMove, frame, layout);
+  CHECK(hoverRow == -1);
+}
+
+TEST_CASE("PrimeStage tree view keyboard navigation") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 160.0f);
+
+  PrimeStage::TreeViewSpec spec;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 120.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.rowStartX = 8.0f;
+  spec.rowWidthInset = 0.0f;
+  spec.rowStyle = 311u;
+  spec.rowAltStyle = 312u;
+  spec.selectionStyle = 313u;
+  spec.selectionAccentStyle = 314u;
+  spec.textStyle = 411u;
+  spec.selectedTextStyle = 412u;
+  spec.nodes = {
+      PrimeStage::TreeNode{"First"},
+      PrimeStage::TreeNode{"Second"}
+  };
+
+  int selectedRow = -1;
+  spec.callbacks.onSelectionChanged = [&](PrimeStage::TreeViewRowInfo const& info) {
+    selectedRow = info.rowIndex;
+  };
+
+  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 160.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(tree.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::Event down = makePointerEvent(PrimeFrame::EventType::PointerDown, 1,
+                                            out->absX + spec.rowStartX + 16.0f,
+                                            out->absY + spec.rowStartY + spec.rowHeight * 0.5f);
+  router.dispatch(down, frame, layout, &focus);
+  CHECK(selectedRow == 0);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = 0x51;
+  router.dispatch(keyDown, frame, layout, &focus);
+  CHECK(selectedRow == 1);
+}
+
+TEST_CASE("PrimeStage tree view left moves to parent when leaf selected") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 160.0f);
+
+  PrimeStage::TreeViewSpec spec;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 120.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.rowStartX = 8.0f;
+  spec.rowWidthInset = 0.0f;
+  spec.rowStyle = 331u;
+  spec.rowAltStyle = 332u;
+  spec.selectionStyle = 333u;
+  spec.selectionAccentStyle = 334u;
+  spec.textStyle = 431u;
+  spec.selectedTextStyle = 432u;
+  spec.nodes = {
+      PrimeStage::TreeNode{"Parent", {PrimeStage::TreeNode{"Child"}}, true, false}
+  };
+
+  int selectedRow = -1;
+  spec.callbacks.onSelectionChanged = [&](PrimeStage::TreeViewRowInfo const& info) {
+    selectedRow = info.rowIndex;
+  };
+
+  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 160.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(tree.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::Event down = makePointerEvent(PrimeFrame::EventType::PointerDown, 1,
+                                            out->absX + spec.rowStartX + 16.0f,
+                                            out->absY + spec.rowStartY + spec.rowHeight * 1.5f);
+  router.dispatch(down, frame, layout, &focus);
+  CHECK(selectedRow == 1);
+
+  PrimeFrame::Event keyLeft;
+  keyLeft.type = PrimeFrame::EventType::KeyDown;
+  keyLeft.key = 0x50;
+  router.dispatch(keyLeft, frame, layout, &focus);
+  CHECK(selectedRow == 0);
+}
+
+TEST_CASE("PrimeStage tree view scroll updates callback") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 140.0f);
+
+  PrimeStage::TreeViewSpec spec;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 80.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.rowStartX = 8.0f;
+  spec.rowWidthInset = 0.0f;
+  spec.rowStyle = 321u;
+  spec.rowAltStyle = 322u;
+  spec.selectionStyle = 323u;
+  spec.selectionAccentStyle = 324u;
+  spec.textStyle = 421u;
+  spec.selectedTextStyle = 422u;
+  spec.scrollBar.autoThumb = true;
+  spec.nodes = {
+      PrimeStage::TreeNode{"One"},
+      PrimeStage::TreeNode{"Two"},
+      PrimeStage::TreeNode{"Three"},
+      PrimeStage::TreeNode{"Four"},
+      PrimeStage::TreeNode{"Five"},
+      PrimeStage::TreeNode{"Six"}
+  };
+
+  bool scrolled = false;
+  PrimeStage::TreeViewScrollInfo lastScroll;
+  spec.callbacks.onScrollChanged = [&](PrimeStage::TreeViewScrollInfo const& info) {
+    scrolled = true;
+    lastScroll = info;
+  };
+
+  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 140.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(tree.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::Event scroll;
+  scroll.type = PrimeFrame::EventType::PointerScroll;
+  scroll.x = out->absX + 12.0f;
+  scroll.y = out->absY + 12.0f;
+  scroll.scrollY = 30.0f;
+  router.dispatch(scroll, frame, layout);
+
+  CHECK(scrolled);
+  CHECK(lastScroll.progress >= 0.0f);
+  CHECK(lastScroll.progress <= 1.0f);
+}
+
 TEST_CASE("PrimeStage vertical slider maps top to 1 and bottom to 0") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 120.0f, 160.0f);

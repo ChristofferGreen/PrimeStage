@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <span>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -274,6 +275,8 @@ struct ScrollBarSpec {
   float minThumbHeight = 16.0f;
   float thumbFraction = 0.18f;
   float thumbProgress = 0.0f;
+  std::optional<float> trackHoverOpacity;
+  std::optional<float> thumbHoverOpacity;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleToken thumbStyle = 0;
 };
@@ -312,6 +315,29 @@ struct TreeNode {
   bool selected = false;
 };
 
+struct TreeViewRowInfo {
+  int rowIndex = -1;
+  std::span<const uint32_t> path{};
+  bool hasChildren = false;
+  bool expanded = false;
+};
+
+struct TreeViewScrollInfo {
+  float offset = 0.0f;
+  float maxOffset = 0.0f;
+  float progress = 0.0f;
+  float viewportHeight = 0.0f;
+  float contentHeight = 0.0f;
+};
+
+struct TreeViewCallbacks {
+  std::function<void(TreeViewRowInfo const&)> onSelectionChanged;
+  std::function<void(TreeViewRowInfo const&, bool)> onExpandedChanged;
+  std::function<void(TreeViewRowInfo const&)> onActivated;
+  std::function<void(int)> onHoverChanged;
+  std::function<void(TreeViewScrollInfo const&)> onScrollChanged;
+};
+
 struct TreeViewSpec {
   float rowStartX = 8.0f;
   float rowStartY = 36.0f;
@@ -327,6 +353,8 @@ struct TreeViewSpec {
   float connectorThickness = 1.0f;
   float linkEndInset = 4.0f;
   float selectionAccentWidth = 3.0f;
+  float doubleClickMs = 350.0f;
+  bool keyboardNavigation = true;
   bool showHeaderDivider = false;
   float headerDividerY = 0.0f;
   bool showConnectors = true;
@@ -336,6 +364,7 @@ struct TreeViewSpec {
   bool visible = true;
   PrimeFrame::RectStyleToken rowStyle = 0;
   PrimeFrame::RectStyleToken rowAltStyle = 0;
+  PrimeFrame::RectStyleToken hoverStyle = 0;
   PrimeFrame::RectStyleToken selectionStyle = 0;
   PrimeFrame::RectStyleToken selectionAccentStyle = 0;
   PrimeFrame::RectStyleToken caretBackgroundStyle = 0;
@@ -345,6 +374,7 @@ struct TreeViewSpec {
   PrimeFrame::TextStyleToken selectedTextStyle = 0;
   ScrollBarSpec scrollBar{};
   std::vector<TreeNode> nodes;
+  TreeViewCallbacks callbacks{};
   SizeSpec size;
 };
 

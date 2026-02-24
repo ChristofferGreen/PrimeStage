@@ -4,6 +4,7 @@
 #include "PrimeFrame/Events.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cctype>
 #include <cstdint>
@@ -419,13 +420,16 @@ struct FlatTreeRow {
   bool expanded = true;
   bool selected = false;
   std::vector<int> ancestors;
+  std::vector<uint32_t> path;
 };
 
 void flatten_tree(std::vector<TreeNode> const& nodes,
                   int depth,
                   std::vector<int>& depthStack,
+                  std::vector<uint32_t>& pathStack,
                   std::vector<FlatTreeRow>& out) {
-  for (TreeNode const& node : nodes) {
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    TreeNode const& node = nodes[i];
     int parentIndex = depth > 0 && depth - 1 < static_cast<int>(depthStack.size())
                           ? depthStack[static_cast<size_t>(depth - 1)]
                           : -1;
@@ -439,6 +443,8 @@ void flatten_tree(std::vector<TreeNode> const& nodes,
     if (depth > 0 && depth <= static_cast<int>(depthStack.size())) {
       row.ancestors.assign(depthStack.begin(), depthStack.begin() + depth);
     }
+    pathStack.push_back(static_cast<uint32_t>(i));
+    row.path = pathStack;
     int index = static_cast<int>(out.size());
     out.push_back(std::move(row));
 
@@ -448,8 +454,9 @@ void flatten_tree(std::vector<TreeNode> const& nodes,
     depthStack[static_cast<size_t>(depth)] = index;
 
     if (node.expanded && !node.children.empty()) {
-      flatten_tree(node.children, depth + 1, depthStack, out);
+      flatten_tree(node.children, depth + 1, depthStack, pathStack, out);
     }
+    pathStack.pop_back();
   }
 }
 
@@ -1391,6 +1398,7 @@ UiNode createTreeView(UiNode& parent, TreeViewSpec const& spec) {
   PrimeStage::TreeViewSpec treeSpec = spec.base;
   treeSpec.rowStyle = rectToken(spec.rowRole);
   treeSpec.rowAltStyle = rectToken(spec.rowAltRole);
+  treeSpec.hoverStyle = rectToken(spec.hoverRole);
   treeSpec.selectionStyle = rectToken(spec.selectionRole);
   treeSpec.selectionAccentStyle = rectToken(spec.selectionAccentRole);
   treeSpec.caretBackgroundStyle = rectToken(spec.caretBackgroundRole);
@@ -3516,7 +3524,8 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
   std::vector<FlatTreeRow> rows;
   std::vector<int> depthStack;
-  flatten_tree(spec.nodes, 0, depthStack, rows);
+  std::vector<uint32_t> pathStack;
+  flatten_tree(spec.nodes, 0, depthStack, pathStack, rows);
 
   float rowsHeight = rows.empty()
                          ? spec.rowHeight
@@ -3582,12 +3591,15 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   float rowTextHeight = resolve_line_height(frame(), spec.textStyle);
   float selectedTextHeight = resolve_line_height(frame(), spec.selectedTextStyle);
   float caretBaseX = std::max(0.0f, spec.caretBaseX);
+  float viewportHeight = std::max(0.0f, bounds.height - spec.rowStartY);
 
   StackSpec rowsSpec;
   rowsSpec.size.stretchX = 1.0f;
   rowsSpec.size.stretchY = spec.size.stretchY;
+  rowsSpec.size.preferredWidth = rowWidth;
+  rowsSpec.size.preferredHeight = viewportHeight;
   rowsSpec.gap = spec.rowGap;
-  rowsSpec.clipChildren = false;
+  rowsSpec.clipChildren = spec.clipChildren;
   rowsSpec.visible = spec.visible;
 
   if (spec.showHeaderDivider && spec.visible) {
@@ -3597,22 +3609,282 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                      spec.connectorStyle);
   }
 
+  struct TreeViewRowVisual {
+    PrimeFrame::PrimitiveId background = 0;
+    PrimeFrame::PrimitiveId accent = 0;
+    PrimeFrame::PrimitiveId mask = 0;
+    PrimeFrame::PrimitiveId label = 0;
+    PrimeFrame::RectStyleToken baseStyle = 0;
+    PrimeFrame::RectStyleToken hoverStyle = 0;
+    PrimeFrame::RectStyleToken selectionStyle = 0;
+    PrimeFrame::TextStyleToken textStyle = 0;
+    PrimeFrame::TextStyleToken selectedTextStyle = 0;
+    bool hasAccent = false;
+    bool hasMask = false;
+    bool hasChildren = false;
+    bool expanded = false;
+    int depth = 0;
+    int parentIndex = -1;
+    std::vector<uint32_t> path;
+  };
+
+  struct TreeViewInteractionState {
+    PrimeFrame::Frame* frame = nullptr;
+    std::vector<TreeViewRowVisual> rows;
+    TreeViewCallbacks callbacks;
+    int hoveredRow = -1;
+    int selectedRow = -1;
+    int lastClickRow = -1;
+    std::chrono::steady_clock::time_point lastClickTime{};
+    std::chrono::duration<double, std::milli> doubleClickThreshold{0.0};
+    PrimeFrame::NodeId viewportNode{};
+    PrimeFrame::PrimitiveId scrollTrackPrim = 0;
+    PrimeFrame::NodeId scrollThumbNode{};
+    PrimeFrame::PrimitiveId scrollThumbPrim = 0;
+    float viewportHeight = 0.0f;
+    float contentHeight = 0.0f;
+    float maxScroll = 0.0f;
+    float scrollOffset = 0.0f;
+    float trackY = 0.0f;
+    float trackH = 0.0f;
+    float thumbH = 0.0f;
+    bool scrollEnabled = false;
+    bool scrollDragging = false;
+    int scrollPointerId = -1;
+    float scrollDragStartY = 0.0f;
+    float scrollDragStartOffset = 0.0f;
+    int scrollHoverCount = 0;
+    std::optional<float> scrollTrackHoverOpacity;
+    std::optional<float> scrollThumbHoverOpacity;
+  };
+
+  auto interaction = std::make_shared<TreeViewInteractionState>();
+  interaction->frame = &frame();
+  interaction->callbacks = spec.callbacks;
+  interaction->doubleClickThreshold =
+      std::chrono::duration<double, std::milli>(std::max(0.0f, spec.doubleClickMs));
+  interaction->rows.reserve(rows.size());
+  interaction->viewportHeight = viewportHeight;
+  interaction->contentHeight = rowsHeight;
+  interaction->maxScroll = std::max(0.0f, rowsHeight - viewportHeight);
+  interaction->scrollEnabled = interaction->maxScroll > 0.0f;
+  float initialProgress = std::clamp(spec.scrollBar.thumbProgress, 0.0f, 1.0f);
+  if (!interaction->scrollEnabled) {
+    initialProgress = 0.0f;
+  }
+  interaction->scrollOffset = initialProgress * interaction->maxScroll;
+  interaction->scrollTrackHoverOpacity = spec.scrollBar.trackHoverOpacity;
+  interaction->scrollThumbHoverOpacity = spec.scrollBar.thumbHoverOpacity;
+
   UiNode rowsNode = treeNode.createVerticalStack(rowsSpec);
+  interaction->viewportNode = rowsNode.nodeId();
+  if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
+    rowsNodePtr->isViewport = true;
+    rowsNodePtr->scrollY = interaction->scrollOffset;
+    rowsNodePtr->hitTestVisible = true;
+  }
+
+  auto makeRowInfo = [interaction](int rowIndex) {
+    TreeViewRowInfo info;
+    info.rowIndex = rowIndex;
+    if (rowIndex >= 0 && rowIndex < static_cast<int>(interaction->rows.size())) {
+      const auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+      info.path = row.path;
+      info.hasChildren = row.hasChildren;
+      info.expanded = row.expanded;
+    }
+    return info;
+  };
+
+  auto updateRowVisual = [interaction](int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+      return;
+    }
+    auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+    bool selected = (rowIndex == interaction->selectedRow);
+    bool hovered = (rowIndex == interaction->hoveredRow);
+    PrimeFrame::RectStyleToken style = row.baseStyle;
+    if (selected) {
+      style = row.selectionStyle;
+    } else if (hovered && row.hoverStyle != 0) {
+      style = row.hoverStyle;
+    }
+    if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(row.background)) {
+      if (prim->type == PrimeFrame::PrimitiveType::Rect) {
+        prim->rect.token = style;
+      }
+    }
+    if (row.hasMask) {
+      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(row.mask)) {
+        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
+          prim->rect.token = style;
+        }
+      }
+    }
+    if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(row.label)) {
+      if (prim->type == PrimeFrame::PrimitiveType::Text) {
+        prim->textStyle.token = selected ? row.selectedTextStyle : row.textStyle;
+      }
+    }
+    if (row.hasAccent) {
+      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(row.accent)) {
+        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
+          if (selected) {
+            prim->rect.overrideStyle.opacity.reset();
+          } else {
+            prim->rect.overrideStyle.opacity = 0.0f;
+          }
+        }
+      }
+    }
+  };
+
+  auto setHovered = [interaction, updateRowVisual](int rowIndex) {
+    if (rowIndex == interaction->hoveredRow) {
+      return;
+    }
+    int previous = interaction->hoveredRow;
+    interaction->hoveredRow = rowIndex;
+    if (previous >= 0) {
+      updateRowVisual(previous);
+    }
+    if (rowIndex >= 0) {
+      updateRowVisual(rowIndex);
+    }
+    if (interaction->callbacks.onHoverChanged) {
+      interaction->callbacks.onHoverChanged(rowIndex);
+    }
+  };
+
+  auto setSelected = [interaction, updateRowVisual, makeRowInfo](int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+      return false;
+    }
+    if (interaction->selectedRow == rowIndex) {
+      return false;
+    }
+    int previous = interaction->selectedRow;
+    interaction->selectedRow = rowIndex;
+    if (previous >= 0) {
+      updateRowVisual(previous);
+    }
+    updateRowVisual(rowIndex);
+    if (interaction->callbacks.onSelectionChanged) {
+      TreeViewRowInfo info = makeRowInfo(rowIndex);
+      interaction->callbacks.onSelectionChanged(info);
+    }
+    return true;
+  };
+
+  auto requestToggle = [interaction, makeRowInfo](int rowIndex, bool expanded) {
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+      return;
+    }
+    auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+    if (!row.hasChildren) {
+      return;
+    }
+    row.expanded = expanded;
+    if (interaction->callbacks.onExpandedChanged) {
+      TreeViewRowInfo info = makeRowInfo(rowIndex);
+      interaction->callbacks.onExpandedChanged(info, expanded);
+    }
+  };
+
+  auto applyScroll = [interaction](float offset, bool notify, bool force = false) {
+    float clamped = offset;
+    if (interaction->maxScroll <= 0.0f) {
+      clamped = 0.0f;
+    } else {
+      clamped = std::clamp(offset, 0.0f, interaction->maxScroll);
+    }
+    if (!force && clamped == interaction->scrollOffset) {
+      return;
+    }
+    interaction->scrollOffset = clamped;
+    if (PrimeFrame::Node* viewport = interaction->frame->getNode(interaction->viewportNode)) {
+      viewport->scrollY = clamped;
+    }
+    if (interaction->scrollThumbNode.isValid() && interaction->trackH > 0.0f) {
+      float travel = std::max(0.0f, interaction->trackH - interaction->thumbH);
+      float progress = (interaction->maxScroll > 0.0f) ? (clamped / interaction->maxScroll) : 0.0f;
+      float thumbY = interaction->trackY + travel * progress;
+      if (PrimeFrame::Node* thumbNode = interaction->frame->getNode(interaction->scrollThumbNode)) {
+        thumbNode->localY = thumbY;
+      }
+    }
+    if (notify && interaction->callbacks.onScrollChanged) {
+      TreeViewScrollInfo info;
+      info.offset = clamped;
+      info.maxOffset = interaction->maxScroll;
+      info.progress = (interaction->maxScroll > 0.0f) ? (clamped / interaction->maxScroll) : 0.0f;
+      info.viewportHeight = interaction->viewportHeight;
+      info.contentHeight = interaction->contentHeight;
+      interaction->callbacks.onScrollChanged(info);
+    }
+  };
+
+  auto scrollBy = [interaction, applyScroll](float delta) {
+    if (!interaction->scrollEnabled) {
+      return false;
+    }
+    applyScroll(interaction->scrollOffset + delta, true);
+    return true;
+  };
+
+  auto applyScrollHover = [interaction]() {
+    bool hovered = interaction->scrollHoverCount > 0;
+    if (interaction->scrollTrackPrim != 0) {
+      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(interaction->scrollTrackPrim)) {
+        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
+          if (hovered && interaction->scrollTrackHoverOpacity.has_value()) {
+            prim->rect.overrideStyle.opacity = interaction->scrollTrackHoverOpacity.value();
+          } else {
+            prim->rect.overrideStyle.opacity.reset();
+          }
+        }
+      }
+    }
+    if (interaction->scrollThumbPrim != 0) {
+      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(interaction->scrollThumbPrim)) {
+        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
+          if (hovered && interaction->scrollThumbHoverOpacity.has_value()) {
+            prim->rect.overrideStyle.opacity = interaction->scrollThumbHoverOpacity.value();
+          } else {
+            prim->rect.overrideStyle.opacity.reset();
+          }
+        }
+      }
+    }
+  };
+
+  constexpr int KeyEnter = 0x28;
+  constexpr int KeyRight = 0x4F;
+  constexpr int KeyLeft = 0x50;
+  constexpr int KeyDown = 0x51;
+  constexpr int KeyUp = 0x52;
 
   for (size_t i = 0; i < rows.size(); ++i) {
     FlatTreeRow const& row = rows[i];
-    PrimeFrame::RectStyleToken rowRole = row.selected ? spec.selectionStyle
-                                                      : (i % 2 == 0 ? spec.rowAltStyle : spec.rowStyle);
+    PrimeFrame::RectStyleToken baseRole = (i % 2 == 0 ? spec.rowAltStyle : spec.rowStyle);
+    PrimeFrame::RectStyleToken rowRole = row.selected ? spec.selectionStyle : baseRole;
 
     PanelSpec rowPanel;
     rowPanel.rectStyle = rowRole;
     rowPanel.layout = PrimeFrame::LayoutType::Overlay;
     rowPanel.size.preferredHeight = spec.rowHeight;
+    rowPanel.size.preferredWidth = rowWidth;
     rowPanel.size.stretchX = 1.0f;
     rowPanel.clipChildren = false;
     rowPanel.visible = spec.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
     PrimeFrame::NodeId rowId = rowNode.nodeId();
+    PrimeFrame::PrimitiveId backgroundPrim = 0;
+    if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowId)) {
+      if (!rowNodePtr->primitives.empty()) {
+        backgroundPrim = rowNodePtr->primitives.front();
+      }
+    }
 
     if (spec.showConnectors && row.depth > 0 && spec.visible) {
       float halfThickness = spec.connectorThickness * 0.5f;
@@ -3681,32 +3953,30 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       }
     }
 
-    if (row.selected && spec.selectionAccentWidth > 0.0f && spec.visible) {
-      create_rect_node(frame(),
-                       rowId,
-                       Rect{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight},
-                       spec.selectionAccentStyle,
-                       {},
-                       false,
-                       spec.visible);
-    }
-
     float indent = (row.depth > 0) ? spec.indent * static_cast<float>(row.depth) : 0.0f;
     float glyphX = caretBaseX + indent;
     float glyphY = (spec.rowHeight - spec.caretSize) * 0.5f;
 
+    PrimeFrame::PrimitiveId maskPrim = 0;
+    bool hasMask = false;
     if (spec.showCaretMasks && row.depth > 0 && spec.visible) {
       float maskPad = spec.caretMaskPad;
-      create_rect_node(frame(),
-                       rowId,
-                       Rect{glyphX - maskPad,
-                            glyphY - maskPad,
-                            spec.caretSize + maskPad * 2.0f,
-                            spec.caretSize + maskPad * 2.0f},
-                       rowRole,
-                       {},
-                       false,
-                       spec.visible);
+      PrimeFrame::NodeId maskId = create_rect_node(frame(),
+                                                   rowId,
+                                                   Rect{glyphX - maskPad,
+                                                        glyphY - maskPad,
+                                                        spec.caretSize + maskPad * 2.0f,
+                                                        spec.caretSize + maskPad * 2.0f},
+                                                   rowRole,
+                                                   {},
+                                                   false,
+                                                   spec.visible);
+      if (PrimeFrame::Node* maskNode = frame().getNode(maskId)) {
+        if (!maskNode->primitives.empty()) {
+          maskPrim = maskNode->primitives.front();
+          hasMask = true;
+        }
+      }
     }
 
     if (row.hasChildren) {
@@ -3767,16 +4037,224 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     float lineHeight = row.selected ? selectedTextHeight : rowTextHeight;
     float textY = (spec.rowHeight - lineHeight) * 0.5f;
     float labelWidth = std::max(0.0f, rowWidth - spec.rowWidthInset - textX);
-    create_text_node(frame(),
-                     rowId,
-                     Rect{textX, textY, labelWidth, lineHeight},
-                     row.label,
-                     textRole,
-                     {},
-                     PrimeFrame::TextAlign::Start,
-                     PrimeFrame::WrapMode::None,
-                     labelWidth,
-                     spec.visible);
+    PrimeFrame::NodeId labelId = create_text_node(frame(),
+                                                  rowId,
+                                                  Rect{textX, textY, labelWidth, lineHeight},
+                                                  row.label,
+                                                  textRole,
+                                                  {},
+                                                  PrimeFrame::TextAlign::Start,
+                                                  PrimeFrame::WrapMode::None,
+                                                  labelWidth,
+                                                  spec.visible);
+    PrimeFrame::PrimitiveId labelPrim = 0;
+    if (PrimeFrame::Node* labelNode = frame().getNode(labelId)) {
+      if (!labelNode->primitives.empty()) {
+        labelPrim = labelNode->primitives.front();
+      }
+    }
+
+    PrimeFrame::PrimitiveId accentPrim = 0;
+    bool hasAccent = false;
+    if (spec.selectionAccentWidth > 0.0f && spec.selectionAccentStyle != 0 && spec.visible) {
+      PrimeFrame::RectStyleOverride accentOverride;
+      if (!row.selected) {
+        accentOverride.opacity = 0.0f;
+      }
+      PrimeFrame::NodeId accentId = create_rect_node(frame(),
+                                                     rowId,
+                                                     Rect{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight},
+                                                     spec.selectionAccentStyle,
+                                                     accentOverride,
+                                                     false,
+                                                     spec.visible);
+      if (PrimeFrame::Node* accentNode = frame().getNode(accentId)) {
+        if (!accentNode->primitives.empty()) {
+          accentPrim = accentNode->primitives.front();
+          hasAccent = true;
+        }
+      }
+    }
+
+    TreeViewRowVisual visual;
+    visual.background = backgroundPrim;
+    visual.accent = accentPrim;
+    visual.mask = maskPrim;
+    visual.label = labelPrim;
+    visual.baseStyle = baseRole;
+    visual.hoverStyle = spec.hoverStyle;
+    visual.selectionStyle = spec.selectionStyle;
+    visual.textStyle = spec.textStyle;
+    visual.selectedTextStyle = spec.selectedTextStyle;
+    visual.hasAccent = hasAccent;
+    visual.hasMask = hasMask;
+    visual.hasChildren = row.hasChildren;
+    visual.expanded = row.expanded;
+    visual.depth = row.depth;
+    visual.parentIndex = row.parentIndex;
+    visual.path = row.path;
+
+    int rowIndex = static_cast<int>(interaction->rows.size());
+    interaction->rows.push_back(std::move(visual));
+    if (row.selected && interaction->selectedRow < 0) {
+      interaction->selectedRow = rowIndex;
+    }
+
+    PrimeFrame::Callback rowCallback;
+    rowCallback.onEvent = [interaction,
+                           rowIndex,
+                           glyphX,
+                           glyphY,
+                           caretSize = spec.caretSize,
+                           updateRowVisual,
+                           setHovered,
+                           setSelected,
+                           requestToggle,
+                           makeRowInfo](PrimeFrame::Event const& event) mutable -> bool {
+      auto onCaret = [&]() {
+        if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+          return false;
+        }
+        const auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+        if (!row.hasChildren) {
+          return false;
+        }
+        return event.localX >= glyphX && event.localX <= glyphX + caretSize &&
+               event.localY >= glyphY && event.localY <= glyphY + caretSize;
+      };
+
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerEnter:
+          setHovered(rowIndex);
+          return true;
+        case PrimeFrame::EventType::PointerLeave:
+          if (interaction->hoveredRow == rowIndex) {
+            setHovered(-1);
+          }
+          return true;
+        case PrimeFrame::EventType::PointerDown: {
+          setSelected(rowIndex);
+          bool toggled = false;
+          if (onCaret()) {
+            const auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+            requestToggle(rowIndex, !row.expanded);
+            toggled = true;
+          }
+          auto now = std::chrono::steady_clock::now();
+          if (!toggled &&
+              interaction->doubleClickThreshold.count() > 0.0 &&
+              interaction->lastClickRow == rowIndex &&
+              interaction->lastClickTime.time_since_epoch().count() != 0) {
+            if (now - interaction->lastClickTime <= interaction->doubleClickThreshold) {
+              const auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
+              if (row.hasChildren) {
+                requestToggle(rowIndex, !row.expanded);
+              } else if (interaction->callbacks.onActivated) {
+                TreeViewRowInfo info = makeRowInfo(rowIndex);
+                interaction->callbacks.onActivated(info);
+              }
+            }
+          }
+          interaction->lastClickRow = rowIndex;
+          interaction->lastClickTime = now;
+          return true;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+    PrimeFrame::CallbackId rowCallbackId = frame().addCallback(std::move(rowCallback));
+    if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowId)) {
+      rowNodePtr->callbacks = rowCallbackId;
+    }
+  }
+
+  bool wantsKeyboard = spec.keyboardNavigation && !interaction->rows.empty();
+  bool wantsScroll = interaction->scrollEnabled && spec.scrollBar.enabled;
+  if ((wantsKeyboard || wantsScroll) && spec.visible) {
+    PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
+    if (treeNodePtr) {
+      treeNodePtr->focusable = wantsKeyboard;
+      PrimeFrame::Callback keyCallback;
+      keyCallback.onEvent = [interaction,
+                             setSelected,
+                             requestToggle,
+                             makeRowInfo,
+                             scrollBy,
+                             wantsKeyboard,
+                             wantsScroll](PrimeFrame::Event const& event) {
+        if (wantsScroll && event.type == PrimeFrame::EventType::PointerScroll) {
+          if (event.scrollY != 0.0f) {
+            return scrollBy(-event.scrollY);
+          }
+          return false;
+        }
+        if (!wantsKeyboard || event.type != PrimeFrame::EventType::KeyDown) {
+          return false;
+        }
+        int rowCount = static_cast<int>(interaction->rows.size());
+        if (rowCount <= 0) {
+          return false;
+        }
+        switch (event.key) {
+          case KeyUp:
+          case KeyDown: {
+            int current = interaction->selectedRow;
+            if (current < 0) {
+              current = (event.key == KeyDown) ? -1 : rowCount;
+            }
+            int delta = (event.key == KeyDown) ? 1 : -1;
+            int next = std::clamp(current + delta, 0, rowCount - 1);
+            if (next != current) {
+              setSelected(next);
+            }
+            return true;
+          }
+          case KeyLeft:
+          case KeyRight: {
+            int index = interaction->selectedRow;
+            if (index >= 0 && index < rowCount) {
+              const auto& row = interaction->rows[static_cast<size_t>(index)];
+              if (row.hasChildren) {
+                bool wasExpanded = row.expanded;
+                bool wantExpanded = (event.key == KeyRight);
+                if (row.expanded != wantExpanded) {
+                  requestToggle(index, wantExpanded);
+                }
+                if (event.key == KeyLeft && wasExpanded) {
+                  return true;
+                }
+                if (event.key == KeyLeft && row.parentIndex >= 0) {
+                  setSelected(row.parentIndex);
+                }
+              } else if (event.key == KeyLeft && row.parentIndex >= 0) {
+                setSelected(row.parentIndex);
+              }
+            }
+            return true;
+          }
+          case KeyEnter: {
+            int index = interaction->selectedRow;
+            if (index >= 0 && index < rowCount) {
+              const auto& row = interaction->rows[static_cast<size_t>(index)];
+              if (row.hasChildren) {
+                requestToggle(index, !row.expanded);
+              } else if (interaction->callbacks.onActivated) {
+                TreeViewRowInfo info = makeRowInfo(index);
+                interaction->callbacks.onActivated(info);
+              }
+            }
+            return true;
+          }
+          default:
+            break;
+        }
+        return false;
+      };
+      PrimeFrame::CallbackId keyCallbackId = frame().addCallback(std::move(keyCallback));
+      treeNodePtr->callbacks = keyCallbackId;
+    }
   }
 
   if (spec.showScrollBar && spec.scrollBar.enabled && spec.visible) {
@@ -3784,24 +4262,27 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     float trackY = spec.scrollBar.padding;
     float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);
     float trackW = spec.scrollBar.width;
-    create_rect_node(frame(),
-                     treeNode.nodeId(),
-                     Rect{trackX, trackY, trackW, trackH},
-                     spec.scrollBar.trackStyle,
-                     {},
-                     false,
-                     spec.visible);
+    PrimeFrame::NodeId trackId = create_rect_node(frame(),
+                                                  treeNode.nodeId(),
+                                                  Rect{trackX, trackY, trackW, trackH},
+                                                  spec.scrollBar.trackStyle,
+                                                  {},
+                                                  false,
+                                                  spec.visible);
+    if (PrimeFrame::Node* trackNode = frame().getNode(trackId)) {
+      trackNode->hitTestVisible = true;
+      if (!trackNode->primitives.empty()) {
+        interaction->scrollTrackPrim = trackNode->primitives.front();
+      }
+    }
 
-    float contentHeight = spec.rowStartY + rowsHeight;
     float thumbFraction = spec.scrollBar.thumbFraction;
-    float thumbProgress = spec.scrollBar.thumbProgress;
     if (spec.scrollBar.autoThumb) {
-      if (contentHeight > 0.0f && bounds.height > 0.0f) {
-        thumbFraction = std::clamp(bounds.height / contentHeight, 0.0f, 1.0f);
+      if (interaction->contentHeight > 0.0f && viewportHeight > 0.0f) {
+        thumbFraction = std::clamp(viewportHeight / interaction->contentHeight, 0.0f, 1.0f);
       } else {
         thumbFraction = 1.0f;
       }
-      thumbProgress = std::clamp(thumbProgress, 0.0f, 1.0f);
     }
 
     float thumbH = trackH * thumbFraction;
@@ -3810,15 +4291,118 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       thumbH = trackH;
     }
     float maxOffset = std::max(0.0f, trackH - thumbH);
-    float progress = std::clamp(thumbProgress, 0.0f, 1.0f);
+    float progress = (interaction->maxScroll > 0.0f)
+                         ? std::clamp(interaction->scrollOffset / interaction->maxScroll, 0.0f, 1.0f)
+                         : 0.0f;
     float thumbY = trackY + maxOffset * progress;
-    create_rect_node(frame(),
-                     treeNode.nodeId(),
-                     Rect{trackX, thumbY, trackW, thumbH},
-                     spec.scrollBar.thumbStyle,
-                     {},
-                     false,
-                     spec.visible);
+    PrimeFrame::NodeId thumbId = create_rect_node(frame(),
+                                                  treeNode.nodeId(),
+                                                  Rect{trackX, thumbY, trackW, thumbH},
+                                                  spec.scrollBar.thumbStyle,
+                                                  {},
+                                                  false,
+                                                  spec.visible);
+    if (PrimeFrame::Node* thumbNode = frame().getNode(thumbId)) {
+      thumbNode->hitTestVisible = true;
+      if (!thumbNode->primitives.empty()) {
+        interaction->scrollThumbPrim = thumbNode->primitives.front();
+      }
+    }
+
+    interaction->trackY = trackY;
+    interaction->trackH = trackH;
+    interaction->thumbH = thumbH;
+    interaction->scrollThumbNode = thumbId;
+
+    PrimeFrame::Callback trackCallback;
+    trackCallback.onEvent = [interaction, applyScroll, applyScrollHover](PrimeFrame::Event const& event) -> bool {
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerEnter:
+          interaction->scrollHoverCount += 1;
+          applyScrollHover();
+          return true;
+        case PrimeFrame::EventType::PointerLeave:
+          interaction->scrollHoverCount = std::max(0, interaction->scrollHoverCount - 1);
+          applyScrollHover();
+          return true;
+        case PrimeFrame::EventType::PointerDown: {
+          if (!interaction->scrollEnabled) {
+            return false;
+          }
+          float travel = std::max(0.0f, interaction->trackH - interaction->thumbH);
+          if (travel <= 0.0f) {
+            return false;
+          }
+          float pos = std::clamp(event.localY - interaction->thumbH * 0.5f, 0.0f, travel);
+          float progress = pos / travel;
+          applyScroll(progress * interaction->maxScroll, true);
+          return true;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+    PrimeFrame::CallbackId trackCallbackId = frame().addCallback(std::move(trackCallback));
+    if (PrimeFrame::Node* trackNode = frame().getNode(trackId)) {
+      trackNode->callbacks = trackCallbackId;
+    }
+
+    PrimeFrame::Callback thumbCallback;
+    thumbCallback.onEvent = [interaction, applyScroll, applyScrollHover](PrimeFrame::Event const& event) -> bool {
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerEnter:
+          interaction->scrollHoverCount += 1;
+          applyScrollHover();
+          return true;
+        case PrimeFrame::EventType::PointerLeave:
+          interaction->scrollHoverCount = std::max(0, interaction->scrollHoverCount - 1);
+          applyScrollHover();
+          return true;
+        case PrimeFrame::EventType::PointerDown: {
+          if (!interaction->scrollEnabled) {
+            return false;
+          }
+          interaction->scrollDragging = true;
+          interaction->scrollPointerId = event.pointerId;
+          interaction->scrollDragStartY = event.y;
+          interaction->scrollDragStartOffset = interaction->scrollOffset;
+          return true;
+        }
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove: {
+          if (!interaction->scrollDragging || interaction->scrollPointerId != event.pointerId) {
+            return false;
+          }
+          float travel = std::max(0.0f, interaction->trackH - interaction->thumbH);
+          if (travel <= 0.0f) {
+            return true;
+          }
+          float delta = event.y - interaction->scrollDragStartY;
+          float next = interaction->scrollDragStartOffset + delta * (interaction->maxScroll / travel);
+          applyScroll(next, true);
+          return true;
+        }
+        case PrimeFrame::EventType::PointerUp:
+        case PrimeFrame::EventType::PointerCancel: {
+          if (interaction->scrollPointerId == event.pointerId) {
+            interaction->scrollDragging = false;
+            interaction->scrollPointerId = -1;
+            return true;
+          }
+          return false;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+    PrimeFrame::CallbackId thumbCallbackId = frame().addCallback(std::move(thumbCallback));
+    if (PrimeFrame::Node* thumbNode = frame().getNode(thumbId)) {
+      thumbNode->callbacks = thumbCallbackId;
+    }
+
+    applyScroll(interaction->scrollOffset, false, true);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);

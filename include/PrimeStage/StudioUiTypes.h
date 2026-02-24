@@ -234,6 +234,7 @@ struct TreeViewSpec {
   PrimeStage::TreeViewSpec base{};
   RectRole rowRole = RectRole::Panel;
   RectRole rowAltRole = RectRole::PanelAlt;
+  RectRole hoverRole = RectRole::PanelStrong;
   RectRole selectionRole = RectRole::Selection;
   RectRole selectionAccentRole = RectRole::Accent;
   RectRole caretBackgroundRole = RectRole::PanelStrong;
