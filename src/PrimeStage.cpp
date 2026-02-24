@@ -289,7 +289,7 @@ int estimate_wrapped_lines(PrimeFrame::Frame& frame,
     return lines;
   }
 
-  float spaceWidth = estimate_text_width(frame, token, " ");
+  float spaceWidth = measureTextWidth(frame, token, " ");
   float lineWidth = 0.0f;
   int lines = 1;
   std::string word;
@@ -298,7 +298,7 @@ int estimate_wrapped_lines(PrimeFrame::Frame& frame,
     if (word.empty()) {
       return;
     }
-    float wordWidth = estimate_text_width(frame, token, word);
+    float wordWidth = measureTextWidth(frame, token, word);
     if (lineWidth > 0.0f && lineWidth + spaceWidth + wordWidth > maxWidth) {
       ++lines;
       lineWidth = wordWidth;
@@ -841,7 +841,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
       !lines.empty()) {
     float inferredWidth = 0.0f;
     for (auto const& line : lines) {
-      inferredWidth = std::max(inferredWidth, estimate_text_width(frame(), token, line));
+      inferredWidth = std::max(inferredWidth, measureTextWidth(frame(), token, line));
     }
     bounds.width = inferredWidth;
   }
