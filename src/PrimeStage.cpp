@@ -264,12 +264,6 @@ float estimate_text_width(PrimeFrame::Frame& frame,
   return maxWidth;
 }
 
-float measureTextWidth(PrimeFrame::Frame& frame,
-                       PrimeFrame::TextStyleToken token,
-                       std::string_view text) {
-  return estimate_text_width(frame, token, text);
-}
-
 int estimate_wrapped_lines(PrimeFrame::Frame& frame,
                            PrimeFrame::TextStyleToken token,
                            std::string_view text,
@@ -473,6 +467,29 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
   float maxOffset = std::max(1.0f, track - thumb);
   spec.thumbFraction = std::clamp(thumb / track, 0.0f, 1.0f);
   spec.thumbProgress = std::clamp(thumbOffset / maxOffset, 0.0f, 1.0f);
+}
+
+float measureTextWidth(PrimeFrame::Frame& frame,
+                       PrimeFrame::TextStyleToken token,
+                       std::string_view text) {
+  PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (!theme) {
+    return 0.0f;
+  }
+  PrimeFrame::ResolvedTextStyle resolved = PrimeFrame::resolveTextStyle(*theme, token, {});
+  float advance = resolved.size * 0.6f + resolved.tracking;
+  float lineWidth = 0.0f;
+  float maxWidth = 0.0f;
+  for (char ch : text) {
+    if (ch == '\n') {
+      maxWidth = std::max(maxWidth, lineWidth);
+      lineWidth = 0.0f;
+      continue;
+    }
+    lineWidth += advance;
+  }
+  maxWidth = std::max(maxWidth, lineWidth);
+  return maxWidth;
 }
 
 namespace Studio {
