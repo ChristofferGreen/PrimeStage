@@ -1225,10 +1225,10 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   Rect bounds = resolve_rect(spec.size);
-  std::string_view preview = spec.text;
+  std::string_view previewText = spec.text;
   PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
-  if (preview.empty() && spec.showPlaceholderWhenEmpty) {
-    preview = spec.placeholder;
+  if (previewText.empty() && spec.showPlaceholderWhenEmpty) {
+    previewText = spec.placeholder;
     previewStyle = spec.placeholderStyle;
   }
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -1245,8 +1245,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f &&
-      !preview.empty()) {
-    float previewWidth = estimate_text_width(frame(), previewStyle, preview);
+      !previewText.empty()) {
+    float previewWidth = estimate_text_width(frame(), previewStyle, previewText);
     bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
   }
   if (bounds.width <= 0.0f &&
@@ -1278,25 +1278,58 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     style = spec.placeholderStyle;
     overrideStyle = spec.placeholderStyleOverride;
   }
-  if (content.empty() || !spec.visible) {
+  if (!spec.visible) {
     return UiNode(frame(), field.nodeId(), allowAbsolute_);
   }
 
   lineHeight = resolve_line_height(frame(), style);
+  if (lineHeight <= 0.0f && style != spec.textStyle) {
+    lineHeight = resolve_line_height(frame(), spec.textStyle);
+  }
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
-  Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
-  create_text_node(frame(),
-                   field.nodeId(),
-                   textRect,
-                   content,
-                   style,
-                   overrideStyle,
-                   PrimeFrame::TextAlign::Start,
-                   PrimeFrame::WrapMode::None,
-                   textWidth,
-                   spec.visible);
+  if (!content.empty()) {
+    Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
+    create_text_node(frame(),
+                     field.nodeId(),
+                     textRect,
+                     content,
+                     style,
+                     overrideStyle,
+                     PrimeFrame::TextAlign::Start,
+                     PrimeFrame::WrapMode::None,
+                     textWidth,
+                     spec.visible);
+  }
+
+  if (spec.showCursor && spec.cursorStyle != 0) {
+    uint32_t cursorIndex = std::min(spec.cursorIndex, static_cast<uint32_t>(spec.text.size()));
+    float cursorAdvance = 0.0f;
+    if (cursorIndex > 0u && !spec.text.empty()) {
+      cursorAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, cursorIndex));
+    }
+    float cursorX = spec.paddingX + cursorAdvance;
+    float maxX = bounds.width - spec.paddingX - spec.cursorWidth;
+    if (maxX < spec.paddingX) {
+      maxX = spec.paddingX;
+    }
+    if (cursorX > maxX) {
+      cursorX = maxX;
+    }
+    float cursorHeight = lineHeight > 0.0f ? lineHeight : bounds.height;
+    if (cursorHeight < 0.0f) {
+      cursorHeight = 0.0f;
+    }
+    Rect cursorRect{cursorX, textY, spec.cursorWidth, cursorHeight};
+    create_rect_node(frame(),
+                     field.nodeId(),
+                     cursorRect,
+                     spec.cursorStyle,
+                     spec.cursorStyleOverride,
+                     false,
+                     spec.visible);
+  }
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }

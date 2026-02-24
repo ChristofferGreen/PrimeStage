@@ -2,6 +2,7 @@
 
 #include "PrimeFrame/Frame.h"
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string_view>
@@ -122,6 +123,11 @@ struct TextFieldSpec {
   PrimeFrame::TextStyleToken placeholderStyle = 0;
   PrimeFrame::TextStyleOverride placeholderStyleOverride{};
   bool showPlaceholderWhenEmpty = true;
+  bool showCursor = false;
+  uint32_t cursorIndex = 0u;
+  float cursorWidth = 1.5f;
+  PrimeFrame::RectStyleToken cursorStyle = 0;
+  PrimeFrame::RectStyleOverride cursorStyleOverride{};
   bool visible = true;
   SizeSpec size;
 };
