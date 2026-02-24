@@ -3,9 +3,15 @@
 #include "PrimeFrame/Events.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <memory>
 #include <utility>
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+#include "PrimeManifest/text/FontRegistry.hpp"
+#include "PrimeManifest/text/Typography.hpp"
+#endif
 
 namespace PrimeStage {
 namespace {
@@ -472,11 +478,41 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
 float measureTextWidth(PrimeFrame::Frame& frame,
                        PrimeFrame::TextStyleToken token,
                        std::string_view text) {
+  if (text.empty()) {
+    return 0.0f;
+  }
   PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
   if (!theme) {
     return 0.0f;
   }
   PrimeFrame::ResolvedTextStyle resolved = PrimeFrame::resolveTextStyle(*theme, token, {});
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  static bool fontsLoaded = false;
+  auto& registry = PrimeManifest::GetFontRegistry();
+  if (!fontsLoaded) {
+#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
+    registry.addBundleDir(PRIMESTAGE_BUNDLED_FONT_DIR);
+#endif
+    registry.loadBundledFonts();
+    registry.loadOsFallbackFonts();
+    fontsLoaded = true;
+  }
+  PrimeManifest::Typography typography;
+  typography.size = resolved.size;
+  typography.weight = static_cast<int>(std::lround(resolved.weight));
+  typography.lineHeight = resolved.lineHeight > 0.0f ? resolved.lineHeight : resolved.size * 1.2f;
+  typography.letterSpacing = resolved.tracking;
+  if (resolved.slant != 0.0f) {
+    typography.slant = PrimeManifest::FontSlant::Italic;
+  }
+#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
+  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleOnly;
+#else
+  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleThenOS;
+#endif
+  auto measured = registry.measureText(text, typography);
+  return static_cast<float>(measured.first);
+#else
   float advance = resolved.size * 0.6f + resolved.tracking;
   float lineWidth = 0.0f;
   float maxWidth = 0.0f;
@@ -490,6 +526,7 @@ float measureTextWidth(PrimeFrame::Frame& frame,
   }
   maxWidth = std::max(maxWidth, lineWidth);
   return maxWidth;
+#endif
 }
 
 namespace Studio {
@@ -1321,11 +1358,11 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     if (selStart < selEnd && spec.selectionStyle != 0 && !spec.text.empty()) {
       float startAdvance = 0.0f;
       if (selStart > 0u) {
-        startAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, selStart));
+        startAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, selStart));
       }
       float endAdvance = startAdvance;
       if (selEnd > selStart) {
-        endAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, selEnd));
+        endAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, selEnd));
       }
       float startX = spec.paddingX + startAdvance;
       float endX = spec.paddingX + endAdvance;
@@ -1363,7 +1400,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     uint32_t cursorIndex = std::min(spec.cursorIndex, static_cast<uint32_t>(spec.text.size()));
     float cursorAdvance = 0.0f;
     if (cursorIndex > 0u && !spec.text.empty()) {
-      cursorAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, cursorIndex));
+      cursorAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, cursorIndex));
     }
     float cursorX = spec.paddingX + cursorAdvance;
     float maxX = bounds.width - spec.paddingX - spec.cursorWidth;
