@@ -84,6 +84,10 @@ if(PRIMESTAGE_BUILD_TESTS)
   add_executable(PrimeStage_tests
     tests/unit/test_main.cpp
     tests/unit/test_builder.cpp
+    tests/unit/test_interaction.cpp
+    tests/unit/test_tree_view.cpp
+    tests/unit/test_widgets.cpp
+    tests/unit/test_tabs_dropdown.cpp
     tests/unit/test_sanity.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)

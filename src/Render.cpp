@@ -310,7 +310,15 @@ bool renderFrameToTarget(PrimeFrame::Frame& frame,
                    colors_close(cmd.rectStyle.fill, theme_color(theme, 7))) {
           radius = 2.0f;
         } else if (logicalH >= 30.0f && logicalH <= 34.0f) {
-          if (colors_close(cmd.rectStyle.fill, theme_color(theme, 8))) {
+          if (colors_close(cmd.rectStyle.fill, theme_color(theme, 8)) ||   // Accent
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 6)) ||   // PanelAlt
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 7)) ||   // PanelStrong
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 15)) ||  // ButtonBase
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 16)) ||  // ButtonHover
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 17)) ||  // ButtonPressed
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 18)) ||  // ButtonPrimary
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 19)) ||  // ButtonPrimaryHover
+              colors_close(cmd.rectStyle.fill, theme_color(theme, 20))) {  // ButtonPrimaryPressed
             radius = 6.0f;
           } else if (colors_close(cmd.rectStyle.fill, theme_color(theme, 5))) {
             if (logicalW <= 140.0f || logicalW >= 300.0f) {

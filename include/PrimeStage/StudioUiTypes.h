@@ -21,7 +21,13 @@ enum class RectRole : PrimeFrame::RectStyleToken {
   Selection,
   ScrollTrack,
   ScrollThumb,
-  Divider
+  Divider,
+  ButtonBase,
+  ButtonHover,
+  ButtonPressed,
+  ButtonPrimary,
+  ButtonPrimaryHover,
+  ButtonPrimaryPressed
 };
 
 enum class TextRole : PrimeFrame::TextStyleToken {

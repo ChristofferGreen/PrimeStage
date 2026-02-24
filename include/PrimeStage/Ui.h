@@ -2,6 +2,7 @@
 
 #include "PrimeFrame/Frame.h"
 
+#include <functional>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -82,15 +83,29 @@ struct SpacerSpec {
   SizeSpec size;
 };
 
+struct ButtonCallbacks {
+  std::function<void()> onClick;
+  std::function<void(bool)> onHoverChanged;
+  std::function<void(bool)> onPressedChanged;
+};
+
 struct ButtonSpec {
   std::string_view label;
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
+  PrimeFrame::RectStyleToken hoverStyle = 0;
+  PrimeFrame::RectStyleOverride hoverStyleOverride{};
+  PrimeFrame::RectStyleToken pressedStyle = 0;
+  PrimeFrame::RectStyleOverride pressedStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   float textInsetX = 16.0f;
   float textOffsetY = 0.0f;
   bool centerText = true;
+  float baseOpacity = 1.0f;
+  float hoverOpacity = 1.0f;
+  float pressedOpacity = 1.0f;
+  ButtonCallbacks callbacks{};
   bool visible = true;
   SizeSpec size;
 };
@@ -138,6 +153,12 @@ struct CheckboxSpec {
   SizeSpec size;
 };
 
+struct SliderCallbacks {
+  std::function<void(float)> onValueChanged;
+  std::function<void()> onDragStart;
+  std::function<void()> onDragEnd;
+};
+
 struct SliderSpec {
   float value = 0.0f;
   bool vertical = false;
@@ -147,8 +168,15 @@ struct SliderSpec {
   PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken fillStyle = 0;
   PrimeFrame::RectStyleOverride fillStyleOverride{};
+  std::optional<float> fillHoverOpacity;
+  std::optional<float> fillPressedOpacity;
   PrimeFrame::RectStyleToken thumbStyle = 0;
   PrimeFrame::RectStyleOverride thumbStyleOverride{};
+  std::optional<float> trackHoverOpacity;
+  std::optional<float> trackPressedOpacity;
+  std::optional<float> thumbHoverOpacity;
+  std::optional<float> thumbPressedOpacity;
+  SliderCallbacks callbacks{};
   bool visible = true;
   SizeSpec size;
 };
@@ -319,6 +347,7 @@ public:
 
   UiNode& setVisible(bool visible);
   UiNode& setSize(SizeSpec const& size);
+  UiNode& setHitTestVisible(bool visible);
 
   UiNode createVerticalStack(StackSpec const& spec);
   UiNode createHorizontalStack(StackSpec const& spec);

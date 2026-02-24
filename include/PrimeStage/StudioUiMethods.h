@@ -47,7 +47,8 @@ UiNode createCardGrid(UiNode& parent, CardGridSpec const& spec);
 UiNode createButton(UiNode& parent,
                     std::string_view label,
                     ButtonVariant variant,
-                    SizeSpec const& size);
+                    SizeSpec const& size,
+                    ButtonCallbacks const& callbacks = {});
 UiNode createTextField(UiNode& parent, std::string_view placeholder, SizeSpec const& size);
 UiNode createScrollHints(UiNode& parent, ScrollHintsSpec const& spec);
 UiNode createTreeView(UiNode& parent, TreeViewSpec const& spec);

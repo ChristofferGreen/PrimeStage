@@ -1,8 +1,10 @@
 #include "PrimeStage/StudioUi.h"
 #include "PrimeStage/PrimeStage.h"
+#include "PrimeFrame/Events.h"
 
 #include <algorithm>
 #include <cctype>
+#include <memory>
 #include <utility>
 
 namespace PrimeStage {
@@ -57,6 +59,26 @@ Rect resolve_rect(SizeSpec const& size) {
   return resolved;
 }
 
+float slider_value_from_event(PrimeFrame::Event const& event, bool vertical, float thumbSize) {
+  float width = std::max(0.0f, event.targetW);
+  float height = std::max(0.0f, event.targetH);
+  float thumb = std::max(0.0f, thumbSize);
+  float clampedThumb = std::min(thumb, std::min(width, height));
+  if (vertical) {
+    float range = std::max(0.0f, height - clampedThumb);
+    if (range <= 0.0f) {
+      return 0.0f;
+    }
+    float pos = std::clamp(event.localY - clampedThumb * 0.5f, 0.0f, range);
+    return std::clamp(1.0f - (pos / range), 0.0f, 1.0f);
+  }
+  float range = std::max(0.0f, width - clampedThumb);
+  if (range <= 0.0f) {
+    return 0.0f;
+  }
+  float pos = std::clamp(event.localX - clampedThumb * 0.5f, 0.0f, range);
+  return std::clamp(pos / range, 0.0f, 1.0f);
+}
 
 PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
                                PrimeFrame::NodeId parent,
@@ -103,6 +125,26 @@ void add_rect_primitive(PrimeFrame::Frame& frame,
   }
 }
 
+PrimeFrame::PrimitiveId add_rect_primitive_with_rect(PrimeFrame::Frame& frame,
+                                                     PrimeFrame::NodeId nodeId,
+                                                     Rect const& rect,
+                                                     PrimeFrame::RectStyleToken token,
+                                                     PrimeFrame::RectStyleOverride const& overrideStyle) {
+  PrimeFrame::Primitive prim;
+  prim.type = PrimeFrame::PrimitiveType::Rect;
+  prim.offsetX = rect.x;
+  prim.offsetY = rect.y;
+  prim.width = rect.width;
+  prim.height = rect.height;
+  prim.rect.token = token;
+  prim.rect.overrideStyle = overrideStyle;
+  PrimeFrame::PrimitiveId pid = frame.addPrimitive(prim);
+  if (PrimeFrame::Node* node = frame.getNode(nodeId)) {
+    node->primitives.push_back(pid);
+  }
+  return pid;
+}
+
 void add_text_primitive(PrimeFrame::Frame& frame,
                         PrimeFrame::NodeId nodeId,
                         std::string_view text,
@@ -145,6 +187,10 @@ PrimeFrame::NodeId create_rect_node(PrimeFrame::Frame& frame,
                                       0.0f,
                                       clipChildren,
                                       visible);
+  PrimeFrame::Node* node = frame.getNode(id);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   add_rect_primitive(frame, id, token, overrideStyle);
   return id;
 }
@@ -168,6 +214,10 @@ PrimeFrame::NodeId create_text_node(PrimeFrame::Frame& frame,
                                       0.0f,
                                       false,
                                       visible);
+  PrimeFrame::Node* node = frame.getNode(id);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   add_text_primitive(frame,
                      id,
                      text,
@@ -450,7 +500,13 @@ void applyStudioTheme(PrimeFrame::Frame& frame) {
       PrimeFrame::Color{0.24f, 0.28f, 0.39f, 1.0f}, // Scroll Thumb
       PrimeFrame::Color{0.08f, 0.10f, 0.15f, 1.0f}, // Divider
       PrimeFrame::Color{0.925f, 0.937f, 0.957f, 1.0f}, // Text Bright
-      PrimeFrame::Color{0.588f, 0.620f, 0.667f, 1.0f}  // Text Muted
+      PrimeFrame::Color{0.588f, 0.620f, 0.667f, 1.0f}, // Text Muted
+      PrimeFrame::Color{0.20f, 0.24f, 0.34f, 1.0f}, // Button Base
+      PrimeFrame::Color{0.24f, 0.29f, 0.41f, 1.0f}, // Button Hover
+      PrimeFrame::Color{0.16f, 0.20f, 0.30f, 1.0f}, // Button Pressed
+      PrimeFrame::Color{0.35f, 0.64f, 1.0f, 1.0f},  // Button Primary
+      PrimeFrame::Color{0.42f, 0.72f, 1.0f, 1.0f},  // Button Primary Hover
+      PrimeFrame::Color{0.28f, 0.55f, 0.92f, 1.0f}  // Button Primary Pressed
   };
   theme->rectStyles = {
       PrimeFrame::RectStyle{0, 1.0f},
@@ -466,7 +522,13 @@ void applyStudioTheme(PrimeFrame::Frame& frame) {
       PrimeFrame::RectStyle{9, 0.55f},
       PrimeFrame::RectStyle{10, 1.0f},
       PrimeFrame::RectStyle{11, 1.0f},
-      PrimeFrame::RectStyle{12, 1.0f}
+      PrimeFrame::RectStyle{12, 1.0f},
+      PrimeFrame::RectStyle{15, 1.0f},
+      PrimeFrame::RectStyle{16, 1.0f},
+      PrimeFrame::RectStyle{17, 1.0f},
+      PrimeFrame::RectStyle{18, 1.0f},
+      PrimeFrame::RectStyle{19, 1.0f},
+      PrimeFrame::RectStyle{20, 1.0f}
   };
 
   PrimeFrame::TextStyle titleText;
@@ -549,6 +611,15 @@ UiNode& UiNode::setSize(SizeSpec const& size) {
   return *this;
 }
 
+UiNode& UiNode::setHitTestVisible(bool visible) {
+  PrimeFrame::Node* node = frame().getNode(id_);
+  if (!node) {
+    return *this;
+  }
+  node->hitTestVisible = visible;
+  return *this;
+}
+
 UiNode UiNode::createVerticalStack(StackSpec const& spec) {
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
@@ -557,6 +628,10 @@ UiNode UiNode::createVerticalStack(StackSpec const& spec) {
                                           spec.gap,
                                           spec.clipChildren,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
 
@@ -568,6 +643,10 @@ UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
                                           spec.gap,
                                           spec.clipChildren,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
 
@@ -579,6 +658,10 @@ UiNode UiNode::createOverlay(StackSpec const& spec) {
                                           spec.gap,
                                           spec.clipChildren,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
 
@@ -646,6 +729,10 @@ UiNode UiNode::createLabel(LabelSpec const& spec) {
                                           0.0f,
                                           false,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   add_text_primitive(frame(),
                      nodeId,
                      spec.text,
@@ -717,6 +804,10 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
                                                0.0f,
                                                false,
                                                spec.visible);
+  PrimeFrame::Node* node = frame().getNode(paragraphId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
 
   for (size_t i = 0; i < lines.size(); ++i) {
     Rect lineRect;
@@ -909,6 +1000,10 @@ UiNode UiNode::createDivider(DividerSpec const& spec) {
                                           0.0f,
                                           false,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   add_rect_primitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
@@ -929,6 +1024,10 @@ UiNode UiNode::createSpacer(SpacerSpec const& spec) {
                                           0.0f,
                                           false,
                                           spec.visible);
+  PrimeFrame::Node* node = frame().getNode(nodeId);
+  if (node) {
+    node->hitTestVisible = false;
+  }
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
 
@@ -963,6 +1062,16 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
       spec.size.stretchY <= 0.0f) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
+  PrimeFrame::RectStyleToken baseToken = spec.backgroundStyle;
+  PrimeFrame::RectStyleToken hoverToken = spec.hoverStyle != 0 ? spec.hoverStyle : baseToken;
+  PrimeFrame::RectStyleToken pressedToken = spec.pressedStyle != 0 ? spec.pressedStyle : baseToken;
+  PrimeFrame::RectStyleOverride baseOverride = spec.backgroundStyleOverride;
+  baseOverride.opacity = spec.baseOpacity;
+  PrimeFrame::RectStyleOverride hoverOverride = spec.hoverStyleOverride;
+  hoverOverride.opacity = spec.hoverOpacity;
+  PrimeFrame::RectStyleOverride pressedOverride = spec.pressedStyleOverride;
+  pressedOverride.opacity = spec.pressedOpacity;
+
   PanelSpec panel;
   panel.size = spec.size;
   if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
@@ -971,8 +1080,8 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
     panel.size.preferredHeight = bounds.height;
   }
-  panel.rectStyle = spec.backgroundStyle;
-  panel.rectStyleOverride = spec.backgroundStyleOverride;
+  panel.rectStyle = baseToken;
+  panel.rectStyleOverride = baseOverride;
   panel.visible = spec.visible;
   UiNode button = createPanel(panel);
   if (spec.label.empty() || !spec.visible) {
@@ -1006,6 +1115,111 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
                    PrimeFrame::WrapMode::None,
                    labelWidth,
                    spec.visible);
+
+  bool needsInteraction = spec.callbacks.onClick ||
+                          spec.callbacks.onHoverChanged ||
+                          spec.callbacks.onPressedChanged ||
+                          hoverToken != baseToken ||
+                          pressedToken != baseToken ||
+                          std::abs(spec.hoverOpacity - spec.baseOpacity) > 0.001f ||
+                          std::abs(spec.pressedOpacity - spec.baseOpacity) > 0.001f;
+  if (needsInteraction) {
+    PrimeFrame::Node* node = frame().getNode(button.nodeId());
+    if (node && !node->primitives.empty()) {
+      PrimeFrame::PrimitiveId background = node->primitives.front();
+      PrimeFrame::Frame* framePtr = &frame();
+      auto applyStyle = [framePtr,
+                         background,
+                         baseToken,
+                         hoverToken,
+                         pressedToken,
+                         baseOverride,
+                         hoverOverride,
+                         pressedOverride](bool pressed, bool hovered) {
+        PrimeFrame::Primitive* prim = framePtr->getPrimitive(background);
+        if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
+          return;
+        }
+        if (pressed) {
+          prim->rect.token = pressedToken;
+          prim->rect.overrideStyle = pressedOverride;
+        } else if (hovered) {
+          prim->rect.token = hoverToken;
+          prim->rect.overrideStyle = hoverOverride;
+        } else {
+          prim->rect.token = baseToken;
+          prim->rect.overrideStyle = baseOverride;
+        }
+      };
+      struct ButtonState {
+        bool hovered = false;
+        bool pressed = false;
+      };
+      auto state = std::make_shared<ButtonState>();
+      PrimeFrame::Callback callback;
+      callback.onEvent = [callbacks = spec.callbacks,
+                          applyStyle = std::move(applyStyle),
+                          state](PrimeFrame::Event const& event) mutable -> bool {
+        auto is_inside = [&event]() {
+          return event.localX >= 0.0f && event.localX <= event.targetW &&
+                 event.localY >= 0.0f && event.localY <= event.targetH;
+        };
+        auto update = [&](bool nextPressed, bool nextHovered) {
+          bool hoverChanged = (nextHovered != state->hovered);
+          bool pressChanged = (nextPressed != state->pressed);
+          state->hovered = nextHovered;
+          state->pressed = nextPressed;
+          applyStyle(state->pressed, state->hovered);
+          if (hoverChanged && callbacks.onHoverChanged) {
+            callbacks.onHoverChanged(state->hovered);
+          }
+          if (pressChanged && callbacks.onPressedChanged) {
+            callbacks.onPressedChanged(state->pressed);
+          }
+        };
+        switch (event.type) {
+          case PrimeFrame::EventType::PointerEnter:
+            update(state->pressed, true);
+            return true;
+          case PrimeFrame::EventType::PointerLeave:
+            update(false, false);
+            return true;
+          case PrimeFrame::EventType::PointerDown:
+            update(true, true);
+            return true;
+          case PrimeFrame::EventType::PointerDrag: {
+            bool inside = is_inside();
+            update(inside, inside);
+            return true;
+          }
+          case PrimeFrame::EventType::PointerUp: {
+            bool inside = is_inside();
+            bool fire = state->pressed && inside;
+            update(false, inside);
+            if (fire && callbacks.onClick) {
+              callbacks.onClick();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerCancel:
+            update(false, false);
+            return true;
+          case PrimeFrame::EventType::PointerMove: {
+            bool inside = is_inside();
+            update(state->pressed && inside, inside);
+            return true;
+          }
+          default:
+            break;
+        }
+        return false;
+      };
+      PrimeFrame::CallbackId callbackId = frame().addCallback(std::move(callback));
+      node->callbacks = callbackId;
+      applyStyle(false, false);
+    }
+  }
+
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
@@ -1225,58 +1439,281 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
   }
 
   float t = std::clamp(spec.value, 0.0f, 1.0f);
-  float thumb = std::max(0.0f, spec.thumbSize);
-  if (spec.vertical) {
-    float trackW = std::min(bounds.width, std::max(0.0f, spec.trackThickness));
-    float trackX = (bounds.width - trackW) * 0.5f;
-    float fillH = bounds.height * t;
-    if (fillH > 0.0f) {
-      Rect fillRect{trackX, bounds.height - fillH, trackW, fillH};
-      create_rect_node(frame(),
-                       slider.nodeId(),
-                       fillRect,
-                       spec.fillStyle,
-                       spec.fillStyleOverride,
-                       false,
-                       spec.visible);
-    }
-    float thumbSize = std::min(thumb, std::min(bounds.width, bounds.height));
-    if (thumbSize > 0.0f) {
-      float thumbY = (1.0f - t) * (bounds.height - thumbSize);
-      Rect thumbRect{(bounds.width - thumbSize) * 0.5f, thumbY, thumbSize, thumbSize};
-      create_rect_node(frame(),
-                       slider.nodeId(),
-                       thumbRect,
-                       spec.thumbStyle,
-                       spec.thumbStyleOverride,
-                       false,
-                       spec.visible);
-    }
-  } else {
-    float trackH = std::min(bounds.height, std::max(0.0f, spec.trackThickness));
-    float trackY = (bounds.height - trackH) * 0.5f;
-    float fillW = bounds.width * t;
-    if (fillW > 0.0f) {
+  auto apply_geometry = [vertical = spec.vertical,
+                         trackThickness = spec.trackThickness,
+                         thumbSize = spec.thumbSize](PrimeFrame::Frame& frame,
+                                                     PrimeFrame::PrimitiveId fillPrim,
+                                                     PrimeFrame::PrimitiveId thumbPrim,
+                                                     float value,
+                                                     float width,
+                                                     float height,
+                                                     PrimeFrame::RectStyleOverride const& fillOverride,
+                                                     PrimeFrame::RectStyleOverride const& thumbOverride) {
+    float clamped = std::clamp(value, 0.0f, 1.0f);
+    float track = std::max(0.0f, trackThickness);
+    float thumb = std::max(0.0f, thumbSize);
+    auto apply_rect = [&](PrimeFrame::PrimitiveId primId,
+                          Rect const& rect,
+                          PrimeFrame::RectStyleOverride const& baseOverride) {
+      if (PrimeFrame::Primitive* prim = frame.getPrimitive(primId)) {
+        prim->offsetX = rect.x;
+        prim->offsetY = rect.y;
+        prim->width = rect.width;
+        prim->height = rect.height;
+        prim->rect.overrideStyle = baseOverride;
+        if (rect.width <= 0.0f || rect.height <= 0.0f) {
+          prim->rect.overrideStyle.opacity = 0.0f;
+        }
+      }
+    };
+    if (vertical) {
+      float trackW = std::min(width, track);
+      float trackX = (width - trackW) * 0.5f;
+      float fillH = height * clamped;
+      Rect fillRect{trackX, height - fillH, trackW, fillH};
+      apply_rect(fillPrim, fillRect, fillOverride);
+      float clampedThumb = std::min(thumb, std::min(width, height));
+      Rect thumbRect{0.0f, 0.0f, 0.0f, 0.0f};
+      if (clampedThumb > 0.0f) {
+        float thumbY = (1.0f - clamped) * (height - clampedThumb);
+        thumbRect = Rect{(width - clampedThumb) * 0.5f, thumbY, clampedThumb, clampedThumb};
+      }
+      apply_rect(thumbPrim, thumbRect, thumbOverride);
+    } else {
+      float trackH = std::min(height, track);
+      float trackY = (height - trackH) * 0.5f;
+      float fillW = width * clamped;
       Rect fillRect{0.0f, trackY, fillW, trackH};
-      create_rect_node(frame(),
-                       slider.nodeId(),
-                       fillRect,
-                       spec.fillStyle,
-                       spec.fillStyleOverride,
-                       false,
-                       spec.visible);
+      apply_rect(fillPrim, fillRect, fillOverride);
+      float clampedThumb = std::min(thumb, std::min(width, height));
+      Rect thumbRect{0.0f, 0.0f, 0.0f, 0.0f};
+      if (clampedThumb > 0.0f) {
+        float thumbX = clamped * (width - clampedThumb);
+        thumbRect = Rect{thumbX, (height - clampedThumb) * 0.5f, clampedThumb, clampedThumb};
+      }
+      apply_rect(thumbPrim, thumbRect, thumbOverride);
     }
-    float thumbSize = std::min(thumb, std::min(bounds.width, bounds.height));
-    if (thumbSize > 0.0f) {
-      float thumbX = t * (bounds.width - thumbSize);
-      Rect thumbRect{thumbX, (bounds.height - thumbSize) * 0.5f, thumbSize, thumbSize};
-      create_rect_node(frame(),
-                       slider.nodeId(),
-                       thumbRect,
-                       spec.thumbStyle,
-                       spec.thumbStyleOverride,
-                       false,
-                       spec.visible);
+  };
+
+  PrimeFrame::PrimitiveId fillPrim =
+      add_rect_primitive_with_rect(frame(),
+                                   slider.nodeId(),
+                                   Rect{0.0f, 0.0f, 0.0f, 0.0f},
+                                   spec.fillStyle,
+                                   spec.fillStyleOverride);
+  PrimeFrame::PrimitiveId thumbPrim =
+      add_rect_primitive_with_rect(frame(),
+                                   slider.nodeId(),
+                                   Rect{0.0f, 0.0f, 0.0f, 0.0f},
+                                   spec.thumbStyle,
+                                   spec.thumbStyleOverride);
+  PrimeFrame::PrimitiveId trackPrim = 0;
+  bool trackPrimValid = false;
+  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
+    if (!node->primitives.empty()) {
+      trackPrim = node->primitives.front();
+      trackPrimValid = true;
+    }
+  }
+  apply_geometry(frame(),
+                 fillPrim,
+                 thumbPrim,
+                 t,
+                 bounds.width,
+                 bounds.height,
+                 spec.fillStyleOverride,
+                 spec.thumbStyleOverride);
+  if (trackPrimValid) {
+    if (PrimeFrame::Primitive* prim = frame().getPrimitive(trackPrim)) {
+      prim->rect.overrideStyle = spec.trackStyleOverride;
+    }
+  }
+
+  if (spec.callbacks.onValueChanged || spec.callbacks.onDragStart || spec.callbacks.onDragEnd) {
+    struct SliderState {
+      bool active = false;
+      bool hovered = false;
+      bool trackPrimValid = false;
+      PrimeFrame::PrimitiveId trackPrim = 0;
+      PrimeFrame::PrimitiveId fillPrim = 0;
+      PrimeFrame::PrimitiveId thumbPrim = 0;
+      float targetW = 0.0f;
+      float targetH = 0.0f;
+      float value = 0.0f;
+    };
+    auto state = std::make_shared<SliderState>();
+    state->trackPrimValid = trackPrimValid;
+    state->trackPrim = trackPrim;
+    state->fillPrim = fillPrim;
+    state->thumbPrim = thumbPrim;
+    state->targetW = bounds.width;
+    state->targetH = bounds.height;
+    state->value = t;
+    auto update_from_event = [state,
+                              vertical = spec.vertical,
+                              thumbSize = spec.thumbSize](PrimeFrame::Event const& event) {
+      if (event.targetW > 0.0f) {
+        state->targetW = event.targetW;
+      }
+      if (event.targetH > 0.0f) {
+        state->targetH = event.targetH;
+      }
+      float next = slider_value_from_event(event, vertical, thumbSize);
+      state->value = std::clamp(next, 0.0f, 1.0f);
+    };
+    auto build_thumb_override = [state,
+                                 base = spec.thumbStyleOverride,
+                                 hoverOpacity = spec.thumbHoverOpacity,
+                                 pressedOpacity = spec.thumbPressedOpacity]() {
+      PrimeFrame::RectStyleOverride overrideStyle = base;
+      if (state->active && pressedOpacity.has_value()) {
+        overrideStyle.opacity = pressedOpacity;
+      } else if (state->hovered && hoverOpacity.has_value()) {
+        overrideStyle.opacity = hoverOpacity;
+      }
+      return overrideStyle;
+    };
+    auto build_fill_override = [state,
+                                base = spec.fillStyleOverride,
+                                hoverOpacity = spec.fillHoverOpacity,
+                                pressedOpacity = spec.fillPressedOpacity]() {
+      PrimeFrame::RectStyleOverride overrideStyle = base;
+      if (state->active && pressedOpacity.has_value()) {
+        overrideStyle.opacity = pressedOpacity;
+      } else if (state->hovered && hoverOpacity.has_value()) {
+        overrideStyle.opacity = hoverOpacity;
+      }
+      return overrideStyle;
+    };
+    auto build_track_override = [state,
+                                 base = spec.trackStyleOverride,
+                                 hoverOpacity = spec.trackHoverOpacity,
+                                 pressedOpacity = spec.trackPressedOpacity]() {
+      PrimeFrame::RectStyleOverride overrideStyle = base;
+      if (state->active && pressedOpacity.has_value()) {
+        overrideStyle.opacity = pressedOpacity;
+      } else if (state->hovered && hoverOpacity.has_value()) {
+        overrideStyle.opacity = hoverOpacity;
+      }
+      return overrideStyle;
+    };
+    auto apply_track_override = [framePtr = &frame(), state, build_track_override]() {
+      if (!state->trackPrimValid) {
+        return;
+      }
+      if (PrimeFrame::Primitive* prim = framePtr->getPrimitive(state->trackPrim)) {
+        prim->rect.overrideStyle = build_track_override();
+      }
+    };
+    PrimeFrame::Callback callback;
+    callback.onEvent = [callbacks = spec.callbacks,
+                        vertical = spec.vertical,
+                        thumbSize = spec.thumbSize,
+                        framePtr = &frame(),
+                        state,
+                        apply_geometry,
+                        update_from_event,
+                        build_fill_override,
+                        build_thumb_override,
+                        apply_track_override](PrimeFrame::Event const& event) -> bool {
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerEnter: {
+          state->hovered = true;
+          apply_track_override();
+          apply_geometry(*framePtr,
+                         state->fillPrim,
+                         state->thumbPrim,
+                         state->value,
+                         state->targetW,
+                         state->targetH,
+                         build_fill_override(),
+                         build_thumb_override());
+          return true;
+        }
+        case PrimeFrame::EventType::PointerLeave: {
+          state->hovered = false;
+          apply_track_override();
+          apply_geometry(*framePtr,
+                         state->fillPrim,
+                         state->thumbPrim,
+                         state->value,
+                         state->targetW,
+                         state->targetH,
+                         build_fill_override(),
+                         build_thumb_override());
+          return true;
+        }
+        case PrimeFrame::EventType::PointerDown: {
+          state->active = true;
+          apply_track_override();
+          update_from_event(event);
+          apply_geometry(*framePtr,
+                         state->fillPrim,
+                         state->thumbPrim,
+                         state->value,
+                         state->targetW,
+                         state->targetH,
+                         build_fill_override(),
+                         build_thumb_override());
+          if (callbacks.onDragStart) {
+            callbacks.onDragStart();
+          }
+          if (callbacks.onValueChanged) {
+            callbacks.onValueChanged(state->value);
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove: {
+          if (!state->active) {
+            return false;
+          }
+          update_from_event(event);
+          apply_geometry(*framePtr,
+                         state->fillPrim,
+                         state->thumbPrim,
+                         state->value,
+                         state->targetW,
+                         state->targetH,
+                         build_fill_override(),
+                         build_thumb_override());
+          if (callbacks.onValueChanged) {
+            callbacks.onValueChanged(state->value);
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerUp:
+        case PrimeFrame::EventType::PointerCancel: {
+          if (!state->active) {
+            return false;
+          }
+          update_from_event(event);
+          apply_geometry(*framePtr,
+                         state->fillPrim,
+                         state->thumbPrim,
+                         state->value,
+                         state->targetW,
+                         state->targetH,
+                         build_fill_override(),
+                         build_thumb_override());
+          if (callbacks.onValueChanged) {
+            callbacks.onValueChanged(state->value);
+          }
+          if (callbacks.onDragEnd) {
+            callbacks.onDragEnd();
+          }
+          state->active = false;
+          apply_track_override();
+          return true;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+    PrimeFrame::CallbackId callbackId = frame().addCallback(std::move(callback));
+    if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
+      node->callbacks = callbackId;
     }
   }
 
@@ -2053,6 +2490,9 @@ UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
                                             0.0f,
                                             false,
                                             true);
+    if (PrimeFrame::Node* cellNode = frame().getNode(cellId)) {
+      cellNode->hitTestVisible = false;
+    }
     UiNode cell(frame(), cellId, rowNode.allowAbsolute());
     SizeSpec textSize;
     float innerWidth = width - paddingLeft - paddingRight;
@@ -2100,6 +2540,9 @@ UiNode createPropertyList(UiNode const& parent, PropertyListSpec const& spec) {
                                              0.0f,
                                              false,
                                              true);
+    if (PrimeFrame::Node* valueNode = frame().getNode(valueId)) {
+      valueNode->hitTestVisible = false;
+    }
     UiNode valueCell(frame(), valueId, rowNode.allowAbsolute());
 
     if (spec.valueAlignRight) {
@@ -2306,7 +2749,8 @@ namespace Studio {
 UiNode createButton(UiNode& parent,
                     std::string_view label,
                     ButtonVariant variant,
-                    SizeSpec const& size) {
+                    SizeSpec const& size,
+                    ButtonCallbacks const& callbacks) {
   ButtonSpec spec;
   spec.label = label;
   spec.size = size;
@@ -2319,12 +2763,23 @@ UiNode createButton(UiNode& parent,
     spec.size.preferredWidth = StudioDefaults::ControlWidthM;
   }
   if (variant == ButtonVariant::Primary) {
-    spec.backgroundStyle = rectToken(RectRole::Accent);
+    spec.backgroundStyle = rectToken(RectRole::ButtonPrimary);
+    spec.hoverStyle = rectToken(RectRole::ButtonPrimaryHover);
+    spec.pressedStyle = rectToken(RectRole::ButtonPrimaryPressed);
+    spec.baseOpacity = 1.0f;
+    spec.hoverOpacity = 1.0f;
+    spec.pressedOpacity = 1.0f;
     spec.textStyle = textToken(TextRole::BodyBright);
   } else {
-    spec.backgroundStyle = rectToken(RectRole::Panel);
+    spec.backgroundStyle = rectToken(RectRole::ButtonBase);
+    spec.hoverStyle = rectToken(RectRole::ButtonHover);
+    spec.pressedStyle = rectToken(RectRole::ButtonPressed);
+    spec.baseOpacity = 1.0f;
+    spec.hoverOpacity = 1.0f;
+    spec.pressedOpacity = 1.0f;
     spec.textStyle = textToken(TextRole::BodyBright);
   }
+  spec.callbacks = callbacks;
   return parent.createButton(spec);
 }
 
