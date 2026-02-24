@@ -1313,6 +1313,39 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
   if (!content.empty()) {
+    uint32_t selStart = std::min(spec.selectionStart, spec.selectionEnd);
+    uint32_t selEnd = std::max(spec.selectionStart, spec.selectionEnd);
+    uint32_t textSize = static_cast<uint32_t>(spec.text.size());
+    selStart = std::min(selStart, textSize);
+    selEnd = std::min(selEnd, textSize);
+    if (selStart < selEnd && spec.selectionStyle != 0 && !spec.text.empty()) {
+      float startAdvance = 0.0f;
+      if (selStart > 0u) {
+        startAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, selStart));
+      }
+      float endAdvance = startAdvance;
+      if (selEnd > selStart) {
+        endAdvance = estimate_text_width(frame(), spec.textStyle, spec.text.substr(0, selEnd));
+      }
+      float startX = spec.paddingX + startAdvance;
+      float endX = spec.paddingX + endAdvance;
+      float maxX = bounds.width - spec.paddingX;
+      if (maxX < spec.paddingX) {
+        maxX = spec.paddingX;
+      }
+      startX = std::clamp(startX, spec.paddingX, maxX);
+      endX = std::clamp(endX, spec.paddingX, maxX);
+      if (endX > startX) {
+        Rect selectionRect{startX, textY, endX - startX, lineHeight};
+        create_rect_node(frame(),
+                         field.nodeId(),
+                         selectionRect,
+                         spec.selectionStyle,
+                         spec.selectionStyleOverride,
+                         false,
+                         spec.visible);
+      }
+    }
     Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
     create_text_node(frame(),
                      field.nodeId(),

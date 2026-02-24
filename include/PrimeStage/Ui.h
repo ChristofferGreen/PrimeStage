@@ -128,6 +128,10 @@ struct TextFieldSpec {
   float cursorWidth = 1.5f;
   PrimeFrame::RectStyleToken cursorStyle = 0;
   PrimeFrame::RectStyleOverride cursorStyleOverride{};
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
+  PrimeFrame::RectStyleOverride selectionStyleOverride{};
   bool visible = true;
   SizeSpec size;
 };
