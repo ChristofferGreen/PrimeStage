@@ -83,13 +83,7 @@ if(PRIMESTAGE_BUILD_TESTS)
 
   add_executable(PrimeStage_tests
     tests/unit/test_main.cpp
-    tests/unit/test_builder.cpp
-    tests/unit/test_interaction.cpp
-    tests/unit/test_tree_view.cpp
-    tests/unit/test_widgets.cpp
-    tests/unit/test_tabs_dropdown.cpp
     tests/unit/test_sanity.cpp
-    tests/unit/test_text_selection.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
   target_include_directories(PrimeStage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -99,67 +93,8 @@ endif()
 
 option(PRIMESTAGE_BUILD_EXAMPLES "Build PrimeStage example apps" OFF)
 if(PRIMESTAGE_BUILD_EXAMPLES)
-  include(FetchContent)
-
-  option(PRIMESTAGE_PRIMEMANIFEST_ENABLE_FONTS "Enable PrimeManifest font rendering for examples" ON)
-
-  set(PRIMEMANIFEST_BUILD_TESTS OFF CACHE BOOL "Build PrimeManifest tests" FORCE)
-  set(PRIMEMANIFEST_ENABLE_FONTS ${PRIMESTAGE_PRIMEMANIFEST_ENABLE_FONTS} CACHE BOOL "Enable PrimeManifest fonts" FORCE)
-  set(PRIMEMANIFEST_BUILD_EXAMPLES OFF CACHE BOOL "Build PrimeManifest examples" FORCE)
-
-  if(NOT TARGET PrimeManifest)
-    FetchContent_Declare(
-      PrimeManifest
-      GIT_REPOSITORY ${PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY}
-      GIT_TAG ${PRIMESTAGE_PRIMEMANIFEST_GIT_TAG}
-    )
-    FetchContent_MakeAvailable(PrimeManifest)
-  endif()
-
-  if(TARGET PrimeManifest)
-    target_link_libraries(PrimeStage PUBLIC PrimeManifest)
-    target_compile_definitions(PrimeStage PUBLIC PRIMESTAGE_HAS_PRIMEMANIFEST=1)
-  endif()
-
-  add_executable(primestage_render_demo examples/primestage_render_demo.cpp)
-  target_link_libraries(primestage_render_demo PRIVATE PrimeStage PrimeFrame PrimeManifest)
-  target_include_directories(primestage_render_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  if(DEFINED primemanifest_SOURCE_DIR)
-    file(GLOB_RECURSE PRIMESTAGE_PM_FONTS
-      "${primemanifest_SOURCE_DIR}/*.ttf"
-      "${primemanifest_SOURCE_DIR}/*.otf"
-      "${primemanifest_SOURCE_DIR}/*.ttc"
-      "${primemanifest_SOURCE_DIR}/*.otc"
-    )
-    if(PRIMESTAGE_PM_FONTS)
-      list(GET PRIMESTAGE_PM_FONTS 0 PRIMESTAGE_PM_FONT_SAMPLE)
-      get_filename_component(PRIMESTAGE_PM_FONT_DIR "${PRIMESTAGE_PM_FONT_SAMPLE}" DIRECTORY)
-      target_compile_definitions(primestage_render_demo PRIVATE
-        PRIMESTAGE_BUNDLED_FONT_DIR=\"${PRIMESTAGE_PM_FONT_DIR}\"
-        PRIMESTAGE_HAS_BUNDLED_FONT=1
-      )
-    else()
-      target_compile_definitions(primestage_render_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
-    endif()
-  else()
-    target_compile_definitions(primestage_render_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
-  endif()
-  ps_require_cxx23(primestage_render_demo)
-
-  add_executable(primestage_widgets_demo examples/primestage_widgets_demo.cpp)
-  target_link_libraries(primestage_widgets_demo PRIVATE PrimeStage PrimeFrame PrimeManifest)
-  target_include_directories(primestage_widgets_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  if(DEFINED primemanifest_SOURCE_DIR)
-    if(PRIMESTAGE_PM_FONTS)
-      target_compile_definitions(primestage_widgets_demo PRIVATE
-        PRIMESTAGE_BUNDLED_FONT_DIR=\"${PRIMESTAGE_PM_FONT_DIR}\"
-        PRIMESTAGE_HAS_BUNDLED_FONT=1
-      )
-    else()
-      target_compile_definitions(primestage_widgets_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
-    endif()
-  else()
-    target_compile_definitions(primestage_widgets_demo PRIVATE PRIMESTAGE_HAS_BUNDLED_FONT=0)
-  endif()
-  ps_require_cxx23(primestage_widgets_demo)
+  add_executable(primestage_example examples/primestage_example.cpp)
+  target_link_libraries(primestage_example PRIVATE PrimeStage)
+  target_include_directories(primestage_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  ps_require_cxx23(primestage_example)
 endif()

@@ -1,6 +1,6 @@
 # PrimeStage
 
-PrimeStage is the UI authoring layer that owns ground-truth widget state and emits rect hierarchies for PrimeFrame.
+PrimeStage is the UI authoring layer that owns ground-truth widget state and emits rect hierarchies for PrimeFrame. The Studio UI kit now lives in the PrimeStudio repo.
 
 ## Building
 
