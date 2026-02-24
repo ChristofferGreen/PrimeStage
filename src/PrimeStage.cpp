@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -28,6 +29,44 @@ struct Rect {
 bool is_utf8_continuation(uint8_t value) {
   return (value & 0xC0u) == 0x80u;
 }
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+PrimeManifest::Typography make_typography(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token) {
+  PrimeManifest::Typography typography;
+  PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (!theme) {
+    return typography;
+  }
+  PrimeFrame::ResolvedTextStyle resolved = PrimeFrame::resolveTextStyle(*theme, token, {});
+  typography.size = resolved.size;
+  typography.weight = static_cast<int>(std::lround(resolved.weight));
+  typography.lineHeight = resolved.lineHeight > 0.0f ? resolved.lineHeight : resolved.size * 1.2f;
+  typography.letterSpacing = resolved.tracking;
+  if (resolved.slant != 0.0f) {
+    typography.slant = PrimeManifest::FontSlant::Italic;
+  }
+#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
+  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleOnly;
+#else
+  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleThenOS;
+#endif
+  return typography;
+}
+
+void ensure_text_fonts_loaded() {
+  static bool fontsLoaded = false;
+  if (fontsLoaded) {
+    return;
+  }
+  auto& registry = PrimeManifest::GetFontRegistry();
+#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
+  registry.addBundleDir(PRIMESTAGE_BUNDLED_FONT_DIR);
+#endif
+  registry.loadBundledFonts();
+  registry.loadOsFallbackFonts();
+  fontsLoaded = true;
+}
+#endif
 
 void apply_rect(PrimeFrame::Node& node, Rect const& rect) {
   node.localX = rect.x;
@@ -499,29 +538,10 @@ float measureTextWidth(PrimeFrame::Frame& frame,
   }
   PrimeFrame::ResolvedTextStyle resolved = PrimeFrame::resolveTextStyle(*theme, token, {});
 #if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
-  static bool fontsLoaded = false;
+  ensure_text_fonts_loaded();
   auto& registry = PrimeManifest::GetFontRegistry();
-  if (!fontsLoaded) {
-#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
-    registry.addBundleDir(PRIMESTAGE_BUNDLED_FONT_DIR);
-#endif
-    registry.loadBundledFonts();
-    registry.loadOsFallbackFonts();
-    fontsLoaded = true;
-  }
-  PrimeManifest::Typography typography;
-  typography.size = resolved.size;
-  typography.weight = static_cast<int>(std::lround(resolved.weight));
-  typography.lineHeight = resolved.lineHeight > 0.0f ? resolved.lineHeight : resolved.size * 1.2f;
-  typography.letterSpacing = resolved.tracking;
-  if (resolved.slant != 0.0f) {
-    typography.slant = PrimeManifest::FontSlant::Italic;
-  }
-#if defined(PRIMESTAGE_HAS_BUNDLED_FONT) && PRIMESTAGE_HAS_BUNDLED_FONT
-  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleOnly;
-#else
-  typography.fallback = PrimeManifest::FontFallbackPolicy::BundleThenOS;
-#endif
+  PrimeManifest::Typography typography = make_typography(frame, token);
+  typography.lineHeight = resolved.lineHeight > 0.0f ? resolved.lineHeight : typography.lineHeight;
   auto measured = registry.measureText(text, typography);
   return static_cast<float>(measured.first);
 #else
@@ -572,6 +592,61 @@ uint32_t utf8Next(std::string_view text, uint32_t index) {
   return i;
 }
 
+std::vector<float> buildCaretPositions(PrimeFrame::Frame& frame,
+                                       PrimeFrame::TextStyleToken token,
+                                       std::string_view text) {
+  std::vector<float> positions;
+  if (text.empty()) {
+    positions.resize(1, 0.0f);
+    return positions;
+  }
+
+  positions.assign(text.size() + 1u, std::numeric_limits<float>::quiet_NaN());
+  positions[0] = 0.0f;
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  bool usedLayout = false;
+  ensure_text_fonts_loaded();
+  PrimeManifest::Typography typography = make_typography(frame, token);
+  auto run = PrimeManifest::LayoutText(text, typography, 1.0f, false);
+  if (run) {
+    float penX = 0.0f;
+    for (auto const& glyph : run->glyphs) {
+      uint32_t cluster = std::min<uint32_t>(glyph.cluster, static_cast<uint32_t>(text.size()));
+      if (!std::isfinite(positions[cluster])) {
+        positions[cluster] = penX;
+      }
+      penX += glyph.advance;
+    }
+    positions[text.size()] = penX;
+    usedLayout = true;
+  }
+#endif
+
+  uint32_t index = utf8Next(text, 0u);
+  while (index <= text.size()) {
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+    if (!usedLayout || !std::isfinite(positions[index])) {
+      positions[index] = measureTextWidth(frame, token, text.substr(0, index));
+    }
+#else
+    positions[index] = measureTextWidth(frame, token, text.substr(0, index));
+#endif
+    index = utf8Next(text, index);
+  }
+
+  float last = positions[0];
+  for (uint32_t i = 1u; i <= text.size(); ++i) {
+    if (!std::isfinite(positions[i])) {
+      positions[i] = last;
+    } else {
+      last = positions[i];
+    }
+  }
+
+  return positions;
+}
+
 uint32_t caretIndexForClick(PrimeFrame::Frame& frame,
                             PrimeFrame::TextStyleToken token,
                             std::string_view text,
@@ -584,15 +659,16 @@ uint32_t caretIndexForClick(PrimeFrame::Frame& frame,
   if (targetX <= 0.0f) {
     return 0u;
   }
-  float totalWidth = measureTextWidth(frame, token, text);
+  auto positions = buildCaretPositions(frame, token, text);
+  float totalWidth = positions.back();
   if (targetX >= totalWidth) {
     return static_cast<uint32_t>(text.size());
   }
   uint32_t prevIndex = 0u;
-  float prevWidth = 0.0f;
+  float prevWidth = positions[0];
   uint32_t index = utf8Next(text, 0u);
   while (index <= text.size()) {
-    float width = measureTextWidth(frame, token, text.substr(0, index));
+    float width = positions[index];
     if (width >= targetX) {
       float prevDist = targetX - prevWidth;
       float nextDist = width - targetX;
@@ -740,14 +816,12 @@ std::vector<TextSelectionRect> buildSelectionRects(PrimeFrame::Frame& frame,
     uint32_t localStart = std::max(selStart, line.start) - line.start;
     uint32_t localEnd = std::min(selEnd, line.end) - line.start;
     std::string_view lineText(text.data() + line.start, line.end - line.start);
-    float leftWidth = 0.0f;
-    if (localStart > 0u) {
-      leftWidth = measureTextWidth(frame, token, lineText.substr(0, localStart));
-    }
-    float rightWidth = leftWidth;
-    if (localEnd > localStart) {
-      rightWidth = measureTextWidth(frame, token, lineText.substr(0, localEnd));
-    }
+    auto caretPositions = buildCaretPositions(frame, token, lineText);
+    uint32_t maxIndex = static_cast<uint32_t>(lineText.size());
+    localStart = std::min(localStart, maxIndex);
+    localEnd = std::min(localEnd, maxIndex);
+    float leftWidth = caretPositions[localStart];
+    float rightWidth = caretPositions[localEnd];
     float width = rightWidth - leftWidth;
     if (width <= 0.0f) {
       continue;
@@ -1512,6 +1586,18 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
+  std::vector<float> caretPositions;
+  if (!spec.text.empty() && (spec.showCursor || spec.selectionStart != spec.selectionEnd)) {
+    caretPositions = buildCaretPositions(frame(), spec.textStyle, spec.text);
+  }
+  auto caretAdvanceFor = [&](uint32_t index) -> float {
+    if (caretPositions.empty()) {
+      return 0.0f;
+    }
+    uint32_t clamped = std::min(index, static_cast<uint32_t>(spec.text.size()));
+    return caretPositions[clamped];
+  };
+
   if (!content.empty()) {
     uint32_t selStart = std::min(spec.selectionStart, spec.selectionEnd);
     uint32_t selEnd = std::max(spec.selectionStart, spec.selectionEnd);
@@ -1519,14 +1605,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
     selStart = std::min(selStart, textSize);
     selEnd = std::min(selEnd, textSize);
     if (selStart < selEnd && spec.selectionStyle != 0 && !spec.text.empty()) {
-      float startAdvance = 0.0f;
-      if (selStart > 0u) {
-        startAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, selStart));
-      }
-      float endAdvance = startAdvance;
-      if (selEnd > selStart) {
-        endAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, selEnd));
-      }
+      float startAdvance = caretAdvanceFor(selStart);
+      float endAdvance = caretAdvanceFor(selEnd);
       float startX = spec.paddingX + startAdvance;
       float endX = spec.paddingX + endAdvance;
       float maxX = bounds.width - spec.paddingX;
@@ -1561,10 +1641,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
 
   if (spec.showCursor && spec.cursorStyle != 0) {
     uint32_t cursorIndex = std::min(spec.cursorIndex, static_cast<uint32_t>(spec.text.size()));
-    float cursorAdvance = 0.0f;
-    if (cursorIndex > 0u && !spec.text.empty()) {
-      cursorAdvance = measureTextWidth(frame(), spec.textStyle, spec.text.substr(0, cursorIndex));
-    }
+    float cursorAdvance = caretAdvanceFor(cursorIndex);
     float cursorX = spec.paddingX + cursorAdvance;
     float maxX = bounds.width - spec.paddingX - spec.cursorWidth;
     if (maxX < spec.paddingX) {
@@ -2880,6 +2957,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   constexpr int KeyLeft = 0x50;
   constexpr int KeyDown = 0x51;
   constexpr int KeyUp = 0x52;
+  constexpr int KeyHome = 0x4A;
+  constexpr int KeyEnd = 0x4D;
+  constexpr int KeyPageUp = 0x4B;
+  constexpr int KeyPageDown = 0x4E;
 
   for (size_t i = 0; i < rows.size(); ++i) {
     FlatTreeRow const& row = rows[i];
@@ -3199,6 +3280,9 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                              requestToggle,
                              makeRowInfo,
                              scrollBy,
+                             lastChild,
+                             rowHeight = spec.rowHeight,
+                             rowGap = spec.rowGap,
                              wantsKeyboard,
                              wantsScroll](PrimeFrame::Event const& event) {
         if (wantsScroll && event.type == PrimeFrame::EventType::PointerScroll) {
@@ -3228,6 +3312,32 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
             }
             return true;
           }
+          case KeyPageUp:
+          case KeyPageDown: {
+            int current = interaction->selectedRow;
+            if (current < 0) {
+              current = (event.key == KeyPageDown) ? -1 : rowCount;
+            }
+            float rowPitch = std::max(1.0f, rowHeight + rowGap);
+            int pageStep = static_cast<int>(std::floor(interaction->viewportHeight / rowPitch));
+            if (pageStep < 1) {
+              pageStep = 1;
+            }
+            int delta = (event.key == KeyPageDown) ? pageStep : -pageStep;
+            int next = std::clamp(current + delta, 0, rowCount - 1);
+            if (next != current) {
+              setSelected(next);
+            }
+            return true;
+          }
+          case KeyHome: {
+            setSelected(0);
+            return true;
+          }
+          case KeyEnd: {
+            setSelected(rowCount - 1);
+            return true;
+          }
           case KeyLeft:
           case KeyRight: {
             int index = interaction->selectedRow;
@@ -3239,11 +3349,20 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                 if (row.expanded != wantExpanded) {
                   requestToggle(index, wantExpanded);
                 }
-                if (event.key == KeyLeft && wasExpanded) {
-                  return true;
-                }
-                if (event.key == KeyLeft && row.parentIndex >= 0) {
-                  setSelected(row.parentIndex);
+                if (event.key == KeyLeft) {
+                  if (wasExpanded) {
+                    return true;
+                  }
+                  if (row.parentIndex >= 0) {
+                    setSelected(row.parentIndex);
+                  }
+                } else if (event.key == KeyRight && row.expanded) {
+                  int childIndex = (index >= 0 && index < static_cast<int>(lastChild.size()))
+                                       ? lastChild[static_cast<size_t>(index)]
+                                       : -1;
+                  if (childIndex >= 0) {
+                    setSelected(childIndex);
+                  }
                 }
               } else if (event.key == KeyLeft && row.parentIndex >= 0) {
                 setSelected(row.parentIndex);
