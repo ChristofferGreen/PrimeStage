@@ -535,6 +535,10 @@ float measureTextWidth(PrimeFrame::Frame& frame,
 #endif
 }
 
+float textLineHeight(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token) {
+  return resolve_line_height(frame, token);
+}
+
 uint32_t utf8Prev(std::string_view text, uint32_t index) {
   if (index == 0u) {
     return 0u;
@@ -602,6 +606,7 @@ std::vector<TextSelectionLine> wrapTextLineRanges(PrimeFrame::Frame& frame,
                                                   PrimeFrame::WrapMode wrap) {
   std::vector<TextSelectionLine> lines;
   if (text.empty()) {
+    lines.push_back({0u, 0u, 0.0f});
     return lines;
   }
   if (maxWidth <= 0.0f || wrap == PrimeFrame::WrapMode::None) {
@@ -686,6 +691,88 @@ std::vector<TextSelectionLine> wrapTextLineRanges(PrimeFrame::Frame& frame,
     lines.push_back({0u, static_cast<uint32_t>(text.size()), 0.0f});
   }
   return lines;
+}
+
+TextSelectionLayout buildTextSelectionLayout(PrimeFrame::Frame& frame,
+                                             PrimeFrame::TextStyleToken token,
+                                             std::string_view text,
+                                             float maxWidth,
+                                             PrimeFrame::WrapMode wrap) {
+  TextSelectionLayout layout;
+  layout.lines = wrapTextLineRanges(frame, token, text, maxWidth, wrap);
+  layout.lineHeight = textLineHeight(frame, token);
+  if (layout.lineHeight <= 0.0f) {
+    layout.lineHeight = 1.0f;
+  }
+  return layout;
+}
+
+std::vector<TextSelectionRect> buildSelectionRects(PrimeFrame::Frame& frame,
+                                                   PrimeFrame::TextStyleToken token,
+                                                   std::string_view text,
+                                                   TextSelectionLayout const& layout,
+                                                   uint32_t selectionStart,
+                                                   uint32_t selectionEnd,
+                                                   float paddingX) {
+  std::vector<TextSelectionRect> rects;
+  if (text.empty() || layout.lines.empty() || selectionStart == selectionEnd) {
+    return rects;
+  }
+  uint32_t textSize = static_cast<uint32_t>(text.size());
+  uint32_t selStart = std::min(selectionStart, selectionEnd);
+  uint32_t selEnd = std::max(selectionStart, selectionEnd);
+  selStart = std::min(selStart, textSize);
+  selEnd = std::min(selEnd, textSize);
+  if (selStart >= selEnd) {
+    return rects;
+  }
+  for (size_t lineIndex = 0; lineIndex < layout.lines.size(); ++lineIndex) {
+    const auto& line = layout.lines[lineIndex];
+    if (selEnd <= line.start || selStart >= line.end) {
+      continue;
+    }
+    uint32_t localStart = std::max(selStart, line.start) - line.start;
+    uint32_t localEnd = std::min(selEnd, line.end) - line.start;
+    std::string_view lineText(text.data() + line.start, line.end - line.start);
+    float leftWidth = 0.0f;
+    if (localStart > 0u) {
+      leftWidth = measureTextWidth(frame, token, lineText.substr(0, localStart));
+    }
+    float rightWidth = leftWidth;
+    if (localEnd > localStart) {
+      rightWidth = measureTextWidth(frame, token, lineText.substr(0, localEnd));
+    }
+    float width = rightWidth - leftWidth;
+    if (width <= 0.0f) {
+      continue;
+    }
+    TextSelectionRect rect;
+    rect.x = paddingX + leftWidth;
+    rect.y = static_cast<float>(lineIndex) * layout.lineHeight;
+    rect.width = width;
+    rect.height = layout.lineHeight;
+    rects.push_back(rect);
+  }
+  return rects;
+}
+
+uint32_t caretIndexForClickInLayout(PrimeFrame::Frame& frame,
+                                    PrimeFrame::TextStyleToken token,
+                                    std::string_view text,
+                                    TextSelectionLayout const& layout,
+                                    float paddingX,
+                                    float localX,
+                                    float localY) {
+  if (layout.lines.empty() || layout.lineHeight <= 0.0f) {
+    return caretIndexForClick(frame, token, text, paddingX, localX);
+  }
+  float lineHeight = layout.lineHeight;
+  int lineIndex = static_cast<int>(localY / lineHeight);
+  lineIndex = std::clamp(lineIndex, 0, static_cast<int>(layout.lines.size() - 1));
+  const auto& line = layout.lines[static_cast<size_t>(lineIndex)];
+  std::string_view lineText(text.data() + line.start, line.end - line.start);
+  uint32_t localIndex = caretIndexForClick(frame, token, lineText, paddingX, localX);
+  return line.start + localIndex;
 }
 
 namespace Studio {
@@ -1057,6 +1144,120 @@ UiNode UiNode::createParagraph(std::string_view text,
   spec.textStyle = textStyle;
   spec.size = size;
   return createParagraph(spec);
+}
+
+UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  float maxWidth = spec.maxWidth;
+  if (maxWidth <= 0.0f && bounds.width > 0.0f) {
+    maxWidth = bounds.width;
+  }
+
+  TextSelectionLayout computedLayout;
+  TextSelectionLayout const* layout = spec.layout;
+  if (!layout) {
+    computedLayout = buildTextSelectionLayout(frame(), spec.textStyle, spec.text, maxWidth, spec.wrap);
+    layout = &computedLayout;
+  }
+
+  float lineHeight = layout->lineHeight > 0.0f ? layout->lineHeight : textLineHeight(frame(), spec.textStyle);
+  if (lineHeight <= 0.0f) {
+    lineHeight = 1.0f;
+  }
+  size_t lineCount = std::max<size_t>(1u, layout->lines.size());
+
+  float inferredWidth = bounds.width;
+  if (inferredWidth <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    for (auto const& line : layout->lines) {
+      inferredWidth = std::max(inferredWidth, line.width);
+    }
+  }
+  float inferredHeight = bounds.height;
+  if (inferredHeight <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    inferredHeight = lineHeight * static_cast<float>(lineCount);
+  }
+
+  StackSpec columnSpec;
+  columnSpec.size = spec.size;
+  if (!columnSpec.size.preferredWidth.has_value() && inferredWidth > 0.0f) {
+    columnSpec.size.preferredWidth = inferredWidth;
+  }
+  if (!columnSpec.size.preferredHeight.has_value() && inferredHeight > 0.0f) {
+    columnSpec.size.preferredHeight = inferredHeight;
+  }
+  columnSpec.gap = 0.0f;
+  columnSpec.clipChildren = spec.clipChildren;
+  columnSpec.visible = spec.visible;
+  UiNode column = createVerticalStack(columnSpec);
+
+  if (spec.selectionStyle == 0 || spec.selectionStart == spec.selectionEnd || spec.text.empty()) {
+    return column;
+  }
+
+  auto selectionRects = buildSelectionRects(frame(),
+                                            spec.textStyle,
+                                            spec.text,
+                                            *layout,
+                                            spec.selectionStart,
+                                            spec.selectionEnd,
+                                            spec.paddingX);
+  if (selectionRects.empty()) {
+    return column;
+  }
+
+  size_t rectIndex = 0u;
+  float rowWidth = columnSpec.size.preferredWidth.value_or(inferredWidth);
+
+  for (size_t lineIndex = 0; lineIndex < lineCount; ++lineIndex) {
+    StackSpec lineSpec;
+    if (rowWidth > 0.0f) {
+      lineSpec.size.preferredWidth = rowWidth;
+    } else {
+      lineSpec.size.stretchX = 1.0f;
+    }
+    lineSpec.size.preferredHeight = lineHeight;
+    lineSpec.gap = 0.0f;
+    UiNode lineRow = column.createHorizontalStack(lineSpec);
+
+    float leftWidth = 0.0f;
+    float selectWidth = 0.0f;
+    if (rectIndex < selectionRects.size()) {
+      const auto& rect = selectionRects[rectIndex];
+      float lineY = static_cast<float>(lineIndex) * lineHeight;
+      if (std::abs(rect.y - lineY) <= 0.5f) {
+        leftWidth = rect.x;
+        selectWidth = rect.width;
+        rectIndex++;
+      }
+    }
+
+    if (leftWidth > 0.0f) {
+      SizeSpec leftSize;
+      leftSize.preferredWidth = leftWidth;
+      leftSize.preferredHeight = lineHeight;
+      lineRow.createSpacer(leftSize);
+    }
+    if (selectWidth > 0.0f) {
+      SizeSpec selectSize;
+      selectSize.preferredWidth = selectWidth;
+      selectSize.preferredHeight = lineHeight;
+      PanelSpec selectSpec;
+      selectSpec.rectStyle = spec.selectionStyle;
+      selectSpec.rectStyleOverride = spec.selectionStyleOverride;
+      selectSpec.size = selectSize;
+      lineRow.createPanel(selectSpec);
+    }
+    SizeSpec fillSize;
+    fillSize.stretchX = 1.0f;
+    fillSize.preferredHeight = lineHeight;
+    lineRow.createSpacer(fillSize);
+  }
+
+  return column;
 }
 
 namespace Studio {

@@ -10,6 +10,8 @@
 
 namespace PrimeStage {
 
+struct TextSelectionLayout;
+
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;
@@ -132,6 +134,22 @@ struct TextFieldSpec {
   uint32_t selectionEnd = 0u;
   PrimeFrame::RectStyleToken selectionStyle = 0;
   PrimeFrame::RectStyleOverride selectionStyleOverride{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct TextSelectionOverlaySpec {
+  std::string_view text;
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::WrapMode wrap = PrimeFrame::WrapMode::Word;
+  float maxWidth = 0.0f;
+  TextSelectionLayout const* layout = nullptr;
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  float paddingX = 0.0f;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
+  PrimeFrame::RectStyleOverride selectionStyleOverride{};
+  bool clipChildren = true;
   bool visible = true;
   SizeSpec size;
 };
@@ -395,6 +413,7 @@ public:
   UiNode createParagraph(std::string_view text,
                          PrimeFrame::TextStyleToken textStyle,
                          SizeSpec const& size);
+  UiNode createTextSelectionOverlay(TextSelectionOverlaySpec const& spec);
   UiNode createTextLine(TextLineSpec const& spec);
   UiNode createTextLine(std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,

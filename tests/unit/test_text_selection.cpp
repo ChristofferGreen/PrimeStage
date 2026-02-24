@@ -38,6 +38,17 @@ TEST_CASE("text selection :: wrap none respects newlines") {
   CHECK(lines[2].end == 4u);
 }
 
+TEST_CASE("text selection :: layout reports line height") {
+  auto frame = makeFrame();
+  auto layout = PrimeStage::buildTextSelectionLayout(frame,
+                                                     bodyToken(),
+                                                     "hi",
+                                                     100.0f,
+                                                     PrimeFrame::WrapMode::Word);
+  CHECK(layout.lineHeight > 0.0f);
+  CHECK(!layout.lines.empty());
+}
+
 TEST_CASE("text selection :: wrap word splits on width") {
   auto frame = makeFrame();
   std::string_view text = "one two three";
@@ -116,4 +127,44 @@ TEST_CASE("text selection :: caret hit test chooses closest boundary") {
   float nearSecond = w1 + (w2 - w1) * 0.7f;
   CHECK(PrimeStage::caretIndexForClick(frame, bodyToken(), text, 0.0f, nearFirst) == 1u);
   CHECK(PrimeStage::caretIndexForClick(frame, bodyToken(), text, 0.0f, nearSecond) == 2u);
+}
+
+TEST_CASE("text selection :: selection rects span lines") {
+  auto frame = makeFrame();
+  std::string_view text = "ab\ncd";
+  auto layout = PrimeStage::buildTextSelectionLayout(frame,
+                                                     bodyToken(),
+                                                     text,
+                                                     0.0f,
+                                                     PrimeFrame::WrapMode::None);
+  auto rects = PrimeStage::buildSelectionRects(frame,
+                                               bodyToken(),
+                                               text,
+                                               layout,
+                                               1u,
+                                               4u,
+                                               0.0f);
+  REQUIRE(rects.size() == 2u);
+  CHECK(rects[0].y == doctest::Approx(0.0f));
+  CHECK(rects[1].y == doctest::Approx(layout.lineHeight));
+  CHECK(rects[0].width > 0.0f);
+  CHECK(rects[1].width > 0.0f);
+}
+
+TEST_CASE("text selection :: caret hit test uses line layout") {
+  auto frame = makeFrame();
+  std::string_view text = "ab\ncd";
+  auto layout = PrimeStage::buildTextSelectionLayout(frame,
+                                                     bodyToken(),
+                                                     text,
+                                                     0.0f,
+                                                     PrimeFrame::WrapMode::None);
+  uint32_t index = PrimeStage::caretIndexForClickInLayout(frame,
+                                                          bodyToken(),
+                                                          text,
+                                                          layout,
+                                                          0.0f,
+                                                          -10.0f,
+                                                          layout.lineHeight + 1.0f);
+  CHECK(index == 3u);
 }
