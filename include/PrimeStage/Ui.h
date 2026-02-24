@@ -341,6 +341,10 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float thumbHeight,
                              float thumbOffset);
 
+float measureTextWidth(PrimeFrame::Frame& frame,
+                       PrimeFrame::TextStyleToken token,
+                       std::string_view text);
+
 struct ScrollView;
 
 class UiNode {

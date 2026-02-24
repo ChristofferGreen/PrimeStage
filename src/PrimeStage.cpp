@@ -264,6 +264,12 @@ float estimate_text_width(PrimeFrame::Frame& frame,
   return maxWidth;
 }
 
+float measureTextWidth(PrimeFrame::Frame& frame,
+                       PrimeFrame::TextStyleToken token,
+                       std::string_view text) {
+  return estimate_text_width(frame, token, text);
+}
+
 int estimate_wrapped_lines(PrimeFrame::Frame& frame,
                            PrimeFrame::TextStyleToken token,
                            std::string_view text,
