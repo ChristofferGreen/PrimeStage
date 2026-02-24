@@ -125,7 +125,7 @@ struct TextFieldSpec {
   bool showPlaceholderWhenEmpty = true;
   bool showCursor = false;
   uint32_t cursorIndex = 0u;
-  float cursorWidth = 1.5f;
+  float cursorWidth = 2.0f;
   PrimeFrame::RectStyleToken cursorStyle = 0;
   PrimeFrame::RectStyleOverride cursorStyleOverride{};
   uint32_t selectionStart = 0u;
