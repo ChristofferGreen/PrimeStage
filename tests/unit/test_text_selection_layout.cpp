@@ -1,4 +1,5 @@
 #include "PrimeStage/TextSelection.h"
+#include "PrimeStage/Ui.h"
 
 #include "third_party/doctest.h"
 
@@ -86,7 +87,7 @@ TEST_CASE("text selection :: wrap produces ordered ranges") {
   std::string_view text = "one two three four five";
   float maxWidth = textWidth(frame, "one two") + 0.1f;
   auto lines = PrimeStage::wrapTextLineRanges(frame,
-                                              bodyToken(),
+                                              kBodyToken,
                                               text,
                                               maxWidth,
                                               PrimeFrame::WrapMode::Word);
@@ -102,7 +103,7 @@ TEST_CASE("text selection :: wrap produces ordered ranges") {
 }
 
 TEST_CASE("text selection :: caret hit test clamps to bounds") {
-  auto frame = makeFrame();
+  PrimeFrame::Frame frame;
   std::string_view text = "abcd";
   CHECK(PrimeStage::caretIndexForClick(frame, kBodyToken, text, 0.0f, -10.0f) == 0u);
   float width = textWidth(frame, text);

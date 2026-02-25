@@ -4593,8 +4593,9 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   }
 
   bool wantsKeyboard = spec.keyboardNavigation && !interaction->rows.empty();
-  bool wantsScroll = interaction->scrollEnabled && spec.scrollBar.enabled;
-  if ((wantsKeyboard || wantsScroll) && spec.visible) {
+  bool wantsPointerScroll = interaction->scrollEnabled;
+  bool wantsScrollBar = wantsPointerScroll && spec.scrollBar.enabled;
+  if ((wantsKeyboard || wantsPointerScroll) && spec.visible) {
     PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
     if (treeNodePtr) {
       treeNodePtr->focusable = wantsKeyboard || hasFocusStyle;
@@ -4608,10 +4609,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                              rowHeight = spec.rowHeight,
                              rowGap = spec.rowGap,
                              wantsKeyboard,
-                             wantsScroll](PrimeFrame::Event const& event) {
-        if (wantsScroll && event.type == PrimeFrame::EventType::PointerScroll) {
+                             wantsPointerScroll](PrimeFrame::Event const& event) {
+        if (wantsPointerScroll && event.type == PrimeFrame::EventType::PointerScroll) {
           if (event.scrollY != 0.0f) {
-            return scrollBy(-event.scrollY);
+            return scrollBy(event.scrollY);
           }
           return false;
         }
@@ -4717,7 +4718,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   }
 
-  if (spec.showScrollBar && spec.scrollBar.enabled && spec.visible) {
+  if (spec.showScrollBar && wantsScrollBar && spec.visible) {
     float trackX = bounds.width - spec.scrollBar.inset;
     float trackY = spec.scrollBar.padding;
     float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);

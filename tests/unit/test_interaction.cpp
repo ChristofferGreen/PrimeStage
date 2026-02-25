@@ -603,6 +603,60 @@ TEST_CASE("PrimeStage tree view scroll updates callback") {
   CHECK(lastScroll.progress <= 1.0f);
 }
 
+TEST_CASE("PrimeStage tree view scrolls with mouse wheel when scroll bar is disabled") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 140.0f);
+
+  PrimeStage::TreeViewSpec spec;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 80.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.rowStartX = 8.0f;
+  spec.rowWidthInset = 0.0f;
+  spec.rowStyle = 321u;
+  spec.rowAltStyle = 322u;
+  spec.selectionStyle = 323u;
+  spec.selectionAccentStyle = 324u;
+  spec.textStyle = 421u;
+  spec.selectedTextStyle = 422u;
+  spec.keyboardNavigation = false;
+  spec.showScrollBar = false;
+  spec.scrollBar.enabled = false;
+  spec.nodes = {
+      PrimeStage::TreeNode{"One"},
+      PrimeStage::TreeNode{"Two"},
+      PrimeStage::TreeNode{"Three"},
+      PrimeStage::TreeNode{"Four"},
+      PrimeStage::TreeNode{"Five"},
+      PrimeStage::TreeNode{"Six"},
+  };
+
+  bool scrolled = false;
+  PrimeStage::TreeViewScrollInfo lastScroll;
+  spec.callbacks.onScrollChanged = [&](PrimeStage::TreeViewScrollInfo const& info) {
+    scrolled = true;
+    lastScroll = info;
+  };
+
+  PrimeStage::UiNode tree = root.createTreeView(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 140.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(tree.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::Event scroll;
+  scroll.type = PrimeFrame::EventType::PointerScroll;
+  scroll.x = out->absX + 12.0f;
+  scroll.y = out->absY + 12.0f;
+  scroll.scrollY = 30.0f;
+  router.dispatch(scroll, frame, layout);
+
+  CHECK(scrolled);
+  CHECK(lastScroll.offset > 0.0f);
+}
+
 TEST_CASE("PrimeStage vertical slider maps top to 1 and bottom to 0") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 120.0f, 160.0f);
