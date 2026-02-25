@@ -2586,6 +2586,18 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
               state->pointerId = -1;
               notify_state();
             }
+            if (state->hovered && event.targetW > 0.0f && event.targetH > 0.0f) {
+              bool inside = event.localX >= 0.0f && event.localX < event.targetW &&
+                            event.localY >= 0.0f && event.localY < event.targetH;
+              if (!inside) {
+                state->hovered = false;
+                if (callbacks.onHoverChanged) {
+                  callbacks.onHoverChanged(false);
+                }
+                update_cursor_hint(false);
+                notify_state();
+              }
+            }
             return true;
           }
           return false;
