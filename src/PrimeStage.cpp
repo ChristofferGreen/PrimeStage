@@ -1361,6 +1361,7 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) 
   columnSpec.clipChildren = spec.clipChildren;
   columnSpec.visible = spec.visible;
   UiNode column = createVerticalStack(columnSpec);
+  column.setHitTestVisible(false);
 
   if (spec.selectionStyle == 0 || spec.selectionStart == spec.selectionEnd || spec.text.empty()) {
     return column;
@@ -1390,6 +1391,7 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) 
     lineSpec.size.preferredHeight = lineHeight;
     lineSpec.gap = 0.0f;
     UiNode lineRow = column.createHorizontalStack(lineSpec);
+    lineRow.setHitTestVisible(false);
 
     float leftWidth = 0.0f;
     float selectWidth = 0.0f;
@@ -1417,7 +1419,8 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) 
       selectSpec.rectStyle = spec.selectionStyle;
       selectSpec.rectStyleOverride = spec.selectionStyleOverride;
       selectSpec.size = selectSize;
-      lineRow.createPanel(selectSpec);
+      UiNode selectPanel = lineRow.createPanel(selectSpec);
+      selectPanel.setHitTestVisible(false);
     }
     SizeSpec fillSize;
     fillSize.stretchX = 1.0f;
