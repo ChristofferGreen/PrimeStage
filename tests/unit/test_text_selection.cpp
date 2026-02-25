@@ -248,3 +248,43 @@ TEST_CASE("Selectable text keyboard selection moves anchor and end") {
   CHECK(start == 0u);
   CHECK(end == 1u);
 }
+
+TEST_CASE("Selectable text moves vertically across lines") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello\nWorld";
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 80.0f;
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  state.focused = true;
+
+  constexpr int KeyDown = 0x51;
+  constexpr int KeyUp = 0x52;
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = KeyDown;
+  callback->onEvent(event);
+
+  uint32_t start = 0u;
+  uint32_t end = 0u;
+  CHECK_FALSE(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(state.selectionStart >= 5u);
+
+  event.key = KeyUp;
+  callback->onEvent(event);
+  CHECK(state.selectionStart <= 5u);
+}

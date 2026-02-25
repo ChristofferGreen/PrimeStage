@@ -2517,6 +2517,10 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
           constexpr int KeyRight = 0x4F;
           constexpr int KeyHome = 0x4A;
           constexpr int KeyEnd = 0x4D;
+          constexpr int KeyUp = 0x52;
+          constexpr int KeyDown = 0x51;
+          constexpr int KeyPageUp = 0x4B;
+          constexpr int KeyPageDown = 0x4E;
           constexpr uint32_t ShiftMask = 1u << 0u;
           constexpr uint32_t ControlMask = 1u << 1u;
           constexpr uint32_t SuperMask = 1u << 3u;
@@ -2532,6 +2536,87 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
             uint32_t cursor = hasSelection ? state->selectionEnd : state->selectionStart;
             uint32_t size = static_cast<uint32_t>(state->text.size());
             bool changed = false;
+            auto move_cursor = [&](uint32_t nextCursor) {
+              if (shiftPressed) {
+                if (!hasSelection) {
+                  state->selectionAnchor = cursor;
+                }
+                state->selectionStart = state->selectionAnchor;
+                state->selectionEnd = nextCursor;
+              } else {
+                clearSelectableTextSelection(*state, nextCursor);
+              }
+            };
+            auto line_height = [&]() -> float {
+              float height = layoutPtr->lineHeight;
+              if (height <= 0.0f) {
+                height = resolve_line_height(*framePtr, textStyle);
+              }
+              return height;
+            };
+            auto find_line_index = [&](uint32_t index) -> size_t {
+              if (layoutPtr->lines.empty()) {
+                return 0u;
+              }
+              for (size_t i = 0; i < layoutPtr->lines.size(); ++i) {
+                const auto& line = layoutPtr->lines[i];
+                if (index >= line.start && index <= line.end) {
+                  return i;
+                }
+              }
+              return layoutPtr->lines.size() - 1u;
+            };
+            auto cursor_x_for_line = [&](size_t lineIndex, uint32_t index) -> float {
+              if (layoutPtr->lines.empty()) {
+                return 0.0f;
+              }
+              const auto& line = layoutPtr->lines[lineIndex];
+              if (line.end < line.start) {
+                return 0.0f;
+              }
+              uint32_t localIndex = 0u;
+              if (index >= line.start) {
+                uint32_t clampedIndex = std::min(index, line.end);
+                localIndex = clampedIndex - line.start;
+              }
+              std::string_view lineText(state->text.data() + line.start, line.end - line.start);
+              auto positions = buildCaretPositions(*framePtr, textStyle, lineText);
+              if (positions.empty()) {
+                return 0.0f;
+              }
+              localIndex = std::min<uint32_t>(localIndex, static_cast<uint32_t>(positions.size() - 1u));
+              return positions[localIndex];
+            };
+            auto move_vertical = [&](int deltaLines) -> bool {
+              if (layoutPtr->lines.empty()) {
+                return false;
+              }
+              size_t lineIndex = find_line_index(cursor);
+              int target = static_cast<int>(lineIndex) + deltaLines;
+              if (target < 0) {
+                target = 0;
+              }
+              int maxIndex = static_cast<int>(layoutPtr->lines.size()) - 1;
+              if (target > maxIndex) {
+                target = maxIndex;
+              }
+              float height = line_height();
+              if (height <= 0.0f) {
+                return false;
+              }
+              float cursorX = cursor_x_for_line(lineIndex, cursor);
+              float localX = paddingX + cursorX;
+              float localY = (static_cast<float>(target) + 0.5f) * height;
+              uint32_t nextCursor = caretIndexForClickInLayout(*framePtr,
+                                                               textStyle,
+                                                               state->text,
+                                                               *layoutPtr,
+                                                               paddingX,
+                                                               localX,
+                                                               localY);
+              move_cursor(nextCursor);
+              return true;
+            };
             if (event.key == KeyLeft) {
               if (shiftPressed) {
                 if (!hasSelection) {
@@ -2542,7 +2627,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = hasSelection ? selectionStart : utf8Prev(state->text, cursor);
-                clearSelectableTextSelection(*state, cursor);
+                move_cursor(cursor);
               }
               changed = true;
             } else if (event.key == KeyRight) {
@@ -2555,7 +2640,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = hasSelection ? selectionEnd : utf8Next(state->text, cursor);
-                clearSelectableTextSelection(*state, cursor);
+                move_cursor(cursor);
               }
               changed = true;
             } else if (event.key == KeyHome) {
@@ -2568,7 +2653,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = 0u;
-                clearSelectableTextSelection(*state, cursor);
+                move_cursor(cursor);
               }
               changed = true;
             } else if (event.key == KeyEnd) {
@@ -2581,9 +2666,21 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = size;
-                clearSelectableTextSelection(*state, cursor);
+                move_cursor(cursor);
               }
               changed = true;
+            } else if (event.key == KeyUp) {
+              changed = move_vertical(-1);
+            } else if (event.key == KeyDown) {
+              changed = move_vertical(1);
+            } else if (event.key == KeyPageUp || event.key == KeyPageDown) {
+              float height = line_height();
+              int pageStep = 1;
+              if (height > 0.0f && event.targetH > 0.0f) {
+                pageStep = std::max(1, static_cast<int>(event.targetH / height) - 1);
+              }
+              int delta = (event.key == KeyPageDown) ? pageStep : -pageStep;
+              changed = move_vertical(delta);
             }
             if (changed) {
               notify_selection();
