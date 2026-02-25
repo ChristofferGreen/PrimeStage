@@ -84,6 +84,7 @@ if(PRIMESTAGE_BUILD_TESTS)
   add_executable(PrimeStage_tests
     tests/unit/test_main.cpp
     tests/unit/test_sanity.cpp
+    tests/unit/test_text_field.cpp
     tests/unit/test_text_selection.cpp
     tests/unit/test_treeview_input.cpp
   )
