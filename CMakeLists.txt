@@ -86,7 +86,12 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_sanity.cpp
     tests/unit/test_text_field.cpp
     tests/unit/test_text_selection.cpp
+    tests/unit/test_text_selection_layout.cpp
+    tests/unit/test_interaction.cpp
+    tests/unit/test_tabs_dropdown.cpp
+    tests/unit/test_tree_view.cpp
     tests/unit/test_treeview_input.cpp
+    tests/unit/test_widgets.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
   target_include_directories(PrimeStage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
