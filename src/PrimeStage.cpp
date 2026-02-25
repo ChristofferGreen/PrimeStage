@@ -283,15 +283,58 @@ PrimeFrame::NodeId create_text_node(PrimeFrame::Frame& frame,
 }
 
 struct FocusOverlay {
-  PrimeFrame::PrimitiveId primitive = 0;
+  std::vector<PrimeFrame::PrimitiveId> primitives;
   PrimeFrame::RectStyleOverride focused{};
   PrimeFrame::RectStyleOverride blurred{};
 };
 
+constexpr float FocusRingThickness = 2.0f;
+
+std::vector<PrimeFrame::PrimitiveId> add_focus_ring_primitives(
+    PrimeFrame::Frame& frame,
+    PrimeFrame::NodeId nodeId,
+    PrimeFrame::RectStyleToken token,
+    PrimeFrame::RectStyleOverride const& overrideStyle,
+    Rect const* bounds) {
+  std::vector<PrimeFrame::PrimitiveId> prims;
+  if (token == 0) {
+    return prims;
+  }
+  if (!bounds || bounds->width <= 0.0f || bounds->height <= 0.0f) {
+    prims.push_back(add_rect_primitive_with_rect(frame, nodeId, Rect{}, token, overrideStyle));
+    return prims;
+  }
+  float maxThickness = std::min(bounds->width, bounds->height) * 0.5f;
+  float thickness = std::clamp(FocusRingThickness, 1.0f, maxThickness);
+  Rect top{0.0f, 0.0f, bounds->width, thickness};
+  Rect bottom{0.0f,
+              std::max(0.0f, bounds->height - thickness),
+              bounds->width,
+              thickness};
+  float sideHeight = std::max(0.0f, bounds->height - thickness * 2.0f);
+  Rect left{0.0f, thickness, thickness, sideHeight};
+  Rect right{std::max(0.0f, bounds->width - thickness), thickness, thickness, sideHeight};
+  auto add_if = [&](Rect const& rect) {
+    if (rect.width <= 0.0f || rect.height <= 0.0f) {
+      return;
+    }
+    prims.push_back(add_rect_primitive_with_rect(frame, nodeId, rect, token, overrideStyle));
+  };
+  add_if(top);
+  add_if(bottom);
+  add_if(left);
+  add_if(right);
+  if (prims.empty()) {
+    prims.push_back(add_rect_primitive_with_rect(frame, nodeId, Rect{}, token, overrideStyle));
+  }
+  return prims;
+}
+
 std::optional<FocusOverlay> add_focus_overlay_primitive(PrimeFrame::Frame& frame,
                                                         PrimeFrame::NodeId nodeId,
                                                         PrimeFrame::RectStyleToken token,
-                                                        PrimeFrame::RectStyleOverride const& overrideStyle) {
+                                                        PrimeFrame::RectStyleOverride const& overrideStyle,
+                                                        Rect const* bounds) {
   if (token == 0) {
     return std::nullopt;
   }
@@ -299,8 +342,10 @@ std::optional<FocusOverlay> add_focus_overlay_primitive(PrimeFrame::Frame& frame
   overlay.focused = overrideStyle;
   overlay.blurred = overrideStyle;
   overlay.blurred.opacity = 0.0f;
-  overlay.primitive =
-      add_rect_primitive_with_rect(frame, nodeId, Rect{}, token, overlay.blurred);
+  overlay.primitives = add_focus_ring_primitives(frame, nodeId, token, overlay.blurred, bounds);
+  if (overlay.primitives.empty()) {
+    return std::nullopt;
+  }
   return overlay;
 }
 
@@ -318,30 +363,35 @@ std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
   overlay.blurred = overrideStyle;
   overlay.blurred.opacity = 0.0f;
   PrimeFrame::NodeId overlayId =
-      create_rect_node(frame, parent, rect, token, overlay.blurred, false, visible);
-  PrimeFrame::Node const* node = frame.getNode(overlayId);
-  if (!node || node->primitives.empty()) {
+      create_node(frame, parent, rect, nullptr, PrimeFrame::LayoutType::None,
+                  PrimeFrame::Insets{}, 0.0f, false, visible);
+  if (PrimeFrame::Node* node = frame.getNode(overlayId)) {
+    node->hitTestVisible = false;
+  }
+  overlay.primitives = add_focus_ring_primitives(frame, overlayId, token, overlay.blurred, &rect);
+  if (overlay.primitives.empty()) {
     return std::nullopt;
   }
-  overlay.primitive = node->primitives.front();
   return overlay;
 }
 
 void attach_focus_callbacks(PrimeFrame::Frame& frame,
                             PrimeFrame::NodeId nodeId,
                             FocusOverlay const& overlay) {
-  if (overlay.primitive == 0) {
+  if (overlay.primitives.empty()) {
     return;
   }
   auto applyFocus = [framePtr = &frame,
-                     primId = overlay.primitive,
+                     prims = overlay.primitives,
                      focused = overlay.focused,
                      blurred = overlay.blurred](bool focusedState) {
-    PrimeFrame::Primitive* prim = framePtr->getPrimitive(primId);
-    if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
-      return;
+    for (PrimeFrame::PrimitiveId primId : prims) {
+      PrimeFrame::Primitive* prim = framePtr->getPrimitive(primId);
+      if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
+        continue;
+      }
+      prim->rect.overrideStyle = focusedState ? focused : blurred;
     }
-    prim->rect.overrideStyle = focusedState ? focused : blurred;
   };
 
   PrimeFrame::Node* node = frame.getNode(nodeId);
@@ -1608,10 +1658,12 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   UiNode button = createPanel(panel);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
+    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_primitive(frame(),
                                                button.nodeId(),
                                                spec.focusStyle,
-                                               spec.focusStyleOverride);
+                                               spec.focusStyleOverride,
+                                               &focusRect);
     if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
       node->focusable = focusOverlay.has_value();
     }
@@ -1811,10 +1863,12 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   UiNode field = createPanel(panel);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
+    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_primitive(frame(),
                                                field.nodeId(),
                                                spec.focusStyle,
-                                               spec.focusStyleOverride);
+                                               spec.focusStyleOverride,
+                                               &focusRect);
     if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
       node->focusable = (state != nullptr) || focusOverlay.has_value();
     }
@@ -2420,10 +2474,12 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
 
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
+    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_primitive(frame(),
                                                overlay.nodeId(),
                                                spec.focusStyle,
-                                               spec.focusStyleOverride);
+                                               spec.focusStyleOverride,
+                                               &focusRect);
     if (PrimeFrame::Node* node = frame().getNode(overlay.nodeId())) {
       node->focusable = (spec.state != nullptr) || focusOverlay.has_value();
     }
@@ -2856,6 +2912,14 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
       state->focused = false;
       state->selecting = false;
       state->pointerId = -1;
+      uint32_t start = std::min(state->selectionStart, state->selectionEnd);
+      uint32_t end = std::max(state->selectionStart, state->selectionEnd);
+      if (start != end) {
+        clearSelectableTextSelection(*state, start);
+        if (callbacks.onSelectionChanged) {
+          callbacks.onSelectionChanged(start, start);
+        }
+      }
       if (callbacks.onFocusChanged) {
         callbacks.onFocusChanged(false);
       }
@@ -3105,10 +3169,12 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
+  Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
   focusOverlay = add_focus_overlay_primitive(frame(),
                                              slider.nodeId(),
                                              spec.focusStyle,
-                                             spec.focusStyleOverride);
+                                             spec.focusStyleOverride,
+                                             &focusRect);
   if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
     node->focusable = focusOverlay.has_value();
   }

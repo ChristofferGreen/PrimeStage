@@ -440,3 +440,28 @@ TEST_CASE("Selectable text alt shift extends word selection") {
   CHECK(state.selectionStart == state.selectionEnd);
   CHECK(state.selectionStart == 0u);
 }
+
+TEST_CASE("Selectable text clears selection on blur") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  state.focused = true;
+  state.selectionStart = 0u;
+  state.selectionEnd = 5u;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello world";
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onBlur);
+
+  callback->onBlur();
+  CHECK(state.selectionStart == state.selectionEnd);
+}
