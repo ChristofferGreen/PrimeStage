@@ -1863,6 +1863,15 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
           return false;
         }
 
+        auto update_cursor_hint = [&](bool hovered) {
+          CursorHint next = hovered ? CursorHint::IBeam : CursorHint::Arrow;
+          if (state->cursorHint != next) {
+            state->cursorHint = next;
+            if (callbacks.onCursorHintChanged) {
+              callbacks.onCursorHintChanged(next);
+            }
+          }
+        };
         auto clamp_indices = [&]() {
           uint32_t size = static_cast<uint32_t>(state->text.size());
           state->cursor = std::min(state->cursor, size);
@@ -1892,6 +1901,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
               if (callbacks.onHoverChanged) {
                 callbacks.onHoverChanged(true);
               }
+              update_cursor_hint(true);
               notify_state();
             }
             return true;
@@ -1902,6 +1912,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
               if (callbacks.onHoverChanged) {
                 callbacks.onHoverChanged(false);
               }
+              update_cursor_hint(false);
               notify_state();
             }
             return true;
@@ -2394,6 +2405,15 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
       if (!state) {
         return false;
       }
+      auto update_cursor_hint = [&](bool hovered) {
+        CursorHint next = hovered ? CursorHint::IBeam : CursorHint::Arrow;
+        if (state->cursorHint != next) {
+          state->cursorHint = next;
+          if (callbacks.onCursorHintChanged) {
+            callbacks.onCursorHintChanged(next);
+          }
+        }
+      };
       auto notify_state = [&]() {
         if (callbacks.onStateChanged) {
           callbacks.onStateChanged();
@@ -2420,6 +2440,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
             if (callbacks.onHoverChanged) {
               callbacks.onHoverChanged(true);
             }
+            update_cursor_hint(true);
             notify_state();
           }
           return true;
@@ -2430,6 +2451,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
             if (callbacks.onHoverChanged) {
               callbacks.onHoverChanged(false);
             }
+            update_cursor_hint(false);
             notify_state();
           }
           return true;

@@ -14,6 +14,11 @@ namespace PrimeStage {
 
 struct TextSelectionLayout;
 
+enum class CursorHint : uint8_t {
+  Arrow,
+  IBeam,
+};
+
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;
@@ -129,6 +134,7 @@ struct TextFieldState {
   int pointerId = -1;
   bool cursorVisible = false;
   std::chrono::steady_clock::time_point nextBlink{};
+  CursorHint cursorHint = CursorHint::Arrow;
 };
 
 struct TextFieldClipboard {
@@ -141,6 +147,7 @@ struct TextFieldCallbacks {
   std::function<void(std::string_view)> onTextChanged;
   std::function<void(bool)> onFocusChanged;
   std::function<void(bool)> onHoverChanged;
+  std::function<void(CursorHint)> onCursorHintChanged;
   std::function<void()> onRequestBlur;
   std::function<void()> onSubmit;
 };
@@ -188,6 +195,7 @@ struct SelectableTextState {
   bool hovered = false;
   bool selecting = false;
   int pointerId = -1;
+  CursorHint cursorHint = CursorHint::Arrow;
 };
 
 struct SelectableTextClipboard {
@@ -199,6 +207,7 @@ struct SelectableTextCallbacks {
   std::function<void(uint32_t, uint32_t)> onSelectionChanged;
   std::function<void(bool)> onFocusChanged;
   std::function<void(bool)> onHoverChanged;
+  std::function<void(CursorHint)> onCursorHintChanged;
 };
 
 struct SelectableTextSpec {
