@@ -288,3 +288,52 @@ TEST_CASE("Selectable text moves vertically across lines") {
   callback->onEvent(event);
   CHECK(state.selectionStart <= 5u);
 }
+
+TEST_CASE("Selectable text word navigation uses alt") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello world";
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 40.0f;
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  state.focused = true;
+
+  constexpr int KeyRight = 0x4F;
+  constexpr int KeyLeft = 0x50;
+  constexpr uint32_t AltMask = 1u << 2u;
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = KeyRight;
+  event.modifiers = AltMask;
+  callback->onEvent(event);
+
+  CHECK(state.selectionStart == 5u);
+  CHECK(state.selectionEnd == 5u);
+
+  callback->onEvent(event);
+  CHECK(state.selectionStart == 6u);
+  CHECK(state.selectionEnd == 6u);
+
+  event.key = KeyLeft;
+  callback->onEvent(event);
+  CHECK(state.selectionStart == 0u);
+  CHECK(state.selectionEnd == 0u);
+
+  callback->onEvent(event);
+  CHECK(state.selectionStart == 0u);
+  CHECK(state.selectionEnd == 0u);
+}

@@ -686,6 +686,77 @@ uint32_t utf8Next(std::string_view text, uint32_t index) {
   return i;
 }
 
+static bool is_word_char(std::string_view text, uint32_t index) {
+  if (index >= text.size()) {
+    return false;
+  }
+  unsigned char ch = static_cast<unsigned char>(text[index]);
+  if (ch >= 0x80u) {
+    return true;
+  }
+  return std::isalnum(ch) || ch == '_';
+}
+
+static bool is_space_char(std::string_view text, uint32_t index) {
+  if (index >= text.size()) {
+    return false;
+  }
+  unsigned char ch = static_cast<unsigned char>(text[index]);
+  return std::isspace(ch) != 0;
+}
+
+static uint32_t prev_word_boundary(std::string_view text, uint32_t cursor) {
+  if (cursor == 0u) {
+    return 0u;
+  }
+  uint32_t i = utf8Prev(text, cursor);
+  while (i > 0u && is_space_char(text, i)) {
+    i = utf8Prev(text, i);
+  }
+  if (is_word_char(text, i)) {
+    while (i > 0u) {
+      uint32_t prev = utf8Prev(text, i);
+      if (!is_word_char(text, prev)) {
+        break;
+      }
+      i = prev;
+    }
+    return i;
+  }
+  while (i > 0u && !is_word_char(text, i)) {
+    i = utf8Prev(text, i);
+  }
+  if (!is_word_char(text, i)) {
+    return 0u;
+  }
+  while (i > 0u) {
+    uint32_t prev = utf8Prev(text, i);
+    if (!is_word_char(text, prev)) {
+      break;
+    }
+    i = prev;
+  }
+  return i;
+}
+
+static uint32_t next_word_boundary(std::string_view text, uint32_t cursor) {
+  uint32_t size = static_cast<uint32_t>(text.size());
+  if (cursor >= size) {
+    return size;
+  }
+  uint32_t i = cursor;
+  if (is_word_char(text, i)) {
+    while (i < size && is_word_char(text, i)) {
+      i = utf8Next(text, i);
+    }
+    return i;
+  }
+  while (i < size && !is_word_char(text, i)) {
+    i = utf8Next(text, i);
+  }
+  return i;
+}
+
 bool textFieldHasSelection(TextFieldState const& state,
                            uint32_t& start,
                            uint32_t& end) {
@@ -2523,8 +2594,10 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
           constexpr int KeyPageDown = 0x4E;
           constexpr uint32_t ShiftMask = 1u << 0u;
           constexpr uint32_t ControlMask = 1u << 1u;
+          constexpr uint32_t AltMask = 1u << 2u;
           constexpr uint32_t SuperMask = 1u << 3u;
           bool shiftPressed = (event.modifiers & ShiftMask) != 0u;
+          bool altPressed = (event.modifiers & AltMask) != 0u;
           bool isShortcut =
               handleClipboardShortcuts &&
               ((event.modifiers & ControlMask) != 0u || (event.modifiers & SuperMask) != 0u);
@@ -2618,7 +2691,10 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
               return true;
             };
             if (event.key == KeyLeft) {
-              if (shiftPressed) {
+              if (altPressed) {
+                cursor = hasSelection ? selectionStart : prev_word_boundary(state->text, cursor);
+                move_cursor(cursor);
+              } else if (shiftPressed) {
                 if (!hasSelection) {
                   state->selectionAnchor = cursor;
                 }
@@ -2631,7 +2707,10 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
               }
               changed = true;
             } else if (event.key == KeyRight) {
-              if (shiftPressed) {
+              if (altPressed) {
+                cursor = hasSelection ? selectionEnd : next_word_boundary(state->text, cursor);
+                move_cursor(cursor);
+              } else if (shiftPressed) {
                 if (!hasSelection) {
                   state->selectionAnchor = cursor;
                 }
