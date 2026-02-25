@@ -107,3 +107,59 @@ TEST_CASE("Slider drag updates value") {
 
   CHECK(lastValue > 0.0f);
 }
+
+TEST_CASE("TreeView scroll follows keyboard selection") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = makeRoot(frame, 240.0f, 80.0f);
+  UiNode root(frame, rootId);
+
+  TreeViewSpec spec;
+  spec.size.preferredWidth = 240.0f;
+  spec.size.preferredHeight = 80.0f;
+  spec.rowStartY = 0.0f;
+  spec.rowHeight = 20.0f;
+  spec.rowGap = 0.0f;
+  spec.keyboardNavigation = true;
+  spec.rowStyle = 0;
+  spec.rowAltStyle = 0;
+  spec.selectionStyle = 0;
+  spec.textStyle = 0;
+  spec.selectedTextStyle = 0;
+
+  std::vector<TreeNode> children;
+  for (int i = 0; i < 12; ++i) {
+    children.push_back(TreeNode{"Item", {}});
+  }
+  spec.nodes = {TreeNode{"Root", children, true, false}};
+
+  float lastScrollOffset = 0.0f;
+  spec.callbacks.onScrollChanged = [&](TreeViewScrollInfo const& info) {
+    lastScrollOffset = info.offset;
+  };
+
+  UiNode tree = root.createTreeView(spec);
+
+  PrimeFrame::LayoutEngine engine;
+  PrimeFrame::LayoutOutput layout;
+  engine.layout(frame, layout);
+
+  PrimeFrame::FocusManager focus;
+  focus.setActiveRoot(frame, layout, rootId);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::Event down;
+  down.type = PrimeFrame::EventType::PointerDown;
+  down.pointerId = 1;
+  down.x = 8.0f;
+  down.y = 10.0f;
+  router.dispatch(down, frame, layout, &focus);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = 0x51; // KeyDown
+  for (int i = 0; i < 6; ++i) {
+    router.dispatch(keyDown, frame, layout, &focus);
+  }
+
+  CHECK(lastScrollOffset > 0.0f);
+}

@@ -4147,26 +4147,6 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   };
 
-  auto setSelected = [interaction, updateRowVisual, makeRowInfo](int rowIndex) {
-    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
-      return false;
-    }
-    if (interaction->selectedRow == rowIndex) {
-      return false;
-    }
-    int previous = interaction->selectedRow;
-    interaction->selectedRow = rowIndex;
-    if (previous >= 0) {
-      updateRowVisual(previous);
-    }
-    updateRowVisual(rowIndex);
-    if (interaction->callbacks.onSelectionChanged) {
-      TreeViewRowInfo info = makeRowInfo(rowIndex);
-      interaction->callbacks.onSelectionChanged(info);
-    }
-    return true;
-  };
-
   auto requestToggle = [interaction, makeRowInfo](int rowIndex, bool expanded) {
     if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
       return;
@@ -4213,6 +4193,47 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       info.contentHeight = interaction->contentHeight;
       interaction->callbacks.onScrollChanged(info);
     }
+  };
+
+  auto ensureRowVisible = [interaction, applyScroll, rowHeight = spec.rowHeight, rowGap = spec.rowGap](int rowIndex) {
+    if (!interaction->scrollEnabled) {
+      return;
+    }
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+      return;
+    }
+    float rowPitch = std::max(1.0f, rowHeight + rowGap);
+    float rowTop = rowPitch * static_cast<float>(rowIndex);
+    float rowBottom = rowTop + rowHeight;
+    float viewTop = interaction->scrollOffset;
+    float viewBottom = viewTop + interaction->viewportHeight;
+    if (rowTop < viewTop) {
+      applyScroll(rowTop, true);
+    } else if (rowBottom > viewBottom) {
+      float next = rowBottom - interaction->viewportHeight;
+      applyScroll(next, true);
+    }
+  };
+
+  auto setSelected = [interaction, updateRowVisual, makeRowInfo, ensureRowVisible](int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
+      return false;
+    }
+    if (interaction->selectedRow == rowIndex) {
+      return false;
+    }
+    int previous = interaction->selectedRow;
+    interaction->selectedRow = rowIndex;
+    if (previous >= 0) {
+      updateRowVisual(previous);
+    }
+    updateRowVisual(rowIndex);
+    if (interaction->callbacks.onSelectionChanged) {
+      TreeViewRowInfo info = makeRowInfo(rowIndex);
+      interaction->callbacks.onSelectionChanged(info);
+    }
+    ensureRowVisible(rowIndex);
+    return true;
   };
 
   auto scrollBy = [interaction, applyScroll](float delta) {
