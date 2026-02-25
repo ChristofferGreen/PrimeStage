@@ -282,6 +282,100 @@ PrimeFrame::NodeId create_text_node(PrimeFrame::Frame& frame,
   return id;
 }
 
+struct FocusOverlay {
+  PrimeFrame::PrimitiveId primitive = 0;
+  PrimeFrame::RectStyleOverride focused{};
+  PrimeFrame::RectStyleOverride blurred{};
+};
+
+std::optional<FocusOverlay> add_focus_overlay_primitive(PrimeFrame::Frame& frame,
+                                                        PrimeFrame::NodeId nodeId,
+                                                        PrimeFrame::RectStyleToken token,
+                                                        PrimeFrame::RectStyleOverride const& overrideStyle) {
+  if (token == 0) {
+    return std::nullopt;
+  }
+  FocusOverlay overlay;
+  overlay.focused = overrideStyle;
+  overlay.blurred = overrideStyle;
+  overlay.blurred.opacity = 0.0f;
+  overlay.primitive =
+      add_rect_primitive_with_rect(frame, nodeId, Rect{}, token, overlay.blurred);
+  return overlay;
+}
+
+std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
+                                                   PrimeFrame::NodeId parent,
+                                                   Rect const& rect,
+                                                   PrimeFrame::RectStyleToken token,
+                                                   PrimeFrame::RectStyleOverride const& overrideStyle,
+                                                   bool visible) {
+  if (token == 0) {
+    return std::nullopt;
+  }
+  FocusOverlay overlay;
+  overlay.focused = overrideStyle;
+  overlay.blurred = overrideStyle;
+  overlay.blurred.opacity = 0.0f;
+  PrimeFrame::NodeId overlayId =
+      create_rect_node(frame, parent, rect, token, overlay.blurred, false, visible);
+  PrimeFrame::Node const* node = frame.getNode(overlayId);
+  if (!node || node->primitives.empty()) {
+    return std::nullopt;
+  }
+  overlay.primitive = node->primitives.front();
+  return overlay;
+}
+
+void attach_focus_callbacks(PrimeFrame::Frame& frame,
+                            PrimeFrame::NodeId nodeId,
+                            FocusOverlay const& overlay) {
+  if (overlay.primitive == 0) {
+    return;
+  }
+  auto applyFocus = [framePtr = &frame,
+                     primId = overlay.primitive,
+                     focused = overlay.focused,
+                     blurred = overlay.blurred](bool focusedState) {
+    PrimeFrame::Primitive* prim = framePtr->getPrimitive(primId);
+    if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
+      return;
+    }
+    prim->rect.overrideStyle = focusedState ? focused : blurred;
+  };
+
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return;
+  }
+  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback* callback = frame.getCallback(node->callbacks);
+    if (!callback) {
+      return;
+    }
+    auto prevFocus = callback->onFocus;
+    auto prevBlur = callback->onBlur;
+    callback->onFocus = [applyFocus, prevFocus]() {
+      applyFocus(true);
+      if (prevFocus) {
+        prevFocus();
+      }
+    };
+    callback->onBlur = [applyFocus, prevBlur]() {
+      applyFocus(false);
+      if (prevBlur) {
+        prevBlur();
+      }
+    };
+    return;
+  }
+
+  PrimeFrame::Callback callback;
+  callback.onFocus = [applyFocus]() { applyFocus(true); };
+  callback.onBlur = [applyFocus]() { applyFocus(false); };
+  node->callbacks = frame.addCallback(std::move(callback));
+}
+
 float resolve_line_height(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token) {
   PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
   if (!theme) {
@@ -1381,37 +1475,50 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   panel.rectStyleOverride = baseOverride;
   panel.visible = spec.visible;
   UiNode button = createPanel(panel);
-  if (spec.label.empty() || !spec.visible) {
+  std::optional<FocusOverlay> focusOverlay;
+  if (spec.visible) {
+    focusOverlay = add_focus_overlay_primitive(frame(),
+                                               button.nodeId(),
+                                               spec.focusStyle,
+                                               spec.focusStyleOverride);
+    if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
+      node->focusable = focusOverlay.has_value();
+    }
+  }
+  if (!spec.visible) {
     return UiNode(frame(), button.nodeId(), allowAbsolute_);
   }
-  float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-  float textX = spec.textInsetX;
-  float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
-  PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
-  if (spec.centerText) {
-    textX = (bounds.width - textWidth) * 0.5f;
-    if (textX < 0.0f) {
-      textX = 0.0f;
+
+  if (!spec.label.empty()) {
+    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
+    float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
+    float textX = spec.textInsetX;
+    float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
+    PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
+    if (spec.centerText) {
+      textX = (bounds.width - textWidth) * 0.5f;
+      if (textX < 0.0f) {
+        textX = 0.0f;
+      }
+      labelWidth = std::max(0.0f, textWidth);
     }
-    labelWidth = std::max(0.0f, textWidth);
-  }
 
-  if (!spec.centerText && textWidth > 0.0f) {
-    labelWidth = std::max(labelWidth, textWidth);
-  }
+    if (!spec.centerText && textWidth > 0.0f) {
+      labelWidth = std::max(labelWidth, textWidth);
+    }
 
-  Rect textRect{textX, textY, labelWidth, lineHeight};
-  create_text_node(frame(),
-                   button.nodeId(),
-                   textRect,
-                   spec.label,
-                   spec.textStyle,
-                   spec.textStyleOverride,
-                   align,
-                   PrimeFrame::WrapMode::None,
-                   labelWidth,
-                   spec.visible);
+    Rect textRect{textX, textY, labelWidth, lineHeight};
+    create_text_node(frame(),
+                     button.nodeId(),
+                     textRect,
+                     spec.label,
+                     spec.textStyle,
+                     spec.textStyleOverride,
+                     align,
+                     PrimeFrame::WrapMode::None,
+                     labelWidth,
+                     spec.visible);
+  }
 
   bool needsInteraction = spec.callbacks.onClick ||
                           spec.callbacks.onHoverChanged ||
@@ -1517,6 +1624,10 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
     }
   }
 
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), button.nodeId(), *focusOverlay);
+  }
+
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
@@ -1566,6 +1677,16 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   panel.rectStyleOverride = spec.backgroundStyleOverride;
   panel.visible = spec.visible;
   UiNode field = createPanel(panel);
+  std::optional<FocusOverlay> focusOverlay;
+  if (spec.visible) {
+    focusOverlay = add_focus_overlay_primitive(frame(),
+                                               field.nodeId(),
+                                               spec.focusStyle,
+                                               spec.focusStyleOverride);
+    if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
+      node->focusable = focusOverlay.has_value();
+    }
+  }
 
   std::string_view content = spec.text;
   PrimeFrame::TextStyleToken style = spec.textStyle;
@@ -1662,6 +1783,10 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
                      spec.cursorStyleOverride,
                      false,
                      spec.visible);
+  }
+
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), field.nodeId(), *focusOverlay);
   }
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
@@ -1895,6 +2020,15 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
     }
   }
 
+  std::optional<FocusOverlay> focusOverlay;
+  focusOverlay = add_focus_overlay_primitive(frame(),
+                                             slider.nodeId(),
+                                             spec.focusStyle,
+                                             spec.focusStyleOverride);
+  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
+    node->focusable = focusOverlay.has_value();
+  }
+
   if (spec.callbacks.onValueChanged || spec.callbacks.onDragStart || spec.callbacks.onDragEnd) {
     struct SliderState {
       bool active = false;
@@ -2081,6 +2215,10 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
     if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
       node->callbacks = callbackId;
     }
+  }
+
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), slider.nodeId(), *focusOverlay);
   }
 
   return UiNode(frame(), slider.nodeId(), allowAbsolute_);
@@ -2680,6 +2818,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   treeSpec.visible = spec.visible;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode treeNode = parentNode.createOverlay(treeSpec);
+  bool hasFocusStyle = spec.focusStyle != 0;
 
   float rowWidth = std::max(0.0f, bounds.width);
   float rowTextHeight = resolve_line_height(frame(), spec.textStyle);
@@ -2748,8 +2887,12 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     float scrollDragStartY = 0.0f;
     float scrollDragStartOffset = 0.0f;
     int scrollHoverCount = 0;
+    PrimeFrame::RectStyleOverride scrollTrackBaseOverride{};
+    PrimeFrame::RectStyleOverride scrollThumbBaseOverride{};
     std::optional<float> scrollTrackHoverOpacity;
+    std::optional<float> scrollTrackPressedOpacity;
     std::optional<float> scrollThumbHoverOpacity;
+    std::optional<float> scrollThumbPressedOpacity;
   };
 
   auto interaction = std::make_shared<TreeViewInteractionState>();
@@ -2767,8 +2910,12 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     initialProgress = 0.0f;
   }
   interaction->scrollOffset = initialProgress * interaction->maxScroll;
+  interaction->scrollTrackBaseOverride = spec.scrollBar.trackStyleOverride;
+  interaction->scrollThumbBaseOverride = spec.scrollBar.thumbStyleOverride;
   interaction->scrollTrackHoverOpacity = spec.scrollBar.trackHoverOpacity;
+  interaction->scrollTrackPressedOpacity = spec.scrollBar.trackPressedOpacity;
   interaction->scrollThumbHoverOpacity = spec.scrollBar.thumbHoverOpacity;
+  interaction->scrollThumbPressedOpacity = spec.scrollBar.thumbPressedOpacity;
 
   UiNode rowsNode = treeNode.createVerticalStack(rowsSpec);
   interaction->viewportNode = rowsNode.nodeId();
@@ -2928,28 +3075,34 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
   auto applyScrollHover = [interaction]() {
     bool hovered = interaction->scrollHoverCount > 0;
-    if (interaction->scrollTrackPrim != 0) {
-      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(interaction->scrollTrackPrim)) {
-        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
-          if (hovered && interaction->scrollTrackHoverOpacity.has_value()) {
-            prim->rect.overrideStyle.opacity = interaction->scrollTrackHoverOpacity.value();
-          } else {
-            prim->rect.overrideStyle.opacity.reset();
-          }
-        }
+    bool pressed = interaction->scrollDragging;
+    auto apply_override = [&](PrimeFrame::PrimitiveId primId,
+                              PrimeFrame::RectStyleOverride const& base,
+                              std::optional<float> hoverOpacity,
+                              std::optional<float> pressedOpacity) {
+      if (primId == 0) {
+        return;
       }
-    }
-    if (interaction->scrollThumbPrim != 0) {
-      if (PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(interaction->scrollThumbPrim)) {
-        if (prim->type == PrimeFrame::PrimitiveType::Rect) {
-          if (hovered && interaction->scrollThumbHoverOpacity.has_value()) {
-            prim->rect.overrideStyle.opacity = interaction->scrollThumbHoverOpacity.value();
-          } else {
-            prim->rect.overrideStyle.opacity.reset();
-          }
-        }
+      PrimeFrame::Primitive* prim = interaction->frame->getPrimitive(primId);
+      if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
+        return;
       }
-    }
+      PrimeFrame::RectStyleOverride overrideStyle = base;
+      if (pressed && pressedOpacity.has_value()) {
+        overrideStyle.opacity = pressedOpacity.value();
+      } else if (hovered && hoverOpacity.has_value()) {
+        overrideStyle.opacity = hoverOpacity.value();
+      }
+      prim->rect.overrideStyle = overrideStyle;
+    };
+    apply_override(interaction->scrollTrackPrim,
+                   interaction->scrollTrackBaseOverride,
+                   interaction->scrollTrackHoverOpacity,
+                   interaction->scrollTrackPressedOpacity);
+    apply_override(interaction->scrollThumbPrim,
+                   interaction->scrollThumbBaseOverride,
+                   interaction->scrollThumbHoverOpacity,
+                   interaction->scrollThumbPressedOpacity);
   };
 
   constexpr int KeyEnter = 0x28;
@@ -3273,7 +3426,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   if ((wantsKeyboard || wantsScroll) && spec.visible) {
     PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
     if (treeNodePtr) {
-      treeNodePtr->focusable = wantsKeyboard;
+      treeNodePtr->focusable = wantsKeyboard || hasFocusStyle;
       PrimeFrame::Callback keyCallback;
       keyCallback.onEvent = [interaction,
                              setSelected,
@@ -3402,7 +3555,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                                                   treeNode.nodeId(),
                                                   Rect{trackX, trackY, trackW, trackH},
                                                   spec.scrollBar.trackStyle,
-                                                  {},
+                                                  spec.scrollBar.trackStyleOverride,
                                                   false,
                                                   spec.visible);
     if (PrimeFrame::Node* trackNode = frame().getNode(trackId)) {
@@ -3435,7 +3588,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                                                   treeNode.nodeId(),
                                                   Rect{trackX, thumbY, trackW, thumbH},
                                                   spec.scrollBar.thumbStyle,
-                                                  {},
+                                                  spec.scrollBar.thumbStyleOverride,
                                                   false,
                                                   spec.visible);
     if (PrimeFrame::Node* thumbNode = frame().getNode(thumbId)) {
@@ -3503,6 +3656,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
           interaction->scrollPointerId = event.pointerId;
           interaction->scrollDragStartY = event.y;
           interaction->scrollDragStartOffset = interaction->scrollOffset;
+          applyScrollHover();
           return true;
         }
         case PrimeFrame::EventType::PointerDrag:
@@ -3524,6 +3678,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
           if (interaction->scrollPointerId == event.pointerId) {
             interaction->scrollDragging = false;
             interaction->scrollPointerId = -1;
+            applyScrollHover();
             return true;
           }
           return false;
@@ -3539,6 +3694,23 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
 
     applyScroll(interaction->scrollOffset, false, true);
+  }
+
+  std::optional<FocusOverlay> focusOverlay;
+  if (spec.visible && hasFocusStyle) {
+    Rect overlayRect{0.0f, 0.0f, bounds.width, bounds.height};
+    focusOverlay = add_focus_overlay_node(frame(),
+                                          treeNode.nodeId(),
+                                          overlayRect,
+                                          spec.focusStyle,
+                                          spec.focusStyleOverride,
+                                          spec.visible);
+    if (PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId())) {
+      treeNodePtr->focusable = true;
+    }
+  }
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), treeNode.nodeId(), *focusOverlay);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);

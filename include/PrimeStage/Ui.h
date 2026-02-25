@@ -101,6 +101,8 @@ struct ButtonSpec {
   PrimeFrame::RectStyleOverride hoverStyleOverride{};
   PrimeFrame::RectStyleToken pressedStyle = 0;
   PrimeFrame::RectStyleOverride pressedStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   float textInsetX = 16.0f;
@@ -121,6 +123,8 @@ struct TextFieldSpec {
   float textOffsetY = 0.0f;
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextStyleToken placeholderStyle = 0;
@@ -201,6 +205,8 @@ struct SliderSpec {
   std::optional<float> fillPressedOpacity;
   PrimeFrame::RectStyleToken thumbStyle = 0;
   PrimeFrame::RectStyleOverride thumbStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   std::optional<float> trackHoverOpacity;
   std::optional<float> trackPressedOpacity;
   std::optional<float> thumbHoverOpacity;
@@ -276,9 +282,13 @@ struct ScrollBarSpec {
   float thumbFraction = 0.18f;
   float thumbProgress = 0.0f;
   std::optional<float> trackHoverOpacity;
+  std::optional<float> trackPressedOpacity;
   std::optional<float> thumbHoverOpacity;
+  std::optional<float> thumbPressedOpacity;
   PrimeFrame::RectStyleToken trackStyle = 0;
+  PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken thumbStyle = 0;
+  PrimeFrame::RectStyleOverride thumbStyleOverride{};
 };
 
 struct TableColumn {
@@ -370,6 +380,8 @@ struct TreeViewSpec {
   PrimeFrame::RectStyleToken caretBackgroundStyle = 0;
   PrimeFrame::RectStyleToken caretLineStyle = 0;
   PrimeFrame::RectStyleToken connectorStyle = 0;
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleToken selectedTextStyle = 0;
   ScrollBarSpec scrollBar{};
