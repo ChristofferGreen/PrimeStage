@@ -178,3 +178,21 @@ TEST_CASE("Selection rects follow line ranges and padding") {
   CHECK(rects[1].x == doctest::Approx(padding));
   CHECK(rects[1].width == doctest::Approx(line1End));
 }
+
+TEST_CASE("Selectable text helpers track and clear selection") {
+  PrimeStage::SelectableTextState state;
+  state.text = "Hello";
+  state.selectionStart = 1u;
+  state.selectionEnd = 4u;
+  uint32_t start = 0u;
+  uint32_t end = 0u;
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 1u);
+  CHECK(end == 4u);
+
+  PrimeStage::clearSelectableTextSelection(state, 2u);
+  CHECK(state.selectionAnchor == 2u);
+  CHECK(state.selectionStart == 2u);
+  CHECK(state.selectionEnd == 2u);
+  CHECK_FALSE(PrimeStage::selectableTextHasSelection(state, start, end));
+}

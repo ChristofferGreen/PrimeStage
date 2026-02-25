@@ -179,6 +179,49 @@ struct TextFieldSpec {
   SizeSpec size;
 };
 
+struct SelectableTextState {
+  std::string_view text;
+  uint32_t selectionAnchor = 0u;
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  bool focused = false;
+  bool hovered = false;
+  bool selecting = false;
+  int pointerId = -1;
+};
+
+struct SelectableTextClipboard {
+  std::function<void(std::string_view)> setText;
+};
+
+struct SelectableTextCallbacks {
+  std::function<void()> onStateChanged;
+  std::function<void(uint32_t, uint32_t)> onSelectionChanged;
+  std::function<void(bool)> onFocusChanged;
+  std::function<void(bool)> onHoverChanged;
+};
+
+struct SelectableTextSpec {
+  SelectableTextState* state = nullptr;
+  SelectableTextCallbacks callbacks{};
+  SelectableTextClipboard clipboard{};
+  std::string_view text;
+  PrimeFrame::TextStyleToken textStyle = 0;
+  PrimeFrame::TextStyleOverride textStyleOverride{};
+  PrimeFrame::WrapMode wrap = PrimeFrame::WrapMode::Word;
+  float maxWidth = 0.0f;
+  float paddingX = 0.0f;
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
+  PrimeFrame::RectStyleOverride selectionStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
+  bool handleClipboardShortcuts = true;
+  bool visible = true;
+  SizeSpec size;
+};
+
 struct TextSelectionOverlaySpec {
   std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
@@ -452,6 +495,10 @@ void clearTextFieldSelection(TextFieldState& state, uint32_t cursor);
 bool updateTextFieldBlink(TextFieldState& state,
                           std::chrono::steady_clock::time_point now,
                           std::chrono::milliseconds interval);
+bool selectableTextHasSelection(SelectableTextState const& state,
+                                uint32_t& start,
+                                uint32_t& end);
+void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor);
 
 struct ScrollView;
 
@@ -511,6 +558,7 @@ public:
   UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
+  UiNode createSelectableText(SelectableTextSpec const& spec);
   UiNode createToggle(ToggleSpec const& spec);
   UiNode createCheckbox(CheckboxSpec const& spec);
   UiNode createSlider(SliderSpec const& spec);

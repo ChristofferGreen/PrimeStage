@@ -724,6 +724,22 @@ bool updateTextFieldBlink(TextFieldState& state,
   return changed;
 }
 
+bool selectableTextHasSelection(SelectableTextState const& state,
+                                uint32_t& start,
+                                uint32_t& end) {
+  start = std::min(state.selectionStart, state.selectionEnd);
+  end = std::max(state.selectionStart, state.selectionEnd);
+  return start != end;
+}
+
+void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor) {
+  state.selectionAnchor = anchor;
+  state.selectionStart = anchor;
+  state.selectionEnd = anchor;
+  state.selecting = false;
+  state.pointerId = -1;
+}
+
 std::vector<float> buildCaretPositions(PrimeFrame::Frame& frame,
                                        PrimeFrame::TextStyleToken token,
                                        std::string_view text) {
@@ -2248,6 +2264,307 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   }
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
+  Rect bounds = resolve_rect(spec.size);
+  std::string_view text = spec.text;
+  float maxWidth = spec.maxWidth;
+  if (maxWidth <= 0.0f && bounds.width > 0.0f) {
+    float available = bounds.width - spec.paddingX * 2.0f;
+    maxWidth = std::max(0.0f, available);
+  }
+
+  TextSelectionLayout layout =
+      buildTextSelectionLayout(frame(), spec.textStyle, text, maxWidth, spec.wrap);
+  if (layout.lineHeight <= 0.0f) {
+    layout.lineHeight = resolve_line_height(frame(), spec.textStyle);
+  }
+  size_t lineCount = std::max<size_t>(1u, layout.lines.size());
+  float textHeight = layout.lineHeight * static_cast<float>(lineCount);
+  float textWidth = 0.0f;
+  for (auto const& line : layout.lines) {
+    textWidth = std::max(textWidth, line.width);
+  }
+  float desiredWidth = (maxWidth > 0.0f ? maxWidth : textWidth) + spec.paddingX * 2.0f;
+
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    bounds.width = desiredWidth;
+  }
+  if (bounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    bounds.height = textHeight;
+  }
+  if (bounds.width <= 0.0f &&
+      bounds.height <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      spec.size.stretchY <= 0.0f) {
+    return UiNode(frame(), id_, allowAbsolute_);
+  }
+
+  StackSpec overlaySpec;
+  overlaySpec.size = spec.size;
+  if (!overlaySpec.size.preferredWidth.has_value() && bounds.width > 0.0f) {
+    overlaySpec.size.preferredWidth = bounds.width;
+  }
+  if (!overlaySpec.size.preferredHeight.has_value() && bounds.height > 0.0f) {
+    overlaySpec.size.preferredHeight = bounds.height;
+  }
+  if (spec.paddingX > 0.0f) {
+    overlaySpec.padding.left = spec.paddingX;
+    overlaySpec.padding.right = spec.paddingX;
+  }
+  overlaySpec.clipChildren = true;
+  overlaySpec.visible = spec.visible;
+  UiNode overlay = createOverlay(overlaySpec);
+  overlay.setHitTestVisible(true);
+
+  std::optional<FocusOverlay> focusOverlay;
+  if (spec.visible) {
+    focusOverlay = add_focus_overlay_primitive(frame(),
+                                               overlay.nodeId(),
+                                               spec.focusStyle,
+                                               spec.focusStyleOverride);
+    if (PrimeFrame::Node* node = frame().getNode(overlay.nodeId())) {
+      node->focusable = (spec.state != nullptr) || focusOverlay.has_value();
+    }
+  }
+
+  if (!spec.visible) {
+    return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
+  }
+
+  uint32_t selectionStart = spec.selectionStart;
+  uint32_t selectionEnd = spec.selectionEnd;
+  if (spec.state) {
+    spec.state->text = text;
+    uint32_t size = static_cast<uint32_t>(text.size());
+    spec.state->selectionAnchor = std::min(spec.state->selectionAnchor, size);
+    spec.state->selectionStart = std::min(spec.state->selectionStart, size);
+    spec.state->selectionEnd = std::min(spec.state->selectionEnd, size);
+    selectionStart = spec.state->selectionStart;
+    selectionEnd = spec.state->selectionEnd;
+  }
+
+  TextSelectionOverlaySpec selectionSpec;
+  selectionSpec.text = text;
+  selectionSpec.textStyle = spec.textStyle;
+  selectionSpec.wrap = spec.wrap;
+  selectionSpec.maxWidth = maxWidth;
+  selectionSpec.layout = &layout;
+  selectionSpec.selectionStart = selectionStart;
+  selectionSpec.selectionEnd = selectionEnd;
+  selectionSpec.paddingX = 0.0f;
+  selectionSpec.selectionStyle = spec.selectionStyle;
+  selectionSpec.selectionStyleOverride = spec.selectionStyleOverride;
+  float textAreaWidth = maxWidth > 0.0f ? maxWidth : std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
+  selectionSpec.size.preferredWidth = textAreaWidth;
+  selectionSpec.size.preferredHeight = bounds.height;
+  selectionSpec.visible = spec.visible;
+  overlay.createTextSelectionOverlay(selectionSpec);
+
+  ParagraphSpec paragraphSpec;
+  paragraphSpec.text = text;
+  paragraphSpec.textStyle = spec.textStyle;
+  paragraphSpec.textStyleOverride = spec.textStyleOverride;
+  paragraphSpec.wrap = spec.wrap;
+  paragraphSpec.maxWidth = maxWidth;
+  paragraphSpec.size.preferredWidth = textAreaWidth;
+  paragraphSpec.size.preferredHeight = bounds.height;
+  paragraphSpec.visible = spec.visible;
+  overlay.createParagraph(paragraphSpec);
+
+  if (spec.state) {
+    auto layoutPtr = std::make_shared<TextSelectionLayout>(layout);
+    PrimeFrame::Callback callback;
+    callback.onEvent = [state = spec.state,
+                        callbacks = spec.callbacks,
+                        clipboard = spec.clipboard,
+                        layoutPtr,
+                        framePtr = &frame(),
+                        textStyle = spec.textStyle,
+                        paddingX = spec.paddingX,
+                        handleClipboardShortcuts = spec.handleClipboardShortcuts](
+                           PrimeFrame::Event const& event) -> bool {
+      if (!state) {
+        return false;
+      }
+      auto notify_state = [&]() {
+        if (callbacks.onStateChanged) {
+          callbacks.onStateChanged();
+        }
+      };
+      auto notify_selection = [&]() {
+        uint32_t start = 0u;
+        uint32_t end = 0u;
+        if (selectableTextHasSelection(*state, start, end) && callbacks.onSelectionChanged) {
+          callbacks.onSelectionChanged(start, end);
+        }
+      };
+      auto clamp_indices = [&]() {
+        uint32_t size = static_cast<uint32_t>(state->text.size());
+        state->selectionAnchor = std::min(state->selectionAnchor, size);
+        state->selectionStart = std::min(state->selectionStart, size);
+        state->selectionEnd = std::min(state->selectionEnd, size);
+      };
+
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerEnter: {
+          if (!state->hovered) {
+            state->hovered = true;
+            if (callbacks.onHoverChanged) {
+              callbacks.onHoverChanged(true);
+            }
+            notify_state();
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerLeave: {
+          if (state->hovered) {
+            state->hovered = false;
+            if (callbacks.onHoverChanged) {
+              callbacks.onHoverChanged(false);
+            }
+            notify_state();
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerDown: {
+          clamp_indices();
+          uint32_t cursorIndex = caretIndexForClickInLayout(*framePtr,
+                                                            textStyle,
+                                                            state->text,
+                                                            *layoutPtr,
+                                                            paddingX,
+                                                            event.localX,
+                                                            event.localY);
+          state->selectionAnchor = cursorIndex;
+          state->selectionStart = cursorIndex;
+          state->selectionEnd = cursorIndex;
+          state->selecting = true;
+          state->pointerId = event.pointerId;
+          notify_selection();
+          notify_state();
+          return true;
+        }
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove: {
+          if (!state->selecting || state->pointerId != event.pointerId) {
+            return false;
+          }
+          clamp_indices();
+          uint32_t cursorIndex = caretIndexForClickInLayout(*framePtr,
+                                                            textStyle,
+                                                            state->text,
+                                                            *layoutPtr,
+                                                            paddingX,
+                                                            event.localX,
+                                                            event.localY);
+          if (state->selectionEnd != cursorIndex) {
+            state->selectionStart = state->selectionAnchor;
+            state->selectionEnd = cursorIndex;
+            notify_selection();
+            notify_state();
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerUp:
+        case PrimeFrame::EventType::PointerCancel: {
+          if (state->pointerId == event.pointerId) {
+            if (state->selecting) {
+              state->selecting = false;
+              state->pointerId = -1;
+              notify_state();
+            }
+            return true;
+          }
+          return false;
+        }
+        case PrimeFrame::EventType::KeyDown: {
+          if (!state->focused) {
+            return false;
+          }
+          constexpr int KeyA = 0x04;
+          constexpr int KeyC = 0x06;
+          constexpr uint32_t ControlMask = 1u << 1u;
+          constexpr uint32_t SuperMask = 1u << 3u;
+          bool isShortcut =
+              handleClipboardShortcuts &&
+              ((event.modifiers & ControlMask) != 0u || (event.modifiers & SuperMask) != 0u);
+          if (!isShortcut) {
+            return false;
+          }
+          clamp_indices();
+          if (event.key == KeyA) {
+            uint32_t size = static_cast<uint32_t>(state->text.size());
+            state->selectionAnchor = 0u;
+            state->selectionStart = 0u;
+            state->selectionEnd = size;
+            notify_selection();
+            notify_state();
+            return true;
+          }
+          if (event.key == KeyC) {
+            uint32_t start = 0u;
+            uint32_t end = 0u;
+            if (selectableTextHasSelection(*state, start, end) && clipboard.setText) {
+              clipboard.setText(std::string_view(state->text.data() + start, end - start));
+            }
+            return true;
+          }
+          return false;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+
+    callback.onFocus = [state = spec.state, callbacks = spec.callbacks]() {
+      if (!state) {
+        return;
+      }
+      bool changed = !state->focused;
+      state->focused = true;
+      if (changed && callbacks.onFocusChanged) {
+        callbacks.onFocusChanged(true);
+      }
+      if (callbacks.onStateChanged) {
+        callbacks.onStateChanged();
+      }
+    };
+
+    callback.onBlur = [state = spec.state, callbacks = spec.callbacks]() {
+      if (!state) {
+        return;
+      }
+      bool changed = state->focused;
+      state->focused = false;
+      state->selecting = false;
+      state->pointerId = -1;
+      if (changed && callbacks.onFocusChanged) {
+        callbacks.onFocusChanged(false);
+      }
+      if (callbacks.onStateChanged) {
+        callbacks.onStateChanged();
+      }
+    };
+
+    if (PrimeFrame::Node* node = frame().getNode(overlay.nodeId())) {
+      node->callbacks = frame().addCallback(std::move(callback));
+    }
+  }
+
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), overlay.nodeId(), *focusOverlay);
+  }
+
+  return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
 }
 
 UiNode UiNode::createToggle(ToggleSpec const& spec) {
