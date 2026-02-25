@@ -851,6 +851,9 @@ std::vector<float> buildCaretPositions(PrimeFrame::Frame& frame,
 #else
     positions[index] = measureTextWidth(frame, token, text.substr(0, index));
 #endif
+    if (index == text.size()) {
+      break;
+    }
     index = utf8Next(text, index);
   }
 
@@ -2299,6 +2302,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
           return;
         }
         bool focusChanged = !state->focused;
+        if (!focusChanged) {
+          return;
+        }
         state->focused = true;
         uint32_t size = static_cast<uint32_t>(state->text.size());
         state->cursor = std::min(state->cursor, size);
@@ -2321,6 +2327,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
           return;
         }
         bool focusChanged = state->focused;
+        if (!focusChanged) {
+          return;
+        }
         state->focused = false;
         state->cursorVisible = false;
         state->nextBlink = {};
@@ -2799,8 +2808,11 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
         return;
       }
       bool changed = !state->focused;
+      if (!changed) {
+        return;
+      }
       state->focused = true;
-      if (changed && callbacks.onFocusChanged) {
+      if (callbacks.onFocusChanged) {
         callbacks.onFocusChanged(true);
       }
       if (callbacks.onStateChanged) {
@@ -2813,10 +2825,13 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
         return;
       }
       bool changed = state->focused;
+      if (!changed) {
+        return;
+      }
       state->focused = false;
       state->selecting = false;
       state->pointerId = -1;
-      if (changed && callbacks.onFocusChanged) {
+      if (callbacks.onFocusChanged) {
         callbacks.onFocusChanged(false);
       }
       if (callbacks.onStateChanged) {

@@ -1,6 +1,8 @@
 #include "PrimeStage/TextSelection.h"
 #include "PrimeStage/Ui.h"
 
+#include "PrimeFrame/Events.h"
+
 #include "third_party/doctest.h"
 
 #include <string>
@@ -34,10 +36,18 @@ std::vector<float> prefix_widths(PrimeFrame::Frame& frame,
   return widths;
 }
 
+std::string sample_utf8_text() {
+  return std::string("a") +
+         "\xC3" "\xA9"
+         "b"
+         "\xE2" "\x82" "\xAC"
+         "c";
+}
+
 } // namespace
 
 TEST_CASE("Text selection utf8 navigation returns codepoint boundaries") {
-  std::string text = "a\xC3\xA9b\xE2\x82\xACc";
+  std::string text = sample_utf8_text();
   CHECK(text.size() == 8u);
   CHECK(PrimeStage::utf8Next(text, 0u) == 1u);
   CHECK(PrimeStage::utf8Next(text, 1u) == 3u);
@@ -84,7 +94,7 @@ TEST_CASE("Caret index follows nearest boundary for ASCII text") {
 
 TEST_CASE("Caret index respects UTF-8 boundaries") {
   PrimeFrame::Frame frame;
-  std::string text = "a\xC3\xA9b\xE2\x82\xACc";
+  std::string text = sample_utf8_text();
   float padding = 4.0f;
   auto indices = utf8_boundaries(text);
   auto widths = prefix_widths(frame, 0, text, indices);

@@ -84,6 +84,8 @@ if(PRIMESTAGE_BUILD_TESTS)
   add_executable(PrimeStage_tests
     tests/unit/test_main.cpp
     tests/unit/test_sanity.cpp
+    tests/unit/test_text_selection.cpp
+    tests/unit/test_treeview_input.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
   target_include_directories(PrimeStage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
