@@ -686,6 +686,44 @@ uint32_t utf8Next(std::string_view text, uint32_t index) {
   return i;
 }
 
+bool textFieldHasSelection(TextFieldState const& state,
+                           uint32_t& start,
+                           uint32_t& end) {
+  start = std::min(state.selectionStart, state.selectionEnd);
+  end = std::max(state.selectionStart, state.selectionEnd);
+  return start != end;
+}
+
+void clearTextFieldSelection(TextFieldState& state, uint32_t cursor) {
+  state.selectionAnchor = cursor;
+  state.selectionStart = cursor;
+  state.selectionEnd = cursor;
+  state.selecting = false;
+  state.pointerId = -1;
+}
+
+bool updateTextFieldBlink(TextFieldState& state,
+                          std::chrono::steady_clock::time_point now,
+                          std::chrono::milliseconds interval) {
+  bool changed = false;
+  if (state.focused) {
+    if (state.nextBlink.time_since_epoch().count() == 0) {
+      state.cursorVisible = true;
+      state.nextBlink = now + interval;
+      changed = true;
+    } else if (now >= state.nextBlink) {
+      state.cursorVisible = !state.cursorVisible;
+      state.nextBlink = now + interval;
+      changed = true;
+    }
+  } else if (state.cursorVisible || state.nextBlink.time_since_epoch().count() != 0) {
+    state.cursorVisible = false;
+    state.nextBlink = {};
+    changed = true;
+  }
+  return changed;
+}
+
 std::vector<float> buildCaretPositions(PrimeFrame::Frame& frame,
                                        PrimeFrame::TextStyleToken token,
                                        std::string_view text) {
@@ -1633,7 +1671,8 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
 
 UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   Rect bounds = resolve_rect(spec.size);
-  std::string_view previewText = spec.text;
+  TextFieldState* state = spec.state;
+  std::string_view previewText = state ? std::string_view(state->text) : spec.text;
   PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
   if (previewText.empty() && spec.showPlaceholderWhenEmpty) {
     previewText = spec.placeholder;
@@ -1684,11 +1723,11 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
                                                spec.focusStyle,
                                                spec.focusStyleOverride);
     if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
-      node->focusable = focusOverlay.has_value();
+      node->focusable = (state != nullptr) || focusOverlay.has_value();
     }
   }
 
-  std::string_view content = spec.text;
+  std::string_view content = state ? std::string_view(state->text) : spec.text;
   PrimeFrame::TextStyleToken style = spec.textStyle;
   PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
   if (content.empty() && spec.showPlaceholderWhenEmpty) {
@@ -1707,25 +1746,32 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
+  std::string_view activeText = state ? std::string_view(state->text) : spec.text;
+  uint32_t textSize = static_cast<uint32_t>(activeText.size());
+  uint32_t cursorIndex = state ? state->cursor : spec.cursorIndex;
+  uint32_t selectionStart = state ? state->selectionStart : spec.selectionStart;
+  uint32_t selectionEnd = state ? state->selectionEnd : spec.selectionEnd;
+  cursorIndex = std::min(cursorIndex, textSize);
+  selectionStart = std::min(selectionStart, textSize);
+  selectionEnd = std::min(selectionEnd, textSize);
+  bool showCursor = state ? (state->focused && state->cursorVisible) : spec.showCursor;
+
   std::vector<float> caretPositions;
-  if (!spec.text.empty() && (spec.showCursor || spec.selectionStart != spec.selectionEnd)) {
-    caretPositions = buildCaretPositions(frame(), spec.textStyle, spec.text);
+  if (!activeText.empty() && (showCursor || selectionStart != selectionEnd)) {
+    caretPositions = buildCaretPositions(frame(), spec.textStyle, activeText);
   }
   auto caretAdvanceFor = [&](uint32_t index) -> float {
     if (caretPositions.empty()) {
       return 0.0f;
     }
-    uint32_t clamped = std::min(index, static_cast<uint32_t>(spec.text.size()));
+    uint32_t clamped = std::min(index, textSize);
     return caretPositions[clamped];
   };
 
   if (!content.empty()) {
-    uint32_t selStart = std::min(spec.selectionStart, spec.selectionEnd);
-    uint32_t selEnd = std::max(spec.selectionStart, spec.selectionEnd);
-    uint32_t textSize = static_cast<uint32_t>(spec.text.size());
-    selStart = std::min(selStart, textSize);
-    selEnd = std::min(selEnd, textSize);
-    if (selStart < selEnd && spec.selectionStyle != 0 && !spec.text.empty()) {
+    uint32_t selStart = std::min(selectionStart, selectionEnd);
+    uint32_t selEnd = std::max(selectionStart, selectionEnd);
+    if (selStart < selEnd && spec.selectionStyle != 0 && !activeText.empty()) {
       float startAdvance = caretAdvanceFor(selStart);
       float endAdvance = caretAdvanceFor(selEnd);
       float startX = spec.paddingX + startAdvance;
@@ -1760,8 +1806,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
                      spec.visible);
   }
 
-  if (spec.showCursor && spec.cursorStyle != 0) {
-    uint32_t cursorIndex = std::min(spec.cursorIndex, static_cast<uint32_t>(spec.text.size()));
+  if (showCursor && spec.cursorStyle != 0) {
     float cursorAdvance = caretAdvanceFor(cursorIndex);
     float cursorX = spec.paddingX + cursorAdvance;
     float maxX = bounds.width - spec.paddingX - spec.cursorWidth;
@@ -1783,6 +1828,419 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
                      spec.cursorStyleOverride,
                      false,
                      spec.visible);
+  }
+
+  if (state) {
+    PrimeFrame::Node* node = frame().getNode(field.nodeId());
+    if (node) {
+      PrimeFrame::Callback callback;
+      callback.onEvent = [state,
+                          callbacks = spec.callbacks,
+                          clipboard = spec.clipboard,
+                          framePtr = &frame(),
+                          textStyle = spec.textStyle,
+                          paddingX = spec.paddingX,
+                          allowNewlines = spec.allowNewlines,
+                          handleClipboardShortcuts = spec.handleClipboardShortcuts,
+                          cursorBlinkInterval = spec.cursorBlinkInterval](PrimeFrame::Event const& event) -> bool {
+        if (!state) {
+          return false;
+        }
+
+        auto clamp_indices = [&]() {
+          uint32_t size = static_cast<uint32_t>(state->text.size());
+          state->cursor = std::min(state->cursor, size);
+          state->selectionAnchor = std::min(state->selectionAnchor, size);
+          state->selectionStart = std::min(state->selectionStart, size);
+          state->selectionEnd = std::min(state->selectionEnd, size);
+        };
+        auto reset_blink = [&](std::chrono::steady_clock::time_point now) {
+          state->cursorVisible = true;
+          state->nextBlink = now + cursorBlinkInterval;
+        };
+        auto notify_state = [&]() {
+          if (callbacks.onStateChanged) {
+            callbacks.onStateChanged();
+          }
+        };
+        auto notify_text = [&]() {
+          if (callbacks.onTextChanged) {
+            callbacks.onTextChanged(std::string_view(state->text));
+          }
+        };
+
+        switch (event.type) {
+          case PrimeFrame::EventType::PointerEnter: {
+            if (!state->hovered) {
+              state->hovered = true;
+              if (callbacks.onHoverChanged) {
+                callbacks.onHoverChanged(true);
+              }
+              notify_state();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerLeave: {
+            if (state->hovered) {
+              state->hovered = false;
+              if (callbacks.onHoverChanged) {
+                callbacks.onHoverChanged(false);
+              }
+              notify_state();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerDown: {
+            clamp_indices();
+            uint32_t cursorIndex =
+                caretIndexForClick(*framePtr, textStyle, state->text, paddingX, event.localX);
+            state->cursor = cursorIndex;
+            state->selectionAnchor = cursorIndex;
+            state->selectionStart = cursorIndex;
+            state->selectionEnd = cursorIndex;
+            state->selecting = true;
+            state->pointerId = event.pointerId;
+            reset_blink(std::chrono::steady_clock::now());
+            notify_state();
+            return true;
+          }
+          case PrimeFrame::EventType::PointerDrag:
+          case PrimeFrame::EventType::PointerMove: {
+            if (!state->selecting || state->pointerId != event.pointerId) {
+              return false;
+            }
+            clamp_indices();
+            uint32_t cursorIndex =
+                caretIndexForClick(*framePtr, textStyle, state->text, paddingX, event.localX);
+            if (cursorIndex != state->cursor || state->selectionEnd != cursorIndex) {
+              state->cursor = cursorIndex;
+              state->selectionStart = state->selectionAnchor;
+              state->selectionEnd = cursorIndex;
+              reset_blink(std::chrono::steady_clock::now());
+              notify_state();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerUp:
+          case PrimeFrame::EventType::PointerCancel: {
+            if (state->pointerId == event.pointerId) {
+              if (state->selecting) {
+                state->selecting = false;
+                state->pointerId = -1;
+                notify_state();
+              }
+              return true;
+            }
+            return false;
+          }
+          case PrimeFrame::EventType::KeyDown: {
+            if (!state->focused) {
+              return false;
+            }
+            constexpr int KeyReturn = 0x28;
+            constexpr int KeyEscape = 0x29;
+            constexpr int KeyBackspace = 0x2A;
+            constexpr int KeyLeft = 0x50;
+            constexpr int KeyRight = 0x4F;
+            constexpr int KeyHome = 0x4A;
+            constexpr int KeyEnd = 0x4D;
+            constexpr int KeyDelete = 0x4C;
+            constexpr int KeyA = 0x04;
+            constexpr int KeyC = 0x06;
+            constexpr int KeyV = 0x19;
+            constexpr int KeyX = 0x1B;
+            constexpr uint32_t ShiftMask = 1u << 0u;
+            constexpr uint32_t ControlMask = 1u << 1u;
+            constexpr uint32_t SuperMask = 1u << 3u;
+            bool shiftPressed = (event.modifiers & ShiftMask) != 0u;
+            bool isShortcut =
+                handleClipboardShortcuts &&
+                ((event.modifiers & ControlMask) != 0u || (event.modifiers & SuperMask) != 0u);
+
+            clamp_indices();
+            uint32_t selectionStart = 0u;
+            uint32_t selectionEnd = 0u;
+            bool hasSelection = textFieldHasSelection(*state, selectionStart, selectionEnd);
+            auto delete_selection = [&]() -> bool {
+              if (!hasSelection) {
+                return false;
+              }
+              state->text.erase(selectionStart, selectionEnd - selectionStart);
+              state->cursor = selectionStart;
+              clearTextFieldSelection(*state, state->cursor);
+              return true;
+            };
+
+            if (isShortcut) {
+              if (event.key == KeyA) {
+                uint32_t size = static_cast<uint32_t>(state->text.size());
+                state->selectionAnchor = 0u;
+                state->selectionStart = 0u;
+                state->selectionEnd = size;
+                state->cursor = size;
+                reset_blink(std::chrono::steady_clock::now());
+                notify_state();
+                return true;
+              }
+              if (event.key == KeyC) {
+                if (hasSelection && clipboard.setText) {
+                  clipboard.setText(
+                      std::string_view(state->text.data() + selectionStart,
+                                       selectionEnd - selectionStart));
+                }
+                return true;
+              }
+              if (event.key == KeyX) {
+                if (hasSelection) {
+                  if (clipboard.setText) {
+                    clipboard.setText(
+                        std::string_view(state->text.data() + selectionStart,
+                                         selectionEnd - selectionStart));
+                  }
+                  delete_selection();
+                  notify_text();
+                  reset_blink(std::chrono::steady_clock::now());
+                  notify_state();
+                }
+                return true;
+              }
+              if (event.key == KeyV) {
+                if (clipboard.getText) {
+                  std::string paste = clipboard.getText();
+                  if (!allowNewlines) {
+                    paste.erase(std::remove(paste.begin(), paste.end(), '\n'), paste.end());
+                    paste.erase(std::remove(paste.begin(), paste.end(), '\r'), paste.end());
+                  }
+                  if (!paste.empty()) {
+                    delete_selection();
+                    uint32_t cursor = state->cursor;
+                    cursor = std::min(cursor, static_cast<uint32_t>(state->text.size()));
+                    state->text.insert(cursor, paste);
+                    state->cursor = cursor + static_cast<uint32_t>(paste.size());
+                    clearTextFieldSelection(*state, state->cursor);
+                    notify_text();
+                    reset_blink(std::chrono::steady_clock::now());
+                    notify_state();
+                  }
+                }
+                return true;
+              }
+            }
+
+            bool changed = false;
+            bool keepSelection = false;
+            uint32_t cursor = state->cursor;
+            switch (event.key) {
+              case KeyEscape:
+                if (callbacks.onRequestBlur) {
+                  callbacks.onRequestBlur();
+                }
+                return true;
+              case KeyLeft:
+                if (shiftPressed) {
+                  if (!hasSelection) {
+                    state->selectionAnchor = cursor;
+                  }
+                  cursor = utf8Prev(state->text, cursor);
+                  state->selectionStart = state->selectionAnchor;
+                  state->selectionEnd = cursor;
+                  keepSelection = true;
+                } else {
+                  if (hasSelection) {
+                    cursor = selectionStart;
+                  } else {
+                    cursor = utf8Prev(state->text, cursor);
+                  }
+                  clearTextFieldSelection(*state, cursor);
+                }
+                changed = true;
+                break;
+              case KeyRight:
+                if (shiftPressed) {
+                  if (!hasSelection) {
+                    state->selectionAnchor = cursor;
+                  }
+                  cursor = utf8Next(state->text, cursor);
+                  state->selectionStart = state->selectionAnchor;
+                  state->selectionEnd = cursor;
+                  keepSelection = true;
+                } else {
+                  if (hasSelection) {
+                    cursor = selectionEnd;
+                  } else {
+                    cursor = utf8Next(state->text, cursor);
+                  }
+                  clearTextFieldSelection(*state, cursor);
+                }
+                changed = true;
+                break;
+              case KeyHome:
+                if (shiftPressed) {
+                  if (!hasSelection) {
+                    state->selectionAnchor = cursor;
+                  }
+                  cursor = 0u;
+                  state->selectionStart = state->selectionAnchor;
+                  state->selectionEnd = cursor;
+                  keepSelection = true;
+                } else {
+                  cursor = 0u;
+                  clearTextFieldSelection(*state, cursor);
+                }
+                changed = true;
+                break;
+              case KeyEnd:
+                if (shiftPressed) {
+                  if (!hasSelection) {
+                    state->selectionAnchor = cursor;
+                  }
+                  cursor = static_cast<uint32_t>(state->text.size());
+                  state->selectionStart = state->selectionAnchor;
+                  state->selectionEnd = cursor;
+                  keepSelection = true;
+                } else {
+                  cursor = static_cast<uint32_t>(state->text.size());
+                  clearTextFieldSelection(*state, cursor);
+                }
+                changed = true;
+                break;
+              case KeyBackspace:
+                if (delete_selection()) {
+                  changed = true;
+                  cursor = state->cursor;
+                  notify_text();
+                } else if (cursor > 0u) {
+                  uint32_t start = utf8Prev(state->text, cursor);
+                  state->text.erase(start, cursor - start);
+                  cursor = start;
+                  changed = true;
+                  notify_text();
+                }
+                break;
+              case KeyDelete:
+                if (delete_selection()) {
+                  changed = true;
+                  cursor = state->cursor;
+                  notify_text();
+                } else if (cursor < static_cast<uint32_t>(state->text.size())) {
+                  uint32_t end = utf8Next(state->text, cursor);
+                  state->text.erase(cursor, end - cursor);
+                  changed = true;
+                  notify_text();
+                }
+                break;
+              case KeyReturn:
+                if (!allowNewlines) {
+                  if (callbacks.onSubmit) {
+                    callbacks.onSubmit();
+                  }
+                  return true;
+                }
+                return true;
+              default:
+                break;
+            }
+            if (changed) {
+              state->cursor = std::min(cursor, static_cast<uint32_t>(state->text.size()));
+              if (!keepSelection) {
+                clearTextFieldSelection(*state, state->cursor);
+              }
+              reset_blink(std::chrono::steady_clock::now());
+              notify_state();
+              return true;
+            }
+            return false;
+          }
+          case PrimeFrame::EventType::TextInput: {
+            if (!state->focused) {
+              return false;
+            }
+            if (event.text.empty()) {
+              return true;
+            }
+            std::string filtered;
+            filtered.reserve(event.text.size());
+            for (char ch : event.text) {
+              if (!allowNewlines && (ch == '\n' || ch == '\r')) {
+                continue;
+              }
+              filtered.push_back(ch);
+            }
+            if (filtered.empty()) {
+              return true;
+            }
+            clamp_indices();
+            uint32_t selectionStart = 0u;
+            uint32_t selectionEnd = 0u;
+            bool hasSelection = textFieldHasSelection(*state, selectionStart, selectionEnd);
+            if (hasSelection) {
+              state->text.erase(selectionStart, selectionEnd - selectionStart);
+              state->cursor = selectionStart;
+              clearTextFieldSelection(*state, state->cursor);
+            }
+            uint32_t cursor = std::min(state->cursor, static_cast<uint32_t>(state->text.size()));
+            state->text.insert(cursor, filtered);
+            state->cursor = cursor + static_cast<uint32_t>(filtered.size());
+            clearTextFieldSelection(*state, state->cursor);
+            notify_text();
+            reset_blink(std::chrono::steady_clock::now());
+            notify_state();
+            return true;
+          }
+          default:
+            break;
+        }
+        return false;
+      };
+
+      callback.onFocus = [state,
+                          callbacks = spec.callbacks,
+                          cursorBlinkInterval = spec.cursorBlinkInterval,
+                          setCursorToEndOnFocus = spec.setCursorToEndOnFocus]() {
+        if (!state) {
+          return;
+        }
+        bool focusChanged = !state->focused;
+        state->focused = true;
+        uint32_t size = static_cast<uint32_t>(state->text.size());
+        state->cursor = std::min(state->cursor, size);
+        if (focusChanged && setCursorToEndOnFocus) {
+          state->cursor = size;
+        }
+        clearTextFieldSelection(*state, state->cursor);
+        state->cursorVisible = true;
+        state->nextBlink = std::chrono::steady_clock::now() + cursorBlinkInterval;
+        if (focusChanged && callbacks.onFocusChanged) {
+          callbacks.onFocusChanged(true);
+        }
+        if (callbacks.onStateChanged) {
+          callbacks.onStateChanged();
+        }
+      };
+
+      callback.onBlur = [state, callbacks = spec.callbacks]() {
+        if (!state) {
+          return;
+        }
+        bool focusChanged = state->focused;
+        state->focused = false;
+        state->cursorVisible = false;
+        state->nextBlink = {};
+        state->selecting = false;
+        state->pointerId = -1;
+        uint32_t size = static_cast<uint32_t>(state->text.size());
+        state->cursor = std::min(state->cursor, size);
+        clearTextFieldSelection(*state, state->cursor);
+        if (focusChanged && callbacks.onFocusChanged) {
+          callbacks.onFocusChanged(false);
+        }
+        if (callbacks.onStateChanged) {
+          callbacks.onStateChanged();
+        }
+      };
+
+      node->callbacks = frame().addCallback(std::move(callback));
+    }
   }
 
   if (focusOverlay.has_value()) {

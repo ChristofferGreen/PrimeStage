@@ -2,10 +2,11 @@
 
 #include "PrimeFrame/Frame.h"
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
-#include <span>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -116,7 +117,38 @@ struct ButtonSpec {
   SizeSpec size;
 };
 
+struct TextFieldState {
+  std::string text;
+  uint32_t cursor = 0u;
+  uint32_t selectionAnchor = 0u;
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  bool focused = false;
+  bool hovered = false;
+  bool selecting = false;
+  int pointerId = -1;
+  bool cursorVisible = false;
+  std::chrono::steady_clock::time_point nextBlink{};
+};
+
+struct TextFieldClipboard {
+  std::function<void(std::string_view)> setText;
+  std::function<std::string()> getText;
+};
+
+struct TextFieldCallbacks {
+  std::function<void()> onStateChanged;
+  std::function<void(std::string_view)> onTextChanged;
+  std::function<void(bool)> onFocusChanged;
+  std::function<void(bool)> onHoverChanged;
+  std::function<void()> onRequestBlur;
+  std::function<void()> onSubmit;
+};
+
 struct TextFieldSpec {
+  TextFieldState* state = nullptr;
+  TextFieldCallbacks callbacks{};
+  TextFieldClipboard clipboard{};
   std::string_view text;
   std::string_view placeholder;
   float paddingX = 16.0f;
@@ -139,6 +171,10 @@ struct TextFieldSpec {
   uint32_t selectionEnd = 0u;
   PrimeFrame::RectStyleToken selectionStyle = 0;
   PrimeFrame::RectStyleOverride selectionStyleOverride{};
+  std::chrono::milliseconds cursorBlinkInterval{std::chrono::milliseconds(500)};
+  bool allowNewlines = false;
+  bool handleClipboardShortcuts = true;
+  bool setCursorToEndOnFocus = true;
   bool visible = true;
   SizeSpec size;
 };
@@ -408,6 +444,14 @@ void setScrollBarThumbPixels(ScrollBarSpec& spec,
 float measureTextWidth(PrimeFrame::Frame& frame,
                        PrimeFrame::TextStyleToken token,
                        std::string_view text);
+
+bool textFieldHasSelection(TextFieldState const& state,
+                           uint32_t& start,
+                           uint32_t& end);
+void clearTextFieldSelection(TextFieldState& state, uint32_t cursor);
+bool updateTextFieldBlink(TextFieldState& state,
+                          std::chrono::steady_clock::time_point now,
+                          std::chrono::milliseconds interval);
 
 struct ScrollView;
 
