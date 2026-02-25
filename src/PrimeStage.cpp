@@ -2420,9 +2420,9 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
         }
       };
       auto notify_selection = [&]() {
-        uint32_t start = 0u;
-        uint32_t end = 0u;
-        if (selectableTextHasSelection(*state, start, end) && callbacks.onSelectionChanged) {
+        uint32_t start = std::min(state->selectionStart, state->selectionEnd);
+        uint32_t end = std::max(state->selectionStart, state->selectionEnd);
+        if (callbacks.onSelectionChanged) {
           callbacks.onSelectionChanged(start, end);
         }
       };
@@ -2513,12 +2513,83 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
           }
           constexpr int KeyA = 0x04;
           constexpr int KeyC = 0x06;
+          constexpr int KeyLeft = 0x50;
+          constexpr int KeyRight = 0x4F;
+          constexpr int KeyHome = 0x4A;
+          constexpr int KeyEnd = 0x4D;
+          constexpr uint32_t ShiftMask = 1u << 0u;
           constexpr uint32_t ControlMask = 1u << 1u;
           constexpr uint32_t SuperMask = 1u << 3u;
+          bool shiftPressed = (event.modifiers & ShiftMask) != 0u;
           bool isShortcut =
               handleClipboardShortcuts &&
               ((event.modifiers & ControlMask) != 0u || (event.modifiers & SuperMask) != 0u);
           if (!isShortcut) {
+            clamp_indices();
+            uint32_t selectionStart = std::min(state->selectionStart, state->selectionEnd);
+            uint32_t selectionEnd = std::max(state->selectionStart, state->selectionEnd);
+            bool hasSelection = selectionStart != selectionEnd;
+            uint32_t cursor = hasSelection ? state->selectionEnd : state->selectionStart;
+            uint32_t size = static_cast<uint32_t>(state->text.size());
+            bool changed = false;
+            if (event.key == KeyLeft) {
+              if (shiftPressed) {
+                if (!hasSelection) {
+                  state->selectionAnchor = cursor;
+                }
+                cursor = utf8Prev(state->text, cursor);
+                state->selectionStart = state->selectionAnchor;
+                state->selectionEnd = cursor;
+              } else {
+                cursor = hasSelection ? selectionStart : utf8Prev(state->text, cursor);
+                clearSelectableTextSelection(*state, cursor);
+              }
+              changed = true;
+            } else if (event.key == KeyRight) {
+              if (shiftPressed) {
+                if (!hasSelection) {
+                  state->selectionAnchor = cursor;
+                }
+                cursor = utf8Next(state->text, cursor);
+                state->selectionStart = state->selectionAnchor;
+                state->selectionEnd = cursor;
+              } else {
+                cursor = hasSelection ? selectionEnd : utf8Next(state->text, cursor);
+                clearSelectableTextSelection(*state, cursor);
+              }
+              changed = true;
+            } else if (event.key == KeyHome) {
+              if (shiftPressed) {
+                if (!hasSelection) {
+                  state->selectionAnchor = cursor;
+                }
+                cursor = 0u;
+                state->selectionStart = state->selectionAnchor;
+                state->selectionEnd = cursor;
+              } else {
+                cursor = 0u;
+                clearSelectableTextSelection(*state, cursor);
+              }
+              changed = true;
+            } else if (event.key == KeyEnd) {
+              if (shiftPressed) {
+                if (!hasSelection) {
+                  state->selectionAnchor = cursor;
+                }
+                cursor = size;
+                state->selectionStart = state->selectionAnchor;
+                state->selectionEnd = cursor;
+              } else {
+                cursor = size;
+                clearSelectableTextSelection(*state, cursor);
+              }
+              changed = true;
+            }
+            if (changed) {
+              notify_selection();
+              notify_state();
+              return true;
+            }
             return false;
           }
           clamp_indices();

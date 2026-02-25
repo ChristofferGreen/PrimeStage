@@ -196,3 +196,55 @@ TEST_CASE("Selectable text helpers track and clear selection") {
   CHECK(state.selectionEnd == 2u);
   CHECK_FALSE(PrimeStage::selectableTextHasSelection(state, start, end));
 }
+
+TEST_CASE("Selectable text keyboard selection moves anchor and end") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello";
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 40.0f;
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  state.focused = true;
+
+  constexpr int KeyRight = 0x4F;
+  constexpr int KeyHome = 0x4A;
+  constexpr uint32_t ShiftMask = 1u << 0u;
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = KeyRight;
+  event.modifiers = ShiftMask;
+  callback->onEvent(event);
+
+  uint32_t start = 0u;
+  uint32_t end = 0u;
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 0u);
+  CHECK(end == 1u);
+
+  event.modifiers = 0u;
+  callback->onEvent(event);
+  CHECK_FALSE(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(state.selectionStart == 1u);
+  CHECK(state.selectionEnd == 1u);
+
+  event.key = KeyHome;
+  event.modifiers = ShiftMask;
+  callback->onEvent(event);
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 0u);
+  CHECK(end == 1u);
+}
