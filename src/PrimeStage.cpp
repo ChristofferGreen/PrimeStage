@@ -2618,10 +2618,10 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
             uint32_t cursor = hasSelection ? state->selectionEnd : state->selectionStart;
             uint32_t size = static_cast<uint32_t>(state->text.size());
             bool changed = false;
-            auto move_cursor = [&](uint32_t nextCursor) {
+            auto move_cursor = [&](uint32_t nextCursor, uint32_t anchorCursor) {
               if (shiftPressed) {
                 if (!hasSelection) {
-                  state->selectionAnchor = cursor;
+                  state->selectionAnchor = anchorCursor;
                 }
                 state->selectionStart = state->selectionAnchor;
                 state->selectionEnd = nextCursor;
@@ -2696,13 +2696,18 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                                                                paddingX,
                                                                localX,
                                                                localY);
-              move_cursor(nextCursor);
+              move_cursor(nextCursor, cursor);
               return true;
             };
             if (event.key == KeyLeft) {
               if (altPressed) {
-                cursor = hasSelection ? selectionStart : prev_word_boundary(state->text, cursor);
-                move_cursor(cursor);
+                if (!shiftPressed && hasSelection) {
+                  move_cursor(selectionStart, cursor);
+                } else {
+                  uint32_t anchorCursor = cursor;
+                  cursor = prev_word_boundary(state->text, cursor);
+                  move_cursor(cursor, anchorCursor);
+                }
               } else if (shiftPressed) {
                 if (!hasSelection) {
                   state->selectionAnchor = cursor;
@@ -2712,13 +2717,18 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = hasSelection ? selectionStart : utf8Prev(state->text, cursor);
-                move_cursor(cursor);
+                move_cursor(cursor, cursor);
               }
               changed = true;
             } else if (event.key == KeyRight) {
               if (altPressed) {
-                cursor = hasSelection ? selectionEnd : next_word_boundary(state->text, cursor);
-                move_cursor(cursor);
+                if (!shiftPressed && hasSelection) {
+                  move_cursor(selectionEnd, cursor);
+                } else {
+                  uint32_t anchorCursor = cursor;
+                  cursor = next_word_boundary(state->text, cursor);
+                  move_cursor(cursor, anchorCursor);
+                }
               } else if (shiftPressed) {
                 if (!hasSelection) {
                   state->selectionAnchor = cursor;
@@ -2728,7 +2738,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = hasSelection ? selectionEnd : utf8Next(state->text, cursor);
-                move_cursor(cursor);
+                move_cursor(cursor, cursor);
               }
               changed = true;
             } else if (event.key == KeyHome) {
@@ -2741,7 +2751,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = 0u;
-                move_cursor(cursor);
+                move_cursor(cursor, cursor);
               }
               changed = true;
             } else if (event.key == KeyEnd) {
@@ -2754,7 +2764,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
                 state->selectionEnd = cursor;
               } else {
                 cursor = size;
-                move_cursor(cursor);
+                move_cursor(cursor, cursor);
               }
               changed = true;
             } else if (event.key == KeyUp) {

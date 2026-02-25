@@ -299,6 +299,49 @@ TEST_CASE("Selectable text moves vertically across lines") {
   CHECK(state.selectionStart <= 5u);
 }
 
+TEST_CASE("Selectable text shift vertical selection extends") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello\nWorld";
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 80.0f;
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  state.focused = true;
+
+  constexpr int KeyDown = 0x51;
+  constexpr int KeyUp = 0x52;
+  constexpr uint32_t ShiftMask = 1u << 0u;
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = KeyDown;
+  event.modifiers = ShiftMask;
+  callback->onEvent(event);
+
+  uint32_t start = 0u;
+  uint32_t end = 0u;
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 0u);
+  CHECK(end > 0u);
+
+  event.key = KeyUp;
+  callback->onEvent(event);
+  CHECK(state.selectionStart == state.selectionEnd);
+}
+
 TEST_CASE("Selectable text word navigation uses alt") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId rootId = frame.createNode();
@@ -346,4 +389,54 @@ TEST_CASE("Selectable text word navigation uses alt") {
   callback->onEvent(event);
   CHECK(state.selectionStart == 0u);
   CHECK(state.selectionEnd == 0u);
+}
+
+TEST_CASE("Selectable text alt shift extends word selection") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::SelectableTextState state;
+  PrimeStage::SelectableTextSpec spec;
+  spec.state = &state;
+  spec.text = "Hello world";
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 40.0f;
+  PrimeStage::UiNode text = root.createSelectableText(spec);
+
+  PrimeFrame::Node const* node = frame.getNode(text.nodeId());
+  REQUIRE(node != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  state.focused = true;
+
+  constexpr int KeyRight = 0x4F;
+  constexpr int KeyLeft = 0x50;
+  constexpr uint32_t ShiftMask = 1u << 0u;
+  constexpr uint32_t AltMask = 1u << 2u;
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = KeyRight;
+  event.modifiers = ShiftMask | AltMask;
+  callback->onEvent(event);
+
+  uint32_t start = 0u;
+  uint32_t end = 0u;
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 0u);
+  CHECK(end == 5u);
+
+  callback->onEvent(event);
+  CHECK(PrimeStage::selectableTextHasSelection(state, start, end));
+  CHECK(start == 0u);
+  CHECK(end == 6u);
+
+  event.key = KeyLeft;
+  callback->onEvent(event);
+  CHECK(state.selectionStart == state.selectionEnd);
+  CHECK(state.selectionStart == 0u);
 }
