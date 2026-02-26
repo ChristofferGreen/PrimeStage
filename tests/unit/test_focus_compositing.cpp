@@ -148,13 +148,18 @@ TEST_CASE("TextField focus ring renders after selection highlight") {
   configureTheme(frame);
   PrimeStage::UiNode root = createRoot(frame);
 
+  PrimeStage::TextFieldState state;
+  state.text = "focus order";
+  state.cursor = 6u;
+  state.selectionAnchor = 1u;
+  state.selectionStart = 1u;
+  state.selectionEnd = 6u;
+
   PrimeStage::TextFieldSpec spec;
-  spec.text = "focus order";
+  spec.state = &state;
   spec.backgroundStyle = StyleBase;
   spec.selectionStyle = StyleSelection;
   spec.focusStyle = StyleFocus;
-  spec.selectionStart = 1u;
-  spec.selectionEnd = 6u;
   spec.size.preferredWidth = 220.0f;
   spec.size.preferredHeight = 30.0f;
 

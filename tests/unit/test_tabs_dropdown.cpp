@@ -131,7 +131,7 @@ TEST_CASE("PrimeStage dropdown with label creates label and indicator text") {
   CHECK(node->padding.left == doctest::Approx(spec.paddingX));
   CHECK(node->padding.right == doctest::Approx(spec.paddingX));
   CHECK(node->gap == doctest::Approx(spec.indicatorGap));
-  CHECK(node->children.size() == 2);
+  CHECK(node->children.size() >= 2);
 
   PrimeFrame::Primitive const* labelPrim = findTextChild(frame, node->id, spec.textStyle);
   PrimeFrame::Primitive const* indicatorPrim = findTextChild(frame, node->id, spec.indicatorStyle);
@@ -159,7 +159,7 @@ TEST_CASE("PrimeStage dropdown with empty label inserts spacer") {
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::Node const* node = frame.getNode(dropdown.nodeId());
   REQUIRE(node != nullptr);
-  CHECK(node->children.size() == 2);
+  CHECK(node->children.size() >= 2);
 
   int spacerCount = 0;
   int indicatorCount = 0;
@@ -168,7 +168,9 @@ TEST_CASE("PrimeStage dropdown with empty label inserts spacer") {
     REQUIRE(childNode != nullptr);
     PrimeFrame::Primitive const* prim = firstTextPrimitive(frame, child);
     if (!prim) {
-      spacerCount += 1;
+      if (childNode->primitives.empty()) {
+        spacerCount += 1;
+      }
       continue;
     }
     if (prim->textStyle.token == spec.indicatorStyle) {

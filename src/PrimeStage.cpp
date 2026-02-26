@@ -4,6 +4,7 @@
 #include "PrimeFrame/Focus.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cctype>
@@ -309,6 +310,11 @@ struct FocusOverlay {
   PrimeFrame::NodeId overlayNode{};
 };
 
+struct ResolvedFocusStyle {
+  PrimeFrame::RectStyleToken token = 0;
+  PrimeFrame::RectStyleOverride overrideStyle{};
+};
+
 PrimeFrame::RectStyleToken resolve_focus_style_token(
     PrimeFrame::RectStyleToken requested,
     std::initializer_list<PrimeFrame::RectStyleToken> fallbacks) {
@@ -321,6 +327,45 @@ PrimeFrame::RectStyleToken resolve_focus_style_token(
     }
   }
   return 0;
+}
+
+PrimeFrame::Color resolve_semantic_focus_color(PrimeFrame::Frame& frame) {
+  PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (theme && !theme->palette.empty()) {
+    constexpr std::array<size_t, 6> PreferredPaletteIndices{6u, 8u, 7u, 2u, 1u, 0u};
+    for (size_t index : PreferredPaletteIndices) {
+      if (index < theme->palette.size()) {
+        return theme->palette[index];
+      }
+    }
+    return theme->palette.back();
+  }
+  return PrimeFrame::Color{0.20f, 0.56f, 0.95f, 1.0f};
+}
+
+ResolvedFocusStyle resolve_focus_style(PrimeFrame::Frame& frame,
+                                       PrimeFrame::RectStyleToken requestedToken,
+                                       PrimeFrame::RectStyleOverride const& requestedOverride,
+                                       std::initializer_list<PrimeFrame::RectStyleToken> fallbacks,
+                                       std::optional<PrimeFrame::RectStyleOverride> fallbackOverride =
+                                           std::nullopt) {
+  ResolvedFocusStyle resolved;
+  resolved.token = resolve_focus_style_token(requestedToken, fallbacks);
+
+  if (requestedToken != 0) {
+    resolved.overrideStyle = requestedOverride;
+  } else if (fallbackOverride.has_value()) {
+    resolved.overrideStyle = *fallbackOverride;
+  }
+
+  if (resolved.token == 0) {
+    resolved.token = 1;
+    resolved.overrideStyle.fill = resolve_semantic_focus_color(frame);
+    if (!resolved.overrideStyle.opacity.has_value()) {
+      resolved.overrideStyle.opacity = 1.0f;
+    }
+  }
+  return resolved;
 }
 
 constexpr float FocusRingThickness = 2.0f;
@@ -1895,12 +1940,18 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
 
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
+    ResolvedFocusStyle focusStyle = resolve_focus_style(
+        frame(),
+        spec.focusStyle,
+        spec.focusStyleOverride,
+        {pressedToken, hoverToken, baseToken},
+        spec.backgroundStyleOverride);
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           button.nodeId(),
                                           focusRect,
-                                          spec.focusStyle,
-                                          spec.focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
       node->focusable = true;
@@ -2601,16 +2652,22 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && state != nullptr) {
+    ResolvedFocusStyle focusStyle = resolve_focus_style(
+        frame(),
+        spec.focusStyle,
+        spec.focusStyleOverride,
+        {spec.cursorStyle, spec.selectionStyle, spec.backgroundStyle},
+        spec.backgroundStyleOverride);
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           field.nodeId(),
                                           focusRect,
-                                          spec.focusStyle,
-                                          spec.focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
-      node->focusable = (state != nullptr) || focusOverlay.has_value();
+      node->focusable = true;
     }
   }
 
@@ -3190,18 +3247,20 @@ UiNode UiNode::createToggle(ToggleSpec const& spec) {
                    false,
                    spec.visible);
 
-  PrimeFrame::RectStyleToken focusStyleToken =
-      resolve_focus_style_token(spec.focusStyle, {spec.knobStyle, spec.trackStyle});
-  PrimeFrame::RectStyleOverride focusStyleOverride =
-      spec.focusStyle != 0 ? spec.focusStyleOverride : spec.knobStyleOverride;
+  ResolvedFocusStyle focusStyle = resolve_focus_style(
+      frame(),
+      spec.focusStyle,
+      spec.focusStyleOverride,
+      {spec.knobStyle, spec.trackStyle},
+      spec.knobStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           toggle.nodeId(),
                                           focusRect,
-                                          focusStyleToken,
-                                          focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
       node->focusable = true;
@@ -3326,18 +3385,20 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& spec) {
     row.createTextLine(text);
   }
 
-  PrimeFrame::RectStyleToken focusStyleToken =
-      resolve_focus_style_token(spec.focusStyle, {spec.checkStyle, spec.boxStyle});
-  PrimeFrame::RectStyleOverride focusStyleOverride =
-      spec.focusStyle != 0 ? spec.focusStyleOverride : spec.checkStyleOverride;
+  ResolvedFocusStyle focusStyle = resolve_focus_style(
+      frame(),
+      spec.focusStyle,
+      spec.focusStyleOverride,
+      {spec.checkStyle, spec.boxStyle},
+      spec.checkStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           row.nodeId(),
                                           focusRect,
-                                          focusStyleToken,
-                                          focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
       node->focusable = true;
@@ -3523,17 +3584,19 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
   bool wantsInteraction = spec.callbacks.onValueChanged ||
                           spec.callbacks.onDragStart ||
                           spec.callbacks.onDragEnd;
-  PrimeFrame::RectStyleToken focusStyleToken =
-      resolve_focus_style_token(spec.focusStyle, {spec.thumbStyle, spec.fillStyle, spec.trackStyle});
-  PrimeFrame::RectStyleOverride focusStyleOverride =
-      spec.focusStyle != 0 ? spec.focusStyleOverride : spec.thumbStyleOverride;
+  ResolvedFocusStyle focusStyle = resolve_focus_style(
+      frame(),
+      spec.focusStyle,
+      spec.focusStyleOverride,
+      {spec.thumbStyle, spec.fillStyle, spec.trackStyle},
+      spec.thumbStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
   focusOverlay = add_focus_overlay_node(frame(),
                                         slider.nodeId(),
                                         focusRect,
-                                        focusStyleToken,
-                                        focusStyleOverride,
+                                        focusStyle.token,
+                                        focusStyle.overrideStyle,
                                         spec.visible);
   if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
     node->focusable = true;
@@ -3893,15 +3956,19 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
     };
     tabNode->callbacks = frame().addCallback(std::move(callback));
 
-    PrimeFrame::RectStyleToken focusStyleToken =
-        resolve_focus_style_token(rectStyle, {spec.activeTabStyle, spec.tabStyle});
+    ResolvedFocusStyle focusStyle = resolve_focus_style(
+        frame(),
+        0,
+        {},
+        {rectStyle, spec.activeTabStyle, spec.tabStyle},
+        rectOverride);
     std::optional<FocusOverlay> focusOverlay;
     Rect focusRect{0.0f, 0.0f, textWidth + spec.tabPaddingX * 2.0f, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           tab.nodeId(),
                                           focusRect,
-                                          focusStyleToken,
-                                          rectOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (focusOverlay.has_value()) {
       attach_focus_callbacks(frame(), tab.nodeId(), *focusOverlay);
@@ -4064,16 +4131,20 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
     dropdownNode->callbacks = frame().addCallback(std::move(callback));
   }
 
-  PrimeFrame::RectStyleToken focusStyleToken = spec.focusStyle;
-  PrimeFrame::RectStyleOverride focusStyleOverride = spec.focusStyleOverride;
+  ResolvedFocusStyle focusStyle = resolve_focus_style(
+      frame(),
+      spec.focusStyle,
+      spec.focusStyleOverride,
+      {spec.backgroundStyle},
+      spec.backgroundStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           dropdown.nodeId(),
                                           focusRect,
-                                          focusStyleToken,
-                                          focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
   }
   if (focusOverlay.has_value()) {
@@ -4131,18 +4202,20 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
                      spec.visible);
   }
 
-  PrimeFrame::RectStyleToken focusStyleToken =
-      resolve_focus_style_token(spec.focusStyle, {spec.trackStyle, spec.fillStyle});
-  PrimeFrame::RectStyleOverride focusStyleOverride =
-      spec.focusStyle != 0 ? spec.focusStyleOverride : spec.trackStyleOverride;
+  ResolvedFocusStyle focusStyle = resolve_focus_style(
+      frame(),
+      spec.focusStyle,
+      spec.focusStyleOverride,
+      {spec.trackStyle, spec.fillStyle},
+      spec.trackStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           bar.nodeId(),
                                           focusRect,
-                                          focusStyleToken,
-                                          focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
   }
   if (focusOverlay.has_value()) {
@@ -4507,15 +4580,20 @@ UiNode UiNode::createTable(TableSpec const& spec) {
     }
   }
 
-  if (spec.visible && spec.focusStyle != 0) {
+  if (spec.visible) {
+    ResolvedFocusStyle focusStyle = resolve_focus_style(
+        frame(),
+        spec.focusStyle,
+        spec.focusStyleOverride,
+        {spec.selectionStyle, spec.rowStyle, spec.rowAltStyle, spec.headerStyle, spec.dividerStyle});
     float focusWidth = tableBounds.width > 0.0f ? tableBounds.width : tableSize.preferredWidth.value_or(0.0f);
     float focusHeight = tableBounds.height > 0.0f ? tableBounds.height : tableSize.preferredHeight.value_or(0.0f);
     Rect focusRect{0.0f, 0.0f, std::max(0.0f, focusWidth), std::max(0.0f, focusHeight)};
     auto focusOverlay = add_focus_overlay_node(frame(),
                                                tableRoot.nodeId(),
                                                focusRect,
-                                               spec.focusStyle,
-                                               spec.focusStyleOverride,
+                                               focusStyle.token,
+                                               focusStyle.overrideStyle,
                                                spec.visible);
     if (focusOverlay.has_value()) {
       attach_focus_callbacks(frame(), tableRoot.nodeId(), *focusOverlay);
@@ -4685,7 +4763,6 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   treeSpec.visible = spec.visible;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode treeNode = parentNode.createOverlay(treeSpec);
-  bool hasFocusStyle = spec.focusStyle != 0;
 
   float rowWidth = std::max(0.0f, bounds.width);
   float rowTextHeight = resolve_line_height(frame(), spec.textStyle);
@@ -5312,10 +5389,11 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   bool wantsKeyboard = spec.keyboardNavigation && !interaction->rows.empty();
   bool wantsPointerScroll = interaction->scrollEnabled;
   bool wantsScrollBar = wantsPointerScroll && spec.scrollBar.enabled;
+  bool treeFocusable = !interaction->rows.empty() || wantsKeyboard;
   if (spec.visible) {
     PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
     if (treeNodePtr) {
-      treeNodePtr->focusable = !interaction->rows.empty() || wantsKeyboard || hasFocusStyle;
+      treeNodePtr->focusable = treeFocusable;
       if (wantsKeyboard || wantsPointerScroll) {
         PrimeFrame::Callback keyCallback;
         keyCallback.onEvent = [interaction,
@@ -5588,13 +5666,18 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible && hasFocusStyle) {
+  if (spec.visible && treeFocusable) {
+    ResolvedFocusStyle focusStyle = resolve_focus_style(
+        frame(),
+        spec.focusStyle,
+        spec.focusStyleOverride,
+        {spec.selectionAccentStyle, spec.selectionStyle, spec.hoverStyle, spec.rowStyle, spec.rowAltStyle});
     Rect overlayRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           treeNode.nodeId(),
                                           overlayRect,
-                                          spec.focusStyle,
-                                          spec.focusStyleOverride,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
                                           spec.visible);
     if (PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId())) {
       treeNodePtr->focusable = true;

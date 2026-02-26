@@ -179,6 +179,7 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
 
   focusCases.push_back(FocusCase{
       .name = "button",
+      .expectVisibleFocus = true,
       .createWidget =
           [](PrimeStage::UiNode& root) {
             PrimeStage::ButtonSpec spec;
@@ -190,6 +191,7 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
 
   focusCases.push_back(FocusCase{
       .name = "text_field",
+      .expectVisibleFocus = true,
       .createWidget =
           [&textFieldState](PrimeStage::UiNode& root) {
             PrimeStage::TextFieldSpec spec;
@@ -257,6 +259,7 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
 
   focusCases.push_back(FocusCase{
       .name = "table",
+      .expectVisibleFocus = true,
       .createWidget =
           [](PrimeStage::UiNode& root) {
             PrimeStage::TableSpec spec;
@@ -273,6 +276,7 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
 
   focusCases.push_back(FocusCase{
       .name = "tree_view",
+      .expectVisibleFocus = true,
       .createWidget =
           [](PrimeStage::UiNode& root) {
             PrimeStage::TreeViewSpec spec;
@@ -303,6 +307,67 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
             spec.size.preferredWidth = 180.0f;
             spec.size.preferredHeight = 30.0f;
             return root.createSelectableText(spec);
+          }});
+
+  for (FocusCase const& focusCase : focusCases) {
+    INFO(focusCase.name);
+    runFocusCase(focusCase);
+  }
+}
+
+TEST_CASE("PrimeStage focus visuals have semantic defaults without style opt-in") {
+  PrimeStage::TextFieldState textFieldState;
+  textFieldState.text = "plain";
+
+  std::vector<FocusCase> focusCases;
+
+  focusCases.push_back(FocusCase{
+      .name = "button_default_style",
+      .expectVisibleFocus = true,
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::ButtonSpec spec;
+            spec.size.preferredWidth = 120.0f;
+            spec.size.preferredHeight = 28.0f;
+            return root.createButton(spec);
+          }});
+
+  focusCases.push_back(FocusCase{
+      .name = "text_field_default_style",
+      .expectVisibleFocus = true,
+      .createWidget =
+          [&textFieldState](PrimeStage::UiNode& root) {
+            PrimeStage::TextFieldSpec spec;
+            spec.state = &textFieldState;
+            spec.size.preferredWidth = 180.0f;
+            spec.size.preferredHeight = 28.0f;
+            return root.createTextField(spec);
+          }});
+
+  focusCases.push_back(FocusCase{
+      .name = "table_default_style",
+      .expectVisibleFocus = true,
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::TableSpec spec;
+            spec.size.preferredWidth = 240.0f;
+            spec.size.preferredHeight = 120.0f;
+            spec.headerHeight = 20.0f;
+            spec.columns = {{"A", 100.0f, 0u, 0u}, {"B", 100.0f, 0u, 0u}};
+            spec.rows = {{"1", "2"}, {"3", "4"}};
+            return root.createTable(spec);
+          }});
+
+  focusCases.push_back(FocusCase{
+      .name = "tree_view_default_style",
+      .expectVisibleFocus = true,
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::TreeViewSpec spec;
+            spec.size.preferredWidth = 240.0f;
+            spec.size.preferredHeight = 120.0f;
+            spec.nodes = {PrimeStage::TreeNode{"Node"}};
+            return root.createTreeView(spec);
           }});
 
   for (FocusCase const& focusCase : focusCases) {

@@ -96,7 +96,8 @@ Default focus behavior expected by app code:
 - Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,
   `ProgressBar`, `Table`, `TreeView`.
 - Not focusable by default: `SelectableText`.
-- Focus visuals should be rendered by widget APIs via `focusStyle`/fallback style tokens.
+- Focus visuals should render by default for focusable widgets using semantic focus styling;
+  `focusStyle` remains an opt-in override, not a requirement.
 - App code should drive focus through `PrimeFrame::FocusManager`, not by patching focus primitives manually.
 
 Example (`FocusManager` with widget defaults):

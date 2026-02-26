@@ -56,10 +56,11 @@ Release Exit Criteria (for API-quality milestone):
   - add regression tests that fail if selection highlight can draw above focus ring
   - delivered by explicit overlay top-order preservation in `src/PrimeStage.cpp` and flatten-order regression tests in `tests/unit/test_focus_compositing.cpp`
 
-- ☐ [15] Add theme-level semantic defaults for interaction visuals.
+- ☑ [15] Add theme-level semantic defaults for interaction visuals.
   - define default focus ring styling for all focusable controls
   - reduce per-widget token opt-in for focus visuals
   - acceptance: focus ring appears for all focusable widgets without setting `focusStyle` per widget
+  - delivered by semantic focus-style resolution in `src/PrimeStage.cpp` across focusable widget builders with regression coverage in `tests/unit/test_focus_widgets.cpp`
 
 - ☐ [14] Add a PrimeStage input bridge layer for host integrations.
   - map host/platform events to widget events centrally (avoid per-app low-level event translation and keycode wiring)
