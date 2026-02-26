@@ -118,6 +118,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_widget_identity.cpp
     tests/unit/test_integration_flows.cpp
     tests/unit/test_app_runtime.cpp
+    tests/unit/test_visual_regression.cpp
     tests/unit/test_widgets_demo_regression.cpp
     tests/unit/test_widgets.cpp
   )

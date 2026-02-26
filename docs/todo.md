@@ -98,9 +98,10 @@ Release Exit Criteria (for API-quality milestone):
   - reconcile `docs/prime-stage-design.md` with current API names/signatures (`TextField` vs draft `EditBox`, callback model, focus behavior)
   - delivered via README workflow updates, design-doc API/focus reconciliation in `docs/prime-stage-design.md`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [25] Add visual regression coverage for interaction states.
+- ☑ [25] Add visual regression coverage for interaction states.
   - add snapshot tests for focus/hover/pressed/selection layering
   - ensure regressions are catchable without manual runtime inspection
+  - delivered via `tests/unit/test_visual_regression.cpp` and golden snapshot baseline `tests/snapshots/interaction_visuals.snap` with CMake wiring
 
 - ☐ [31] Add CI/presubmit build matrix.
   - run `scripts/compile.sh --test` in at least `RelWithDebInfo` and `Release`
