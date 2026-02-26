@@ -41,9 +41,10 @@ Release Exit Criteria (for API-quality milestone):
   - acceptance: no `node->callbacks = ...` / callback-composition helpers needed in `examples/primestage_widgets.cpp`
   - delivered via widget-spec callbacks in `examples/primestage_widgets.cpp` with regression guard in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [19] Add core callback-composition utilities in PrimeStage.
+- ☑ [19] Add core callback-composition utilities in PrimeStage.
   - expose safe helper APIs for extending existing widget callbacks (`onEvent`, `onFocus`, `onBlur`) without clobbering previous behavior
   - avoid ad-hoc callback composition in app code
+  - delivered via `appendNodeOnEvent`, `appendNodeOnFocus`, and `appendNodeOnBlur` in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp` with regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [13] Add stable widget identity and reconciliation support.
   - preserve focus/selection/caret across rebuilds without manual restore bookkeeping

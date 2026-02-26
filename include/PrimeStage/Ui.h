@@ -554,6 +554,16 @@ bool selectableTextHasSelection(SelectableTextState const& state,
                                 uint32_t& end);
 void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor);
 
+bool appendNodeOnEvent(PrimeFrame::Frame& frame,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<bool(PrimeFrame::Event const&)> onEvent);
+bool appendNodeOnFocus(PrimeFrame::Frame& frame,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<void()> onFocus);
+bool appendNodeOnBlur(PrimeFrame::Frame& frame,
+                      PrimeFrame::NodeId nodeId,
+                      std::function<void()> onBlur);
+
 struct ScrollView;
 
 class UiNode {

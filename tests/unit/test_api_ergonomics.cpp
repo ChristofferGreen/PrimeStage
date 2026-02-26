@@ -186,3 +186,80 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("node->callbacks =") == std::string::npos);
   CHECK(source.find("PrimeFrame::Callback callback") == std::string::npos);
 }
+
+TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId nodeId = frame.createNode();
+  frame.addRoot(nodeId);
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  REQUIRE(node != nullptr);
+
+  int previousCalls = 0;
+  PrimeFrame::Callback base;
+  base.onEvent = [&](PrimeFrame::Event const& event) -> bool {
+    previousCalls += 1;
+    return event.key == 42;
+  };
+  node->callbacks = frame.addCallback(std::move(base));
+
+  int appendedCalls = 0;
+  bool appended = PrimeStage::appendNodeOnEvent(
+      frame,
+      nodeId,
+      [&](PrimeFrame::Event const& event) -> bool {
+        appendedCalls += 1;
+        return event.key == 7;
+      });
+  CHECK(appended);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event handledByNew;
+  handledByNew.type = PrimeFrame::EventType::KeyDown;
+  handledByNew.key = 7;
+  CHECK(callback->onEvent(handledByNew));
+  CHECK(appendedCalls == 1);
+  CHECK(previousCalls == 0);
+
+  PrimeFrame::Event handledByPrevious;
+  handledByPrevious.type = PrimeFrame::EventType::KeyDown;
+  handledByPrevious.key = 42;
+  CHECK(callback->onEvent(handledByPrevious));
+  CHECK(appendedCalls == 2);
+  CHECK(previousCalls == 1);
+}
+
+TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId nodeId = frame.createNode();
+  frame.addRoot(nodeId);
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  REQUIRE(node != nullptr);
+
+  int previousFocus = 0;
+  int previousBlur = 0;
+  PrimeFrame::Callback base;
+  base.onFocus = [&]() { previousFocus += 1; };
+  base.onBlur = [&]() { previousBlur += 1; };
+  node->callbacks = frame.addCallback(std::move(base));
+
+  int appendedFocus = 0;
+  int appendedBlur = 0;
+  CHECK(PrimeStage::appendNodeOnFocus(frame, nodeId, [&]() { appendedFocus += 1; }));
+  CHECK(PrimeStage::appendNodeOnBlur(frame, nodeId, [&]() { appendedBlur += 1; }));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onFocus);
+  REQUIRE(callback->onBlur);
+
+  callback->onFocus();
+  callback->onBlur();
+
+  CHECK(previousFocus == 1);
+  CHECK(previousBlur == 1);
+  CHECK(appendedFocus == 1);
+  CHECK(appendedBlur == 1);
+}

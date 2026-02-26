@@ -54,7 +54,7 @@ void buildUi(PrimeStage::UiNode root, AppState& state) {
 - Prefer widget spec callbacks (`onClick`, `onValueChanged`, `onSelectionChanged`) over node event hooks.
 - Keep callbacks side-effect-light: update state and mark the app for rebuild/layout.
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
-- Reserve direct `PrimeFrame` callback mutation for explicitly documented advanced/internal scenarios.
+- For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
 
 Example (`Button` callback wiring):
 
@@ -94,5 +94,4 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Callback-composition utilities for advanced extension points (`[19]`).
 - Host input bridge with symbolic key APIs (`[14]`).

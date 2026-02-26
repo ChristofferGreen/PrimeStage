@@ -1160,6 +1160,91 @@ uint32_t caretIndexForClickInLayout(PrimeFrame::Frame& frame,
   return line.start + localIndex;
 }
 
+static PrimeFrame::Callback* ensureNodeCallback(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId) {
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  if (node->callbacks == PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback callback;
+    node->callbacks = frame.addCallback(std::move(callback));
+  }
+  PrimeFrame::Callback* result = frame.getCallback(node->callbacks);
+  if (result) {
+    return result;
+  }
+  PrimeFrame::Callback callback;
+  node->callbacks = frame.addCallback(std::move(callback));
+  return frame.getCallback(node->callbacks);
+}
+
+bool appendNodeOnEvent(PrimeFrame::Frame& frame,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<bool(PrimeFrame::Event const&)> onEvent) {
+  if (!onEvent) {
+    return false;
+  }
+  PrimeFrame::Callback* callback = ensureNodeCallback(frame, nodeId);
+  if (!callback) {
+    return false;
+  }
+  auto previous = callback->onEvent;
+  callback->onEvent = [handler = std::move(onEvent), previous = std::move(previous)](
+                          PrimeFrame::Event const& event) -> bool {
+    if (handler && handler(event)) {
+      return true;
+    }
+    if (previous) {
+      return previous(event);
+    }
+    return false;
+  };
+  return true;
+}
+
+bool appendNodeOnFocus(PrimeFrame::Frame& frame,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<void()> onFocus) {
+  if (!onFocus) {
+    return false;
+  }
+  PrimeFrame::Callback* callback = ensureNodeCallback(frame, nodeId);
+  if (!callback) {
+    return false;
+  }
+  auto previous = callback->onFocus;
+  callback->onFocus = [handler = std::move(onFocus), previous = std::move(previous)]() {
+    if (previous) {
+      previous();
+    }
+    if (handler) {
+      handler();
+    }
+  };
+  return true;
+}
+
+bool appendNodeOnBlur(PrimeFrame::Frame& frame,
+                      PrimeFrame::NodeId nodeId,
+                      std::function<void()> onBlur) {
+  if (!onBlur) {
+    return false;
+  }
+  PrimeFrame::Callback* callback = ensureNodeCallback(frame, nodeId);
+  if (!callback) {
+    return false;
+  }
+  auto previous = callback->onBlur;
+  callback->onBlur = [handler = std::move(onBlur), previous = std::move(previous)]() {
+    if (previous) {
+      previous();
+    }
+    if (handler) {
+      handler();
+    }
+  };
+  return true;
+}
 
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
     : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
