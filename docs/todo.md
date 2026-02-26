@@ -68,10 +68,11 @@ Release Exit Criteria (for API-quality milestone):
   - acceptance: app event loop no longer translates `PrimeHost` events to `PrimeFrame::Event` inline
   - delivered via `include/PrimeStage/InputBridge.h`, example migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_input_bridge.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [16] Add integration tests for real interaction flows.
+- ☑ [16] Add integration tests for real interaction flows.
   - cover click/type/rebuild/focus-retention scenarios in example-like app compositions
   - include focus-visual assertions (not only focused-node id assertions)
   - include explicit focus contract matrix: interaction-enabled widgets focusable by default; selectable text not focusable
+  - delivered via `tests/unit/test_integration_flows.cpp` (end-to-end interaction/rebuild focus retention and focus-contract matrix coverage) and `CMakeLists.txt` test target updates
 
 - ☐ [20] Add app-level interaction regression suite for the widgets demo.
   - scenario coverage: click-to-focus, tab traversal, value changes, text editing, tab/page switches, rebuild stability

@@ -116,6 +116,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_focus_compositing.cpp
     tests/unit/test_input_bridge.cpp
     tests/unit/test_widget_identity.cpp
+    tests/unit/test_integration_flows.cpp
     tests/unit/test_widgets.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
