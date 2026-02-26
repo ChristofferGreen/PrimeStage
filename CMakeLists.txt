@@ -113,6 +113,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_tree_view.cpp
     tests/unit/test_treeview_input.cpp
     tests/unit/test_focus_widgets.cpp
+    tests/unit/test_focus_compositing.cpp
     tests/unit/test_widget_identity.cpp
     tests/unit/test_widgets.cpp
   )

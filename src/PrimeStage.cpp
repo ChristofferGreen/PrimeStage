@@ -306,6 +306,7 @@ struct FocusOverlay {
   std::vector<PrimeFrame::PrimitiveId> primitives;
   PrimeFrame::RectStyleOverride focused{};
   PrimeFrame::RectStyleOverride blurred{};
+  PrimeFrame::NodeId overlayNode{};
 };
 
 PrimeFrame::RectStyleToken resolve_focus_style_token(
@@ -402,10 +403,14 @@ std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
   if (PrimeFrame::Node* node = frame.getNode(overlayId)) {
     node->hitTestVisible = false;
   }
+  overlay.overlayNode = overlayId;
   overlay.primitives = add_focus_ring_primitives(frame, overlayId, token, overlay.blurred, &rect);
   if (overlay.primitives.empty()) {
     return std::nullopt;
   }
+  // Keep focus overlay as the last sibling so flatten traversal renders it above content/highlight nodes.
+  frame.removeChild(parent, overlayId);
+  frame.addChild(parent, overlayId);
   return overlay;
 }
 
@@ -427,6 +432,21 @@ void attach_focus_callbacks(PrimeFrame::Frame& frame,
       prim->rect.overrideStyle = focusedState ? focused : blurred;
     }
   };
+  auto promoteOverlay = [framePtr = &frame, overlayId = overlay.overlayNode]() {
+    if (!overlayId.isValid()) {
+      return;
+    }
+    PrimeFrame::Node* overlayNode = framePtr->getNode(overlayId);
+    if (!overlayNode) {
+      return;
+    }
+    PrimeFrame::NodeId parent = overlayNode->parent;
+    if (!parent.isValid()) {
+      return;
+    }
+    framePtr->removeChild(parent, overlayId);
+    framePtr->addChild(parent, overlayId);
+  };
 
   PrimeFrame::Node* node = frame.getNode(nodeId);
   if (!node) {
@@ -439,7 +459,8 @@ void attach_focus_callbacks(PrimeFrame::Frame& frame,
     }
     auto prevFocus = callback->onFocus;
     auto prevBlur = callback->onBlur;
-    callback->onFocus = [applyFocus, prevFocus]() {
+    callback->onFocus = [promoteOverlay, applyFocus, prevFocus]() {
+      promoteOverlay();
       applyFocus(true);
       if (prevFocus) {
         prevFocus();
@@ -455,7 +476,10 @@ void attach_focus_callbacks(PrimeFrame::Frame& frame,
   }
 
   PrimeFrame::Callback callback;
-  callback.onFocus = [applyFocus]() { applyFocus(true); };
+  callback.onFocus = [promoteOverlay, applyFocus]() {
+    promoteOverlay();
+    applyFocus(true);
+  };
   callback.onBlur = [applyFocus]() { applyFocus(false); };
   node->callbacks = frame.addCallback(std::move(callback));
 }

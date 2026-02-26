@@ -51,9 +51,10 @@ Release Exit Criteria (for API-quality milestone):
   - acceptance: remove manual focus-target restore state from `examples/primestage_widgets.cpp`
   - delivered via `WidgetIdentityReconciler` in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp`, demo migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_widget_identity.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [17] Guarantee focus-ring compositing order.
+- ☑ [17] Guarantee focus-ring compositing order.
   - ensure focus visuals render last/on top of selection/highlight primitives for all widgets
   - add regression tests that fail if selection highlight can draw above focus ring
+  - delivered by explicit overlay top-order preservation in `src/PrimeStage.cpp` and flatten-order regression tests in `tests/unit/test_focus_compositing.cpp`
 
 - ☐ [15] Add theme-level semantic defaults for interaction visuals.
   - define default focus ring styling for all focusable controls
