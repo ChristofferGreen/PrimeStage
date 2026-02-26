@@ -5,6 +5,7 @@
 
 #include "third_party/doctest.h"
 
+#include <string>
 #include <vector>
 
 static PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame, float width, float height) {
@@ -35,6 +36,210 @@ static PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, int pointe
   event.x = x;
   event.y = y;
   return event;
+}
+
+static PrimeFrame::Primitive const* findRectPrimitiveByTokenInSubtree(PrimeFrame::Frame const& frame,
+                                                                       PrimeFrame::NodeId nodeId,
+                                                                       PrimeFrame::RectStyleToken token) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive const* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == PrimeFrame::PrimitiveType::Rect && prim->rect.token == token) {
+      return prim;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    PrimeFrame::Primitive const* child = findRectPrimitiveByTokenInSubtree(frame, childId, token);
+    if (child) {
+      return child;
+    }
+  }
+  return nullptr;
+}
+
+TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 8.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  int buttonClicks = 0;
+  int toggleChanges = 0;
+  int checkboxChanges = 0;
+  int tabChanges = 0;
+  int dropdownChanges = 0;
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Disabled";
+  buttonSpec.backgroundStyle = 11u;
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  buttonSpec.enabled = false;
+  buttonSpec.callbacks.onClick = [&]() { buttonClicks += 1; };
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.trackStyle = 21u;
+  toggleSpec.knobStyle = 22u;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 24.0f;
+  toggleSpec.enabled = false;
+  toggleSpec.callbacks.onChanged = [&](bool) { toggleChanges += 1; };
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.label = "Flag";
+  checkboxSpec.boxStyle = 31u;
+  checkboxSpec.checkStyle = 32u;
+  checkboxSpec.size.preferredHeight = 24.0f;
+  checkboxSpec.enabled = false;
+  checkboxSpec.callbacks.onChanged = [&](bool) { checkboxChanges += 1; };
+
+  PrimeStage::TabsSpec tabsSpec;
+  tabsSpec.labels = {"A", "B", "C"};
+  tabsSpec.tabStyle = 41u;
+  tabsSpec.activeTabStyle = 42u;
+  tabsSpec.size.preferredHeight = 24.0f;
+  tabsSpec.enabled = false;
+  tabsSpec.callbacks.onTabChanged = [&](int) { tabChanges += 1; };
+
+  PrimeStage::DropdownSpec dropdownSpec;
+  dropdownSpec.options = {"One", "Two"};
+  dropdownSpec.backgroundStyle = 51u;
+  dropdownSpec.size.preferredWidth = 120.0f;
+  dropdownSpec.size.preferredHeight = 24.0f;
+  dropdownSpec.enabled = false;
+  dropdownSpec.callbacks.onSelected = [&](int) { dropdownChanges += 1; };
+  dropdownSpec.callbacks.onOpened = [&]() { dropdownChanges += 1; };
+
+  PrimeStage::UiNode button = stack.createButton(buttonSpec);
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+  PrimeStage::UiNode tabs = stack.createTabs(tabsSpec);
+  PrimeStage::UiNode dropdown = stack.createDropdown(dropdownSpec);
+
+  PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
+  PrimeFrame::Node const* toggleNode = frame.getNode(toggle.nodeId());
+  PrimeFrame::Node const* checkboxNode = frame.getNode(checkbox.nodeId());
+  PrimeFrame::Node const* tabsNode = frame.getNode(tabs.nodeId());
+  PrimeFrame::Node const* dropdownNode = frame.getNode(dropdown.nodeId());
+  REQUIRE(buttonNode != nullptr);
+  REQUIRE(toggleNode != nullptr);
+  REQUIRE(checkboxNode != nullptr);
+  REQUIRE(tabsNode != nullptr);
+  REQUIRE(dropdownNode != nullptr);
+
+  CHECK_FALSE(buttonNode->focusable);
+  CHECK_FALSE(toggleNode->focusable);
+  CHECK_FALSE(checkboxNode->focusable);
+  CHECK_FALSE(dropdownNode->focusable);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 360.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(button.nodeId(), 1);
+  clickCenter(toggle.nodeId(), 2);
+  clickCenter(checkbox.nodeId(), 3);
+  clickCenter(tabs.nodeId(), 4);
+  clickCenter(dropdown.nodeId(), 5);
+
+  CHECK(buttonClicks == 0);
+  CHECK(toggleChanges == 0);
+  CHECK(checkboxChanges == 0);
+  CHECK(tabChanges == 0);
+  CHECK(dropdownChanges == 0);
+  CHECK_FALSE(focus.focusedNode().isValid());
+
+  PrimeFrame::Primitive const* disabledScrim =
+      findRectPrimitiveByTokenInSubtree(frame, button.nodeId(), 1u);
+  REQUIRE(disabledScrim != nullptr);
+  REQUIRE(disabledScrim->rect.overrideStyle.opacity.has_value());
+  CHECK(disabledScrim->rect.overrideStyle.opacity.value() < 1.0f);
+}
+
+TEST_CASE("PrimeStage read-only text field blocks editing but keeps focus behavior") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 120.0f);
+
+  PrimeStage::TextFieldState state;
+  state.text = "Prime";
+  state.cursor = static_cast<uint32_t>(state.text.size());
+
+  int textChanged = 0;
+  int submitCount = 0;
+
+  PrimeStage::TextFieldSpec spec;
+  spec.state = &state;
+  spec.readOnly = true;
+  spec.backgroundStyle = 61u;
+  spec.cursorStyle = 62u;
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 28.0f;
+  spec.callbacks.onTextChanged = [&](std::string_view) { textChanged += 1; };
+  spec.callbacks.onSubmit = [&]() { submitCount += 1; };
+
+  PrimeStage::UiNode field = root.createTextField(spec);
+  PrimeFrame::Node const* node = frame.getNode(field.nodeId());
+  REQUIRE(node != nullptr);
+  CHECK(node->focusable);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 120.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(field.nodeId());
+  REQUIRE(out != nullptr);
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(focus.focusedNode() == field.nodeId());
+
+  PrimeFrame::Event textInput;
+  textInput.type = PrimeFrame::EventType::TextInput;
+  textInput.text = "X";
+  router.dispatch(textInput, frame, layout, &focus);
+
+  PrimeFrame::Event backspace;
+  backspace.type = PrimeFrame::EventType::KeyDown;
+  backspace.key = 0x2A; // Backspace
+  router.dispatch(backspace, frame, layout, &focus);
+
+  PrimeFrame::Event keyEnter;
+  keyEnter.type = PrimeFrame::EventType::KeyDown;
+  keyEnter.key = 0x28; // Enter
+  router.dispatch(keyEnter, frame, layout, &focus);
+
+  CHECK(state.text == "Prime");
+  CHECK(textChanged == 0);
+  CHECK(submitCount == 0);
 }
 
 TEST_CASE("PrimeStage button hover/press transitions update styles and callbacks") {

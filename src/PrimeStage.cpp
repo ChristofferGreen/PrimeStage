@@ -39,6 +39,8 @@ constexpr int KeyDown = 0x51;
 constexpr int KeyUp = 0x52;
 constexpr int KeyHome = 0x4A;
 constexpr int KeyEnd = 0x4D;
+constexpr float DisabledScrimOpacity = 0.38f;
+constexpr float ReadOnlyScrimOpacity = 0.16f;
 
 bool is_activation_key(int key) {
   return key == KeyEnter || key == KeySpace;
@@ -554,6 +556,46 @@ PrimeFrame::Color resolve_semantic_focus_color(PrimeFrame::Frame& frame) {
     return theme->palette.back();
   }
   return PrimeFrame::Color{0.20f, 0.56f, 0.95f, 1.0f};
+}
+
+PrimeFrame::Color resolve_semantic_disabled_color(PrimeFrame::Frame& frame) {
+  PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (theme && !theme->palette.empty()) {
+    PrimeFrame::Color color = theme->palette.front();
+    color.a = 1.0f;
+    return color;
+  }
+  return PrimeFrame::Color{0.0f, 0.0f, 0.0f, 1.0f};
+}
+
+void add_state_scrim_overlay(PrimeFrame::Frame& frame,
+                             PrimeFrame::NodeId parent,
+                             Rect const& bounds,
+                             float opacity,
+                             bool visible) {
+  if (!visible || !parent.isValid() || bounds.width <= 0.0f || bounds.height <= 0.0f ||
+      opacity <= 0.0f) {
+    return;
+  }
+  PrimeFrame::RectStyleOverride overlayStyle;
+  overlayStyle.fill = resolve_semantic_disabled_color(frame);
+  overlayStyle.opacity = std::clamp(opacity, 0.0f, 1.0f);
+  PrimeFrame::NodeId overlayId = create_node(frame,
+                                             parent,
+                                             bounds,
+                                             nullptr,
+                                             PrimeFrame::LayoutType::None,
+                                             PrimeFrame::Insets{},
+                                             0.0f,
+                                             false,
+                                             visible,
+                                             "StateScrimOverlay");
+  if (PrimeFrame::Node* node = frame.getNode(overlayId)) {
+    node->hitTestVisible = false;
+  }
+  add_rect_primitive(frame, overlayId, 1u, overlayStyle);
+  frame.removeChild(parent, overlayId);
+  frame.addChild(parent, overlayId);
 }
 
 ResolvedFocusStyle resolve_focus_style(PrimeFrame::Frame& frame,
@@ -1991,6 +2033,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   spec.baseOpacity = clamp_unit_interval(spec.baseOpacity, "ButtonSpec", "baseOpacity");
   spec.hoverOpacity = clamp_unit_interval(spec.hoverOpacity, "ButtonSpec", "hoverOpacity");
   spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
+  bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -2025,13 +2068,14 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   hoverOverride.opacity = spec.hoverOpacity;
   PrimeFrame::RectStyleOverride pressedOverride = spec.pressedStyleOverride;
   pressedOverride.opacity = spec.pressedOpacity;
-  bool needsInteraction = spec.callbacks.onClick ||
+  bool needsInteraction = enabled &&
+                          (spec.callbacks.onClick ||
                           spec.callbacks.onHoverChanged ||
                           spec.callbacks.onPressedChanged ||
                           hoverToken != baseToken ||
                           pressedToken != baseToken ||
                           std::abs(spec.hoverOpacity - spec.baseOpacity) > 0.001f ||
-                          std::abs(spec.pressedOpacity - spec.baseOpacity) > 0.001f;
+                          std::abs(spec.pressedOpacity - spec.baseOpacity) > 0.001f);
 
   PanelSpec panel;
   panel.size = spec.size;
@@ -2081,7 +2125,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     ResolvedFocusStyle focusStyle = resolve_focus_style(
         frame(),
         spec.focusStyle,
@@ -2205,8 +2249,21 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
     }
   }
 
+  if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
+    node->focusable = enabled;
+    node->hitTestVisible = enabled;
+  }
+
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), button.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            button.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
@@ -2224,6 +2281,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                           0);
     spec.cursorBlinkInterval = std::chrono::milliseconds(0);
   }
+  bool enabled = spec.enabled;
+  bool readOnly = spec.readOnly;
 
   Rect bounds = resolve_rect(spec.size);
   TextFieldState* state = spec.state;
@@ -2303,7 +2362,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   selectionStart =
       clamp_text_index(selectionStart, textSize, "TextFieldSpec", "selectionStart");
   selectionEnd = clamp_text_index(selectionEnd, textSize, "TextFieldSpec", "selectionEnd");
-  if (state) {
+  if (state && enabled) {
     state->cursor = cursorIndex;
     state->selectionAnchor = selectionAnchor;
     state->selectionStart = selectionStart;
@@ -2396,6 +2455,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                           textStyle = spec.textStyle,
                           paddingX = spec.paddingX,
                           allowNewlines = spec.allowNewlines,
+                          readOnly,
                           handleClipboardShortcuts = spec.handleClipboardShortcuts,
                           cursorBlinkInterval = spec.cursorBlinkInterval](PrimeFrame::Event const& event) -> bool {
         if (!state) {
@@ -2557,6 +2617,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                 return true;
               }
               if (event.key == KeyX) {
+                if (readOnly) {
+                  return true;
+                }
                 if (hasSelection) {
                   if (clipboard.setText) {
                     clipboard.setText(
@@ -2571,6 +2634,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                 return true;
               }
               if (event.key == KeyV) {
+                if (readOnly) {
+                  return true;
+                }
                 if (clipboard.getText) {
                   std::string paste = clipboard.getText();
                   if (!allowNewlines) {
@@ -2671,6 +2737,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                 changed = true;
                 break;
               case KeyBackspace:
+                if (readOnly) {
+                  return true;
+                }
                 if (delete_selection()) {
                   changed = true;
                   cursor = state->cursor;
@@ -2684,6 +2753,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                 }
                 break;
               case KeyDelete:
+                if (readOnly) {
+                  return true;
+                }
                 if (delete_selection()) {
                   changed = true;
                   cursor = state->cursor;
@@ -2697,7 +2769,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                 break;
               case KeyReturn:
                 if (!allowNewlines) {
-                  if (callbacks.onSubmit) {
+                  if (!readOnly && callbacks.onSubmit) {
                     callbacks.onSubmit();
                   }
                   return true;
@@ -2720,6 +2792,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
           case PrimeFrame::EventType::TextInput: {
             if (!state->focused) {
               return false;
+            }
+            if (readOnly) {
+              return true;
             }
             if (event.text.empty()) {
               return true;
@@ -2816,7 +2891,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible && state != nullptr) {
+  bool canFocus = enabled && state != nullptr;
+  if (spec.visible && canFocus) {
     ResolvedFocusStyle focusStyle = resolve_focus_style(
         frame(),
         spec.focusStyle,
@@ -2830,13 +2906,29 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                                           focusStyle.token,
                                           focusStyle.overrideStyle,
                                           spec.visible);
-    if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
-      node->focusable = true;
-    }
+  }
+
+  if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
+    node->focusable = canFocus;
+    node->hitTestVisible = enabled;
   }
 
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), field.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            field.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
+  } else if (readOnly) {
+    add_state_scrim_overlay(frame(),
+                            field.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            ReadOnlyScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
@@ -2847,6 +2939,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   sanitize_size_spec(spec.size, "SelectableTextSpec.size");
   spec.paddingX = clamp_non_negative(spec.paddingX, "SelectableTextSpec", "paddingX");
   spec.maxWidth = clamp_non_negative(spec.maxWidth, "SelectableTextSpec", "maxWidth");
+  bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
   std::string_view text = spec.text;
@@ -2903,7 +2996,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   overlaySpec.clipChildren = true;
   overlaySpec.visible = spec.visible;
   UiNode overlay = createOverlay(overlaySpec);
-  overlay.setHitTestVisible(true);
+  overlay.setHitTestVisible(enabled);
 
   if (!spec.visible) {
     return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
@@ -2914,7 +3007,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       clamp_text_index(spec.selectionStart, textSize, "SelectableTextSpec", "selectionStart");
   uint32_t selectionEnd =
       clamp_text_index(spec.selectionEnd, textSize, "SelectableTextSpec", "selectionEnd");
-  if (spec.state) {
+  if (spec.state && enabled) {
     spec.state->text = text;
     spec.state->selectionAnchor = clamp_text_index(spec.state->selectionAnchor,
                                                    textSize,
@@ -3365,7 +3458,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           overlay.nodeId(),
@@ -3382,6 +3475,14 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
     attach_focus_callbacks(frame(), overlay.nodeId(), *focusOverlay);
   }
 
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            overlay.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
+  }
+
   return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
 }
 
@@ -3389,6 +3490,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   ToggleSpec spec = specInput;
   sanitize_size_spec(spec.size, "ToggleSpec.size");
   spec.knobInset = clamp_non_negative(spec.knobInset, "ToggleSpec", "knobInset");
+  bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -3438,7 +3540,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
       {spec.knobStyle, spec.trackStyle},
       spec.knobStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           toggle.nodeId(),
@@ -3500,8 +3602,20 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
       node->callbacks = frame().addCallback(std::move(callback));
     }
   }
+  if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
+    node->focusable = enabled;
+    node->hitTestVisible = enabled;
+  }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), toggle.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            toggle.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
@@ -3513,6 +3627,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   spec.boxSize = clamp_non_negative(spec.boxSize, "CheckboxSpec", "boxSize");
   spec.checkInset = clamp_non_negative(spec.checkInset, "CheckboxSpec", "checkInset");
   spec.gap = clamp_non_negative(spec.gap, "CheckboxSpec", "gap");
+  bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -3582,7 +3697,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
       {spec.checkStyle, spec.boxStyle},
       spec.checkStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           row.nodeId(),
@@ -3645,8 +3760,20 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
       node->callbacks = frame().addCallback(std::move(callback));
     }
   }
+  if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
+    node->focusable = enabled;
+    node->hitTestVisible = enabled;
+  }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), row.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            row.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
@@ -3670,6 +3797,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       clamp_optional_unit_interval(spec.thumbHoverOpacity, "SliderSpec", "thumbHoverOpacity");
   spec.thumbPressedOpacity =
       clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
+  bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -3789,9 +3917,10 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
     }
   }
 
-  bool wantsInteraction = spec.callbacks.onValueChanged ||
+  bool wantsInteraction = enabled &&
+                          (spec.callbacks.onValueChanged ||
                           spec.callbacks.onDragStart ||
-                          spec.callbacks.onDragEnd;
+                          spec.callbacks.onDragEnd);
   ResolvedFocusStyle focusStyle = resolve_focus_style(
       frame(),
       spec.focusStyle,
@@ -3800,14 +3929,17 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       spec.thumbStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
   Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
-  focusOverlay = add_focus_overlay_node(frame(),
-                                        slider.nodeId(),
-                                        focusRect,
-                                        focusStyle.token,
-                                        focusStyle.overrideStyle,
-                                        spec.visible);
+  if (enabled) {
+    focusOverlay = add_focus_overlay_node(frame(),
+                                          slider.nodeId(),
+                                          focusRect,
+                                          focusStyle.token,
+                                          focusStyle.overrideStyle,
+                                          spec.visible);
+  }
   if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
-    node->focusable = true;
+    node->focusable = enabled;
+    node->hitTestVisible = enabled;
   }
 
   if (wantsInteraction) {
@@ -4000,6 +4132,14 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
     attach_focus_callbacks(frame(), slider.nodeId(), *focusOverlay);
   }
 
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            slider.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
+  }
+
   return UiNode(frame(), slider.nodeId(), allowAbsolute_);
 }
 
@@ -4009,6 +4149,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
   spec.tabPaddingX = clamp_non_negative(spec.tabPaddingX, "TabsSpec", "tabPaddingX");
   spec.tabPaddingY = clamp_non_negative(spec.tabPaddingY, "TabsSpec", "tabPaddingY");
   spec.gap = clamp_non_negative(spec.gap, "TabsSpec", "gap");
+  bool enabled = spec.enabled;
 
   int tabCount = static_cast<int>(spec.labels.size());
   int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
@@ -4051,6 +4192,9 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
   rowSpec.clipChildren = false;
   rowSpec.visible = spec.visible;
   UiNode row = createHorizontalStack(rowSpec);
+  if (PrimeFrame::Node* rowNode = frame().getNode(row.nodeId())) {
+    rowNode->hitTestVisible = enabled;
+  }
   auto sharedSelected = std::make_shared<int>(selectedIndex);
 
   for (size_t i = 0; i < spec.labels.size(); ++i) {
@@ -4086,8 +4230,9 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     if (!tabNode) {
       continue;
     }
-    tabNode->focusable = spec.visible;
-    if (!spec.visible) {
+    tabNode->focusable = spec.visible && enabled;
+    tabNode->hitTestVisible = enabled;
+    if (!spec.visible || !enabled) {
       continue;
     }
     struct TabState {
@@ -4184,6 +4329,14 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     }
   }
 
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            row.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
+  }
+
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
 }
 
@@ -4192,6 +4345,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   sanitize_size_spec(spec.size, "DropdownSpec.size");
   spec.paddingX = clamp_non_negative(spec.paddingX, "DropdownSpec", "paddingX");
   spec.indicatorGap = clamp_non_negative(spec.indicatorGap, "DropdownSpec", "indicatorGap");
+  bool enabled = spec.enabled;
 
   int optionCount = static_cast<int>(spec.options.size());
   int selectedIndex =
@@ -4273,7 +4427,10 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
 
   PrimeFrame::Node* dropdownNode = frame().getNode(dropdown.nodeId());
   if (dropdownNode) {
-    dropdownNode->focusable = true;
+    dropdownNode->focusable = enabled;
+    dropdownNode->hitTestVisible = enabled;
+  }
+  if (dropdownNode && enabled) {
     struct DropdownState {
       bool pressed = false;
       int currentIndex = 0;
@@ -4350,7 +4507,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
       {spec.backgroundStyle},
       spec.backgroundStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           dropdown.nodeId(),
@@ -4361,6 +4518,14 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), dropdown.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            dropdown.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
@@ -4455,6 +4620,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
                                                 static_cast<int>(spec.rows.size()),
                                                 "TableSpec",
                                                 "selectedRow");
+  bool enabled = spec.enabled;
 
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
@@ -4513,7 +4679,8 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   UiNode tableRoot = parentNode.createOverlay(tableRootSpec);
   if (spec.visible) {
     if (PrimeFrame::Node* node = frame().getNode(tableRoot.nodeId())) {
-      node->focusable = true;
+      node->focusable = enabled;
+      node->hitTestVisible = enabled;
     }
   }
 
@@ -4679,7 +4846,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   rowsSpec.visible = spec.visible;
   UiNode rowsNode = tableNode.createVerticalStack(rowsSpec);
   if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
-    rowsNodePtr->hitTestVisible = true;
+    rowsNodePtr->hitTestVisible = enabled;
   }
 
   struct TableInteractionState {
@@ -4752,7 +4919,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     }
   }
 
-  if (spec.visible && (interaction->callbacks.onRowClicked || spec.selectionStyle != 0)) {
+  if (enabled && spec.visible && (interaction->callbacks.onRowClicked || spec.selectionStyle != 0)) {
     auto updateRowStyle = [interaction](int rowIndex, bool selected) {
       if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->backgrounds.size())) {
         return;
@@ -4810,7 +4977,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     }
   }
 
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     ResolvedFocusStyle focusStyle = resolve_focus_style(
         frame(),
         spec.focusStyle,
@@ -4828,6 +4995,14 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     if (focusOverlay.has_value()) {
       attach_focus_callbacks(frame(), tableRoot.nodeId(), *focusOverlay);
     }
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            tableRoot.nodeId(),
+                            Rect{0.0f, 0.0f, tableBounds.width, tableBounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), tableRoot.nodeId(), allowAbsolute_);
@@ -4951,6 +5126,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
 
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
+  bool enabled = spec.enabled;
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
 
@@ -5121,7 +5297,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
     rowsNodePtr->isViewport = true;
     rowsNodePtr->scrollY = interaction->scrollOffset;
-    rowsNodePtr->hitTestVisible = true;
+    rowsNodePtr->hitTestVisible = enabled;
   }
 
   auto makeRowInfo = [interaction](int rowIndex) {
@@ -5571,17 +5747,18 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       interaction->selectedRow = rowIndex;
     }
 
-    PrimeFrame::Callback rowCallback;
-    rowCallback.onEvent = [interaction,
-                           rowIndex,
-                           glyphX,
-                           glyphY,
-                           caretSize = spec.caretSize,
-                           updateRowVisual,
-                           setHovered,
-                           setSelected,
-                           requestToggle,
-                           makeRowInfo](PrimeFrame::Event const& event) mutable -> bool {
+    if (enabled) {
+      PrimeFrame::Callback rowCallback;
+      rowCallback.onEvent = [interaction,
+                             rowIndex,
+                             glyphX,
+                             glyphY,
+                             caretSize = spec.caretSize,
+                             updateRowVisual,
+                             setHovered,
+                             setSelected,
+                             requestToggle,
+                             makeRowInfo](PrimeFrame::Event const& event) mutable -> bool {
       auto onCaret = [&]() {
         if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->rows.size())) {
           return false;
@@ -5634,21 +5811,23 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
           break;
       }
       return false;
-    };
-    PrimeFrame::CallbackId rowCallbackId = frame().addCallback(std::move(rowCallback));
-    if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowId)) {
-      rowNodePtr->callbacks = rowCallbackId;
+      };
+      PrimeFrame::CallbackId rowCallbackId = frame().addCallback(std::move(rowCallback));
+      if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowId)) {
+        rowNodePtr->callbacks = rowCallbackId;
+      }
     }
   }
 
-  bool wantsKeyboard = spec.keyboardNavigation && !interaction->rows.empty();
-  bool wantsPointerScroll = interaction->scrollEnabled;
+  bool wantsKeyboard = enabled && spec.keyboardNavigation && !interaction->rows.empty();
+  bool wantsPointerScroll = enabled && interaction->scrollEnabled;
   bool wantsScrollBar = wantsPointerScroll && spec.scrollBar.enabled;
-  bool treeFocusable = !interaction->rows.empty() || wantsKeyboard;
+  bool treeFocusable = enabled && (!interaction->rows.empty() || wantsKeyboard);
   if (spec.visible) {
     PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
     if (treeNodePtr) {
       treeNodePtr->focusable = treeFocusable;
+      treeNodePtr->hitTestVisible = enabled;
       if (wantsKeyboard || wantsPointerScroll) {
         PrimeFrame::Callback keyCallback;
         keyCallback.onEvent = [interaction,
@@ -5940,6 +6119,14 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), treeNode.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            treeNode.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);

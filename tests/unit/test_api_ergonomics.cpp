@@ -331,8 +331,10 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceFile = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path uiHeader = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(sourceFile));
+  REQUIRE(std::filesystem::exists(uiHeader));
   REQUIRE(std::filesystem::exists(todoPath));
 
   std::ifstream sourceInput(sourceFile);
@@ -345,6 +347,15 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(source.find("clamp_selected_row_or_none") != std::string::npos);
   CHECK(source.find("clamp_text_index") != std::string::npos);
   CHECK(source.find("PrimeStage validation:") != std::string::npos);
+  CHECK(source.find("add_state_scrim_overlay") != std::string::npos);
+
+  std::ifstream uiInput(uiHeader);
+  REQUIRE(uiInput.good());
+  std::string ui((std::istreambuf_iterator<char>(uiInput)),
+                 std::istreambuf_iterator<char>());
+  REQUIRE(!ui.empty());
+  CHECK(ui.find("bool enabled = true;") != std::string::npos);
+  CHECK(ui.find("bool readOnly = false;") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

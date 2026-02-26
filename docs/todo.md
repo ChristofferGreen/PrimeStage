@@ -121,9 +121,10 @@ Release Exit Criteria (for API-quality milestone):
   - add unit tests for validation behavior
   - delivered via spec sanitizers/index clamps in `src/PrimeStage.cpp`, runtime validation coverage in `tests/unit/test_spec_validation.cpp`, and source/docs guard checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [27] Define and implement disabled/read-only widget semantics.
+- ☑ [27] Define and implement disabled/read-only widget semantics.
   - add common `enabled`/`readOnly` behavior contract for interactive widgets where applicable
   - ensure disabled controls are not focusable/clickable and have consistent visuals
+  - delivered via widget-spec API updates in `include/PrimeStage/Ui.h`, disabled/read-only interaction + scrim semantics in `src/PrimeStage.cpp`, and regression coverage in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [28] Expose focus-order API at widget level.
   - add user-facing `tabIndex`/focus-order controls without requiring direct `PrimeFrame` node access
