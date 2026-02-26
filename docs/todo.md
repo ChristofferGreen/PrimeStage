@@ -103,10 +103,11 @@ Release Exit Criteria (for API-quality milestone):
   - ensure regressions are catchable without manual runtime inspection
   - delivered via `tests/unit/test_visual_regression.cpp` and golden snapshot baseline `tests/snapshots/interaction_visuals.snap` with CMake wiring
 
-- ☐ [31] Add CI/presubmit build matrix.
+- ☑ [31] Add CI/presubmit build matrix.
   - run `scripts/compile.sh --test` in at least `RelWithDebInfo` and `Release`
   - add coverage for `PRIMESTAGE_HEADLESS_ONLY=ON` and `PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF` compatibility path
   - fail fast on test regressions in the interaction/focus suites
+  - delivered via `.github/workflows/presubmit.yml` (release/relwithdebinfo matrix + headless compatibility job) and workflow regression checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [32] Add toolchain quality gates.
   - add sanitizer configuration (`ASan`/`UBSan`) for tests

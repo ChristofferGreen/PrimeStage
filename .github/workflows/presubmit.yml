@@ -1,0 +1,70 @@
+name: Presubmit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-matrix:
+    name: Build/Test (${{ matrix.build_type }})
+    runs-on: macos-14
+    strategy:
+      fail-fast: true
+      matrix:
+        build_type:
+          - relwithdebinfo
+          - release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rewrite GitHub SSH URLs
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+
+      - name: Build
+        run: ./scripts/compile.sh --${{ matrix.build_type }}
+
+      - name: Fail Fast On Focus/Interaction Regressions
+        run: |
+          build_dir="build-${{ matrix.build_type }}"
+          "${build_dir}/PrimeStage_tests" --test-case="*focus*,*interaction*"
+
+      - name: Full Test Pass
+        run: ./scripts/compile.sh --${{ matrix.build_type }} --test
+
+  headless-compatibility:
+    name: Headless Compatibility
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rewrite GitHub SSH URLs
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+
+      - name: Configure Headless Compatibility Build
+        run: |
+          cmake -S . -B build-headless-compat \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_OBJCXX_COMPILER=clang++ \
+            -DPRIMESTAGE_BUILD_TESTS=ON \
+            -DPRIMESTAGE_BUILD_EXAMPLES=OFF \
+            -DPRIMESTAGE_HEADLESS_ONLY=ON \
+            -DPRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF \
+            -DPRIMESTAGE_FETCH_PRIMEHOST=ON
+
+      - name: Build Headless Compatibility
+        run: cmake --build build-headless-compat
+
+      - name: Focus/Interaction Smoke
+        run: ./build-headless-compat/PrimeStage_tests --test-case="*focus*,*interaction*"
+
+      - name: Full Headless Test Pass
+        run: ctest --test-dir build-headless-compat --output-on-failure

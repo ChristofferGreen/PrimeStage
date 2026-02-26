@@ -258,6 +258,28 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(design.find("Focusable by default") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility path") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path workflowPath = repoRoot / ".github" / "workflows" / "presubmit.yml";
+  REQUIRE(std::filesystem::exists(workflowPath));
+
+  std::ifstream input(workflowPath);
+  REQUIRE(input.good());
+  std::string workflow((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+  REQUIRE(!workflow.empty());
+
+  CHECK(workflow.find("build_type") != std::string::npos);
+  CHECK(workflow.find("relwithdebinfo") != std::string::npos);
+  CHECK(workflow.find("release") != std::string::npos);
+  CHECK(workflow.find("./scripts/compile.sh --${{ matrix.build_type }} --test") != std::string::npos);
+
+  CHECK(workflow.find("PRIMESTAGE_HEADLESS_ONLY=ON") != std::string::npos);
+  CHECK(workflow.find("PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF") != std::string::npos);
+
+  CHECK(workflow.find("--test-case=\"*focus*,*interaction*\"") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
