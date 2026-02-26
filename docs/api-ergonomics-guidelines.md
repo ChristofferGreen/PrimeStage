@@ -94,7 +94,6 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Uniform callback/state contract for all interactive controls (`[11]`).
 - First-class tabs/dropdown interaction callbacks (`[18]`).
 - Removal of app-level direct `PrimeFrame` callback plumbing in examples (`[12]`/`[19]`).
 - Host input bridge with symbolic key APIs (`[14]`).

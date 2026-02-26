@@ -27,6 +27,24 @@ struct Rect {
   float height = 0.0f;
 };
 
+constexpr int KeyEnter = 0x28;
+constexpr int KeySpace = 0x2C;
+constexpr int KeyLeft = 0x50;
+constexpr int KeyRight = 0x4F;
+constexpr int KeyDown = 0x51;
+constexpr int KeyUp = 0x52;
+constexpr int KeyHome = 0x4A;
+constexpr int KeyEnd = 0x4D;
+
+bool is_activation_key(int key) {
+  return key == KeyEnter || key == KeySpace;
+}
+
+bool is_pointer_inside(PrimeFrame::Event const& event) {
+  return event.localX >= 0.0f && event.localX <= event.targetW &&
+         event.localY >= 0.0f && event.localY <= event.targetH;
+}
+
 bool is_utf8_continuation(uint8_t value) {
   return (value & 0xC0u) == 0x80u;
 }
@@ -1764,10 +1782,6 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
       callback.onEvent = [callbacks = spec.callbacks,
                           applyStyle = std::move(applyStyle),
                           state](PrimeFrame::Event const& event) mutable -> bool {
-        auto is_inside = [&event]() {
-          return event.localX >= 0.0f && event.localX <= event.targetW &&
-                 event.localY >= 0.0f && event.localY <= event.targetH;
-        };
         auto update = [&](bool nextPressed, bool nextHovered) {
           bool hoverChanged = (nextHovered != state->hovered);
           bool pressChanged = (nextPressed != state->pressed);
@@ -1792,12 +1806,12 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
             update(true, true);
             return true;
           case PrimeFrame::EventType::PointerDrag: {
-            bool inside = is_inside();
+            bool inside = is_pointer_inside(event);
             update(inside, inside);
             return true;
           }
           case PrimeFrame::EventType::PointerUp: {
-            bool inside = is_inside();
+            bool inside = is_pointer_inside(event);
             bool fire = state->pressed && inside;
             update(false, inside);
             if (fire && callbacks.onClick) {
@@ -1809,10 +1823,22 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
             update(false, false);
             return true;
           case PrimeFrame::EventType::PointerMove: {
-            bool inside = is_inside();
+            bool inside = is_pointer_inside(event);
             update(state->pressed && inside, inside);
             return true;
           }
+          case PrimeFrame::EventType::KeyDown:
+            if (is_activation_key(event.key)) {
+              if (callbacks.onPressedChanged) {
+                callbacks.onPressedChanged(true);
+                callbacks.onPressedChanged(false);
+              }
+              if (callbacks.onClick) {
+                callbacks.onClick();
+              }
+              return true;
+            }
+            break;
           default:
             break;
         }
@@ -3017,6 +3043,56 @@ UiNode UiNode::createToggle(ToggleSpec const& spec) {
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
       node->focusable = true;
+      struct ToggleState {
+        bool pressed = false;
+        bool value = false;
+      };
+      auto state = std::make_shared<ToggleState>();
+      state->value = spec.on;
+      PrimeFrame::Callback callback;
+      callback.onEvent = [callbacks = spec.callbacks,
+                          state](PrimeFrame::Event const& event) mutable -> bool {
+        auto activate = [&]() {
+          state->value = !state->value;
+          if (callbacks.onChanged) {
+            callbacks.onChanged(state->value);
+          }
+        };
+        switch (event.type) {
+          case PrimeFrame::EventType::PointerDown:
+            state->pressed = true;
+            return true;
+          case PrimeFrame::EventType::PointerDrag:
+          case PrimeFrame::EventType::PointerMove:
+            if (state->pressed) {
+              state->pressed = is_pointer_inside(event);
+              return true;
+            }
+            break;
+          case PrimeFrame::EventType::PointerUp: {
+            bool fire = state->pressed && is_pointer_inside(event);
+            state->pressed = false;
+            if (fire) {
+              activate();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerCancel:
+          case PrimeFrame::EventType::PointerLeave:
+            state->pressed = false;
+            return true;
+          case PrimeFrame::EventType::KeyDown:
+            if (is_activation_key(event.key)) {
+              activate();
+              return true;
+            }
+            break;
+          default:
+            break;
+        }
+        return false;
+      };
+      node->callbacks = frame().addCallback(std::move(callback));
     }
   }
   if (focusOverlay.has_value()) {
@@ -3103,6 +3179,57 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& spec) {
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
       node->focusable = true;
+      node->hitTestVisible = true;
+      struct CheckboxState {
+        bool pressed = false;
+        bool checked = false;
+      };
+      auto state = std::make_shared<CheckboxState>();
+      state->checked = spec.checked;
+      PrimeFrame::Callback callback;
+      callback.onEvent = [callbacks = spec.callbacks,
+                          state](PrimeFrame::Event const& event) mutable -> bool {
+        auto activate = [&]() {
+          state->checked = !state->checked;
+          if (callbacks.onChanged) {
+            callbacks.onChanged(state->checked);
+          }
+        };
+        switch (event.type) {
+          case PrimeFrame::EventType::PointerDown:
+            state->pressed = true;
+            return true;
+          case PrimeFrame::EventType::PointerDrag:
+          case PrimeFrame::EventType::PointerMove:
+            if (state->pressed) {
+              state->pressed = is_pointer_inside(event);
+              return true;
+            }
+            break;
+          case PrimeFrame::EventType::PointerUp: {
+            bool fire = state->pressed && is_pointer_inside(event);
+            state->pressed = false;
+            if (fire) {
+              activate();
+            }
+            return true;
+          }
+          case PrimeFrame::EventType::PointerCancel:
+          case PrimeFrame::EventType::PointerLeave:
+            state->pressed = false;
+            return true;
+          case PrimeFrame::EventType::KeyDown:
+            if (is_activation_key(event.key)) {
+              activate();
+              return true;
+            }
+            break;
+          default:
+            break;
+        }
+        return false;
+      };
+      node->callbacks = frame().addCallback(std::move(callback));
     }
   }
   if (focusOverlay.has_value()) {
@@ -3446,6 +3573,12 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
 }
 
 UiNode UiNode::createTabs(TabsSpec const& spec) {
+  int tabCount = static_cast<int>(spec.labels.size());
+  int selectedIndex = 0;
+  if (tabCount > 0) {
+    selectedIndex = std::clamp(spec.selectedIndex, 0, tabCount - 1);
+  }
+
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
   float activeLineHeight = resolve_line_height(frame(), spec.activeTextStyle);
@@ -3462,7 +3595,7 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
     float total = 0.0f;
     for (size_t i = 0; i < spec.labels.size(); ++i) {
       PrimeFrame::TextStyleToken token =
-          (static_cast<int>(i) == spec.selectedIndex) ? spec.activeTextStyle : spec.textStyle;
+          (static_cast<int>(i) == selectedIndex) ? spec.activeTextStyle : spec.textStyle;
       float textWidth = estimate_text_width(frame(), token, spec.labels[i]);
       total += textWidth + spec.tabPaddingX * 2.0f;
       if (i + 1 < spec.labels.size()) {
@@ -3484,9 +3617,11 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
   rowSpec.clipChildren = false;
   rowSpec.visible = spec.visible;
   UiNode row = createHorizontalStack(rowSpec);
+  auto sharedSelected = std::make_shared<int>(selectedIndex);
 
   for (size_t i = 0; i < spec.labels.size(); ++i) {
-    bool active = static_cast<int>(i) == spec.selectedIndex;
+    int tabIndex = static_cast<int>(i);
+    bool active = tabIndex == selectedIndex;
     PrimeFrame::RectStyleToken rectStyle = active ? spec.activeTabStyle : spec.tabStyle;
     PrimeFrame::RectStyleOverride rectOverride =
         active ? spec.activeTabStyleOverride : spec.tabStyleOverride;
@@ -3512,12 +3647,119 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
     textSpec.size.preferredHeight = bounds.height;
     textSpec.visible = spec.visible;
     tab.createTextLine(textSpec);
+
+    PrimeFrame::Node* tabNode = frame().getNode(tab.nodeId());
+    if (!tabNode) {
+      continue;
+    }
+    tabNode->focusable = spec.visible;
+    if (!spec.visible) {
+      continue;
+    }
+    struct TabState {
+      bool pressed = false;
+    };
+    auto state = std::make_shared<TabState>();
+    PrimeFrame::Callback callback;
+    callback.onEvent = [onChanged = spec.onChanged,
+                        tabIndex,
+                        tabCount,
+                        state,
+                        sharedSelected](PrimeFrame::Event const& event) mutable -> bool {
+      auto commitSelection = [&](int next) {
+        if (next < 0 || next >= tabCount) {
+          return;
+        }
+        if (*sharedSelected == next) {
+          return;
+        }
+        *sharedSelected = next;
+        if (onChanged) {
+          onChanged(next);
+        }
+      };
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerDown:
+          state->pressed = true;
+          return true;
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove:
+          if (state->pressed) {
+            state->pressed = is_pointer_inside(event);
+            return true;
+          }
+          break;
+        case PrimeFrame::EventType::PointerUp: {
+          bool fire = state->pressed && is_pointer_inside(event);
+          state->pressed = false;
+          if (fire) {
+            commitSelection(tabIndex);
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerCancel:
+        case PrimeFrame::EventType::PointerLeave:
+          state->pressed = false;
+          return true;
+        case PrimeFrame::EventType::KeyDown: {
+          if (is_activation_key(event.key)) {
+            commitSelection(tabIndex);
+            return true;
+          }
+          if (tabCount <= 0) {
+            return false;
+          }
+          int next = *sharedSelected;
+          if (event.key == KeyLeft || event.key == KeyUp) {
+            next = std::max(0, next - 1);
+          } else if (event.key == KeyRight || event.key == KeyDown) {
+            next = std::min(tabCount - 1, next + 1);
+          } else if (event.key == KeyHome) {
+            next = 0;
+          } else if (event.key == KeyEnd) {
+            next = tabCount - 1;
+          } else {
+            return false;
+          }
+          commitSelection(next);
+          return true;
+        }
+        default:
+          break;
+      }
+      return false;
+    };
+    tabNode->callbacks = frame().addCallback(std::move(callback));
+
+    PrimeFrame::RectStyleToken focusStyleToken =
+        resolve_focus_style_token(rectStyle, {spec.activeTabStyle, spec.tabStyle});
+    std::optional<FocusOverlay> focusOverlay;
+    Rect focusRect{0.0f, 0.0f, textWidth + spec.tabPaddingX * 2.0f, bounds.height};
+    focusOverlay = add_focus_overlay_node(frame(),
+                                          tab.nodeId(),
+                                          focusRect,
+                                          focusStyleToken,
+                                          rectOverride,
+                                          spec.visible);
+    if (focusOverlay.has_value()) {
+      attach_focus_callbacks(frame(), tab.nodeId(), *focusOverlay);
+    }
   }
 
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
 }
 
 UiNode UiNode::createDropdown(DropdownSpec const& spec) {
+  int optionCount = static_cast<int>(spec.options.size());
+  int selectedIndex = 0;
+  if (optionCount > 0) {
+    selectedIndex = std::clamp(spec.selectedIndex, 0, optionCount - 1);
+  }
+  std::string_view selectedLabel = spec.label;
+  if (optionCount > 0) {
+    selectedLabel = spec.options[static_cast<size_t>(selectedIndex)];
+  }
+
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
   if (bounds.height <= 0.0f &&
@@ -3528,11 +3770,16 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f) {
-    float labelWidth = spec.label.empty()
-                           ? 0.0f
-                           : estimate_text_width(frame(), spec.textStyle, spec.label);
+    float labelWidth = 0.0f;
+    if (optionCount > 0) {
+      for (std::string_view option : spec.options) {
+        labelWidth = std::max(labelWidth, estimate_text_width(frame(), spec.textStyle, option));
+      }
+    } else if (!selectedLabel.empty()) {
+      labelWidth = estimate_text_width(frame(), spec.textStyle, selectedLabel);
+    }
     float indicatorWidth = estimate_text_width(frame(), spec.indicatorStyle, spec.indicator);
-    float gap = spec.label.empty() ? 0.0f : spec.indicatorGap;
+    float gap = selectedLabel.empty() ? 0.0f : spec.indicatorGap;
     bounds.width = spec.paddingX * 2.0f + labelWidth + gap + indicatorWidth;
   }
 
@@ -3553,9 +3800,9 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
   panel.visible = spec.visible;
   UiNode dropdown = createPanel(panel);
 
-  if (!spec.label.empty()) {
+  if (!selectedLabel.empty()) {
     TextLineSpec labelText;
-    labelText.text = spec.label;
+    labelText.text = selectedLabel;
     labelText.textStyle = spec.textStyle;
     labelText.textStyleOverride = spec.textStyleOverride;
     labelText.align = PrimeFrame::TextAlign::Start;
@@ -3578,6 +3825,98 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
   indicatorText.size.preferredHeight = bounds.height;
   indicatorText.visible = spec.visible;
   dropdown.createTextLine(indicatorText);
+
+  if (!spec.visible) {
+    return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
+  }
+
+  PrimeFrame::Node* dropdownNode = frame().getNode(dropdown.nodeId());
+  if (dropdownNode) {
+    dropdownNode->focusable = true;
+    struct DropdownState {
+      bool pressed = false;
+      int currentIndex = 0;
+    };
+    auto state = std::make_shared<DropdownState>();
+    state->currentIndex = selectedIndex;
+    PrimeFrame::Callback callback;
+    callback.onEvent = [callbacks = spec.callbacks,
+                        optionCount,
+                        state](PrimeFrame::Event const& event) mutable -> bool {
+      auto select_next = [&]() {
+        if (optionCount <= 0) {
+          return;
+        }
+        state->currentIndex = (state->currentIndex + 1) % optionCount;
+        if (callbacks.onChanged) {
+          callbacks.onChanged(state->currentIndex);
+        }
+      };
+      auto select_previous = [&]() {
+        if (optionCount <= 0) {
+          return;
+        }
+        state->currentIndex = (state->currentIndex + optionCount - 1) % optionCount;
+        if (callbacks.onChanged) {
+          callbacks.onChanged(state->currentIndex);
+        }
+      };
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerDown:
+          state->pressed = true;
+          return true;
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove:
+          if (state->pressed) {
+            state->pressed = is_pointer_inside(event);
+            return true;
+          }
+          break;
+        case PrimeFrame::EventType::PointerUp: {
+          bool fire = state->pressed && is_pointer_inside(event);
+          state->pressed = false;
+          if (fire) {
+            select_next();
+          }
+          return true;
+        }
+        case PrimeFrame::EventType::PointerCancel:
+        case PrimeFrame::EventType::PointerLeave:
+          state->pressed = false;
+          return true;
+        case PrimeFrame::EventType::KeyDown:
+          if (is_activation_key(event.key) || event.key == KeyDown) {
+            select_next();
+            return true;
+          }
+          if (event.key == KeyUp) {
+            select_previous();
+            return true;
+          }
+          break;
+        default:
+          break;
+      }
+      return false;
+    };
+    dropdownNode->callbacks = frame().addCallback(std::move(callback));
+  }
+
+  PrimeFrame::RectStyleToken focusStyleToken = spec.focusStyle;
+  PrimeFrame::RectStyleOverride focusStyleOverride = spec.focusStyleOverride;
+  std::optional<FocusOverlay> focusOverlay;
+  if (spec.visible) {
+    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
+    focusOverlay = add_focus_overlay_node(frame(),
+                                          dropdown.nodeId(),
+                                          focusRect,
+                                          focusStyleToken,
+                                          focusStyleOverride,
+                                          spec.visible);
+  }
+  if (focusOverlay.has_value()) {
+    attach_focus_callbacks(frame(), dropdown.nodeId(), *focusOverlay);
+  }
 
   return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
 }

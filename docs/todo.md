@@ -24,11 +24,12 @@ Release Exit Criteria (for API-quality milestone):
   - include examples for state ownership, interaction wiring, and focus semantics
   - delivered in `docs/api-ergonomics-guidelines.md` with regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [11] Add a uniform interactive-control contract across widgets.
+- ☑ [11] Add a uniform interactive-control contract across widgets.
   - include first-class state + callbacks for toggle/checkbox/tabs/dropdown (`checked`/`selectedIndex`/`onChanged`)
   - ensure keyboard behavior is built-in for all interactive controls
   - define click + keyboard activation semantics (`Enter`/`Space`) consistently for button-like controls
   - acceptance: demo widgets no longer manually mutate app state from raw `PrimeFrame::Event` handlers
+  - delivered by widget callback/state API updates in `include/PrimeStage/Ui.h`, built-in interaction handling in `src/PrimeStage.cpp`, and demo migration in `examples/primestage_widgets.cpp`
 
 - ☐ [18] Make tabs and dropdown first-class interactive widgets.
   - add explicit callbacks (`onTabChanged`, `onOpened`, `onSelected`) and keyboard behavior

@@ -339,37 +339,6 @@ PrimeHost::CursorShape cursorShapeForHint(PrimeStage::CursorHint hint) {
   }
 }
 
-void appendNodeEventCallback(PrimeFrame::Frame& frame,
-                             PrimeFrame::NodeId nodeId,
-                             std::function<bool(PrimeFrame::Event const&)> onEvent) {
-  PrimeFrame::Node* node = frame.getNode(nodeId);
-  if (!node) {
-    return;
-  }
-  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
-    PrimeFrame::Callback* callback = frame.getCallback(node->callbacks);
-    if (!callback) {
-      return;
-    }
-    auto previous = callback->onEvent;
-    callback->onEvent = [handler = std::move(onEvent), previous = std::move(previous)](
-                            PrimeFrame::Event const& event) -> bool {
-      if (handler && handler(event)) {
-        return true;
-      }
-      if (previous) {
-        return previous(event);
-      }
-      return false;
-    };
-    return;
-  }
-
-  PrimeFrame::Callback callback;
-  callback.onEvent = std::move(onEvent);
-  node->callbacks = frame.addCallback(std::move(callback));
-}
-
 std::optional<std::string_view> textFromSpan(const PrimeHost::EventBatch& batch,
                                              PrimeHost::TextSpan span) {
   if (span.length == 0u) {
@@ -537,24 +506,12 @@ void rebuildUi(DemoApp& app) {
   tabsSpec.size.stretchX = 1.0f;
   tabsSpec.size.preferredHeight = 28.0f;
   tabsSpec.visible = true;
-  PrimeStage::UiNode tabsNode = tabsBar.createTabs(tabsSpec);
-  if (PrimeFrame::Node* rowNode = app.frame.getNode(tabsNode.nodeId())) {
-    for (size_t i = 0; i < rowNode->children.size(); ++i) {
-      PrimeFrame::NodeId tabId = rowNode->children[i];
-      appendNodeEventCallback(
-          app.frame,
-          tabId,
-          [&app, index = static_cast<int>(i)](PrimeFrame::Event const& event) -> bool {
-            if (event.type == PrimeFrame::EventType::PointerDown) {
-              app.state.tabIndex = index;
-              app.needsRebuild = true;
-              app.needsFrame = true;
-              return true;
-            }
-            return false;
-          });
-    }
-  }
+  tabsSpec.onChanged = [&app](int nextIndex) {
+    app.state.tabIndex = nextIndex;
+    app.needsRebuild = true;
+    app.needsFrame = true;
+  };
+  tabsBar.createTabs(tabsSpec);
 
   PrimeStage::LabelSpec pageTitle;
   pageTitle.text = tabCount > 0 ? tabViews[static_cast<size_t>(tabIndex)] : "Page";
@@ -686,17 +643,13 @@ void rebuildUi(DemoApp& app) {
       toggleSpec.focusStyle = RectFieldFocus;
       toggleSpec.size.preferredWidth = 46.0f;
       toggleSpec.size.preferredHeight = 22.0f;
+      toggleSpec.callbacks.onChanged = [&app](bool on) {
+        app.state.toggleOn = on;
+        app.needsRebuild = true;
+        app.needsFrame = true;
+      };
       PrimeStage::UiNode toggleNode = toggleRow.createToggle(toggleSpec);
       app.toggleNode = toggleNode.nodeId();
-      appendNodeEventCallback(app.frame, toggleNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
-        if (event.type == PrimeFrame::EventType::PointerDown) {
-          app.state.toggleOn = !app.state.toggleOn;
-          app.needsRebuild = true;
-          app.needsFrame = true;
-          return true;
-        }
-        return false;
-      });
 
       PrimeStage::CheckboxSpec checkboxSpec;
       checkboxSpec.label = "Enable notifications";
@@ -705,17 +658,13 @@ void rebuildUi(DemoApp& app) {
       checkboxSpec.checkStyle = RectCheckboxCheck;
       checkboxSpec.focusStyle = RectFieldFocus;
       checkboxSpec.textStyle = TextBody;
+      checkboxSpec.callbacks.onChanged = [&app](bool checked) {
+        app.state.checkboxChecked = checked;
+        app.needsRebuild = true;
+        app.needsFrame = true;
+      };
       PrimeStage::UiNode checkboxNode = toggleRow.createCheckbox(checkboxSpec);
       app.checkboxNode = checkboxNode.nodeId();
-      appendNodeEventCallback(app.frame, checkboxNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
-        if (event.type == PrimeFrame::EventType::PointerDown) {
-          app.state.checkboxChecked = !app.state.checkboxChecked;
-          app.needsRebuild = true;
-          app.needsFrame = true;
-          return true;
-        }
-        return false;
-      });
       break;
     }
     case 1: {
@@ -882,26 +831,28 @@ void rebuildUi(DemoApp& app) {
                                            ? std::string_view("(empty)")
                                            : std::string_view(app.state.dropdownItems[app.state.dropdownIndex]);
       PrimeStage::DropdownSpec dropdownSpec;
-      dropdownSpec.label = dropdownLabel;
+      if (app.state.dropdownItems.empty()) {
+        dropdownSpec.label = dropdownLabel;
+      } else {
+        dropdownSpec.options.reserve(app.state.dropdownItems.size());
+        for (std::string const& item : app.state.dropdownItems) {
+          dropdownSpec.options.push_back(item);
+        }
+        dropdownSpec.selectedIndex = app.state.dropdownIndex;
+      }
       dropdownSpec.indicator = "v";
       dropdownSpec.backgroundStyle = RectDropdown;
       dropdownSpec.textStyle = TextBody;
       dropdownSpec.indicatorStyle = TextMuted;
+      dropdownSpec.focusStyle = RectFieldFocus;
       dropdownSpec.size.preferredWidth = 200.0f;
       dropdownSpec.size.preferredHeight = 28.0f;
-      PrimeStage::UiNode dropdownNode = navigation.createDropdown(dropdownSpec);
-      appendNodeEventCallback(app.frame, dropdownNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
-        if (event.type == PrimeFrame::EventType::PointerDown) {
-          if (!app.state.dropdownItems.empty()) {
-            app.state.dropdownIndex = (app.state.dropdownIndex + 1) %
-                                      static_cast<int>(app.state.dropdownItems.size());
-            app.needsRebuild = true;
-            app.needsFrame = true;
-          }
-          return true;
-        }
-        return false;
-      });
+      dropdownSpec.callbacks.onChanged = [&app](int nextIndex) {
+        app.state.dropdownIndex = nextIndex;
+        app.needsRebuild = true;
+        app.needsFrame = true;
+      };
+      navigation.createDropdown(dropdownSpec);
 
       PrimeStage::UiNode ranges = createSection(pageBody, "Sliders + Progress");
 

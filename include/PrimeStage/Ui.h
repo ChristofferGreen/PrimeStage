@@ -247,8 +247,13 @@ struct TextSelectionOverlaySpec {
   SizeSpec size;
 };
 
+struct ToggleCallbacks {
+  std::function<void(bool)> onChanged;
+};
+
 struct ToggleSpec {
   bool on = false;
+  ToggleCallbacks callbacks{};
   float knobInset = 2.0f;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleOverride trackStyleOverride{};
@@ -260,9 +265,14 @@ struct ToggleSpec {
   SizeSpec size;
 };
 
+struct CheckboxCallbacks {
+  std::function<void(bool)> onChanged;
+};
+
 struct CheckboxSpec {
   std::string_view label;
   bool checked = false;
+  CheckboxCallbacks callbacks{};
   float boxSize = 16.0f;
   float checkInset = 3.0f;
   float gap = 8.0f;
@@ -311,6 +321,7 @@ struct SliderSpec {
 struct TabsSpec {
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
+  std::function<void(int)> onChanged;
   float tabPaddingX = 12.0f;
   float tabPaddingY = 6.0f;
   float gap = 4.0f;
@@ -326,7 +337,14 @@ struct TabsSpec {
   SizeSpec size;
 };
 
+struct DropdownCallbacks {
+  std::function<void(int)> onChanged;
+};
+
 struct DropdownSpec {
+  std::vector<std::string_view> options;
+  int selectedIndex = 0;
+  DropdownCallbacks callbacks{};
   std::string_view label;
   std::string_view indicator = "v";
   float paddingX = 12.0f;
@@ -337,6 +355,8 @@ struct DropdownSpec {
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextStyleToken indicatorStyle = 0;
   PrimeFrame::TextStyleOverride indicatorStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   bool visible = true;
   SizeSpec size;
 };

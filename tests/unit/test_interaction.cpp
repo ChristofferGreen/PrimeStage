@@ -262,6 +262,139 @@ TEST_CASE("PrimeStage button drag outside cancels click and resets style") {
   CHECK(prim->rect.token == spec.backgroundStyle);
 }
 
+TEST_CASE("PrimeStage button key activation triggers click") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 220.0f, 120.0f);
+
+  PrimeStage::ButtonSpec spec;
+  spec.size.preferredWidth = 100.0f;
+  spec.size.preferredHeight = 32.0f;
+  spec.label = "Key";
+  spec.backgroundStyle = 121u;
+  spec.hoverStyle = 122u;
+  spec.pressedStyle = 123u;
+  spec.focusStyle = 124u;
+
+  int clicks = 0;
+  spec.callbacks.onClick = [&]() { clicks += 1; };
+
+  PrimeStage::UiNode button = root.createButton(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 220.0f, 120.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(button.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  REQUIRE(clicks == 1);
+
+  PrimeFrame::Event keyEnter;
+  keyEnter.type = PrimeFrame::EventType::KeyDown;
+  keyEnter.key = 0x28; // Enter
+  router.dispatch(keyEnter, frame, layout, &focus);
+
+  PrimeFrame::Event keySpace;
+  keySpace.type = PrimeFrame::EventType::KeyDown;
+  keySpace.key = 0x2C; // Space
+  router.dispatch(keySpace, frame, layout, &focus);
+
+  CHECK(clicks == 3);
+}
+
+TEST_CASE("PrimeStage toggle and checkbox emit onChanged for pointer and keyboard") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 12.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.on = false;
+  toggleSpec.trackStyle = 201u;
+  toggleSpec.knobStyle = 202u;
+  toggleSpec.focusStyle = 203u;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.label = "Enabled";
+  checkboxSpec.checked = true;
+  checkboxSpec.boxStyle = 211u;
+  checkboxSpec.checkStyle = 212u;
+  checkboxSpec.focusStyle = 213u;
+  checkboxSpec.textStyle = 214u;
+
+  std::vector<bool> toggleValues;
+  std::vector<bool> checkboxValues;
+  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 140.0f);
+  PrimeFrame::LayoutOut const* toggleOut = layout.get(toggle.nodeId());
+  PrimeFrame::LayoutOut const* checkboxOut = layout.get(checkbox.nodeId());
+  REQUIRE(toggleOut != nullptr);
+  REQUIRE(checkboxOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float toggleX = toggleOut->absX + toggleOut->absW * 0.5f;
+  float toggleY = toggleOut->absY + toggleOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  REQUIRE(!toggleValues.empty());
+  CHECK(toggleValues.back() == true);
+
+  PrimeFrame::Event keySpace;
+  keySpace.type = PrimeFrame::EventType::KeyDown;
+  keySpace.key = 0x2C; // Space
+  router.dispatch(keySpace, frame, layout, &focus);
+  REQUIRE(toggleValues.size() >= 2);
+  CHECK(toggleValues.back() == false);
+
+  float checkboxX = checkboxOut->absX + checkboxOut->absW * 0.5f;
+  float checkboxY = checkboxOut->absY + checkboxOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  REQUIRE(!checkboxValues.empty());
+  CHECK(checkboxValues.back() == false);
+
+  PrimeFrame::Event keyEnter;
+  keyEnter.type = PrimeFrame::EventType::KeyDown;
+  keyEnter.key = 0x28; // Enter
+  router.dispatch(keyEnter, frame, layout, &focus);
+  REQUIRE(checkboxValues.size() >= 2);
+  CHECK(checkboxValues.back() == true);
+}
+
 TEST_CASE("PrimeStage tree view hover/selection callbacks and double click toggle") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 240.0f, 160.0f);
