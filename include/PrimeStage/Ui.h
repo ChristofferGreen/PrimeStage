@@ -263,7 +263,12 @@ struct ToggleCallbacks {
   std::function<void(bool)> onChanged;
 };
 
+struct ToggleState {
+  bool on = false;
+};
+
 struct ToggleSpec {
+  ToggleState* state = nullptr;
   bool on = false;
   bool enabled = true;
   int tabIndex = -1;
@@ -283,7 +288,12 @@ struct CheckboxCallbacks {
   std::function<void(bool)> onChanged;
 };
 
+struct CheckboxState {
+  bool checked = false;
+};
+
 struct CheckboxSpec {
+  CheckboxState* state = nullptr;
   std::string_view label;
   bool checked = false;
   bool enabled = true;
@@ -340,7 +350,12 @@ struct TabsCallbacks {
   std::function<void(int)> onTabChanged;
 };
 
+struct TabsState {
+  int selectedIndex = 0;
+};
+
 struct TabsSpec {
+  TabsState* state = nullptr;
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
   bool enabled = true;
@@ -366,7 +381,12 @@ struct DropdownCallbacks {
   std::function<void(int)> onSelected;
 };
 
+struct DropdownState {
+  int selectedIndex = 0;
+};
+
 struct DropdownSpec {
+  DropdownState* state = nullptr;
   std::vector<std::string_view> options;
   int selectedIndex = 0;
   bool enabled = true;

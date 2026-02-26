@@ -358,6 +358,10 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(ui.find("bool enabled = true;") != std::string::npos);
   CHECK(ui.find("bool readOnly = false;") != std::string::npos);
   CHECK(ui.find("int tabIndex = -1;") != std::string::npos);
+  CHECK(ui.find("ToggleState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("CheckboxState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("TabsState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("DropdownState* state = nullptr;") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

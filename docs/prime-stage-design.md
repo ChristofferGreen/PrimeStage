@@ -53,6 +53,18 @@ For advanced extension points, use PrimeStage callback composition helpers:
 - `appendNodeOnFocus(...)`
 - `appendNodeOnBlur(...)`
 
+## Controlled vs State-Backed Widgets
+PrimeStage supports two widget value models for interactive controls:
+- Controlled:
+  - widget value comes from spec fields (`on`, `checked`, `selectedIndex`).
+  - app callbacks update canonical app state, then rebuild.
+- State-backed:
+  - widget value comes from state pointers (`ToggleState*`, `CheckboxState*`, `TabsState*`,
+    `DropdownState*`, `TextFieldState*`, `SelectableTextState*`).
+  - PrimeStage mutates those state objects during interaction; callbacks are optional.
+
+PrimeStage always owns transient per-frame interaction details (hover/pressed/drag bookkeeping).
+
 ## Widget Authoring API
 Widgets are exposed as free-standing functions that return a fluent `UiNode` value type.
 This keeps authoring terse while avoiding pointers or heap allocation.

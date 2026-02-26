@@ -24,10 +24,18 @@ What app code should avoid:
 - Translating raw key constants inside each feature/widget usage site.
 
 ## State Ownership Rules
-- Keep authoritative UI state in app-owned structs.
-- Pass stable state pointers to stateful widgets (for example `TextFieldState*`).
-- Treat non-stateful widget specs as declarative input for one build pass.
-- Rebuild safely at any time; state must survive scene disposal.
+- PrimeStage owns transient interaction state (`pressed`, `hovered`, drag/session flags) during one built scene.
+- Application code owns durable domain state and any widget state that must survive rebuilds.
+- Controlled mode:
+  - pass value fields in specs (`on`, `checked`, `selectedIndex`) and handle callbacks to update app state.
+  - use this when your app already has canonical domain state.
+- State-backed mode (uncontrolled convenience for common controls):
+  - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `TabsState*`, `DropdownState*`,
+    `TextFieldState*`, `SelectableTextState*`).
+  - PrimeStage reads/writes those state objects directly during interaction; callbacks are optional.
+  - use this to reduce callback-driven bookkeeping when the widget value does not need separate
+    app-level mirroring.
+- Rebuild safely at any time; durable state must survive scene disposal.
 - Use `WidgetIdentityReconciler` for focus reconciliation across rebuilds instead of ad-hoc
   node-id tracking enums.
 
@@ -49,6 +57,22 @@ void buildUi(PrimeStage::UiNode root, AppState& state) {
     state.status = std::string(text);
   };
   root.createTextField(field);
+}
+```
+
+Example (`Toggle` in state-backed mode):
+
+```cpp
+struct AppState {
+  PrimeStage::ToggleState autoSave;
+};
+
+void buildUi(PrimeStage::UiNode root, AppState& state) {
+  PrimeStage::ToggleSpec toggle;
+  toggle.state = &state.autoSave;
+  toggle.trackStyle = 101u;
+  toggle.knobStyle = 102u;
+  root.createToggle(toggle);
 }
 ```
 

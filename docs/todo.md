@@ -131,9 +131,10 @@ Release Exit Criteria (for API-quality milestone):
   - include tests for deterministic tab order across mixed widget sets
   - delivered via `tabIndex` fields in focusable specs in `include/PrimeStage/Ui.h`, focus-order/clamp wiring in `src/PrimeStage.cpp`, and mixed-widget tab-order regression coverage in `tests/unit/test_focus_widgets.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [29] Define controlled vs uncontrolled widget state model.
+- ☑ [29] Define controlled vs uncontrolled widget state model.
   - document when PrimeStage owns transient widget state vs when user code provides it
   - reduce full-app state bookkeeping for common controls (toggle/checkbox/dropdown/tabs)
+  - delivered via state-backed widget APIs (`ToggleState`/`CheckboxState`/`TabsState`/`DropdownState`) in `include/PrimeStage/Ui.h`, runtime state ownership wiring in `src/PrimeStage.cpp`, and coverage in `tests/unit/test_interaction.cpp`, `tests/unit/test_tabs_dropdown.cpp`, and `tests/unit/test_api_ergonomics.cpp` with docs updates in `docs/api-ergonomics-guidelines.md` and `docs/prime-stage-design.md`
 
 - ☐ [33] Normalize cross-platform input semantics in PrimeStage.
   - standardize key naming/translation (no hard-coded numeric key constants in examples)

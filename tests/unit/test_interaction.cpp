@@ -600,6 +600,101 @@ TEST_CASE("PrimeStage toggle and checkbox emit onChanged for pointer and keyboar
   CHECK(checkboxValues.back() == true);
 }
 
+TEST_CASE("PrimeStage toggle and checkbox support state-backed uncontrolled mode") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 12.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::ToggleState toggleState;
+  toggleState.on = true;
+  PrimeStage::CheckboxState checkboxState;
+  checkboxState.checked = false;
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.state = &toggleState;
+  toggleSpec.on = false; // state-backed mode uses ToggleState as source of truth
+  toggleSpec.trackStyle = 221u;
+  toggleSpec.knobStyle = 222u;
+  toggleSpec.focusStyle = 223u;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.state = &checkboxState;
+  checkboxSpec.checked = true; // state-backed mode uses CheckboxState as source of truth
+  checkboxSpec.label = "Enabled";
+  checkboxSpec.boxStyle = 231u;
+  checkboxSpec.checkStyle = 232u;
+  checkboxSpec.focusStyle = 233u;
+  checkboxSpec.textStyle = 234u;
+
+  std::vector<bool> toggleValues;
+  std::vector<bool> checkboxValues;
+  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 140.0f);
+  PrimeFrame::LayoutOut const* toggleOut = layout.get(toggle.nodeId());
+  PrimeFrame::LayoutOut const* checkboxOut = layout.get(checkbox.nodeId());
+  REQUIRE(toggleOut != nullptr);
+  REQUIRE(checkboxOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float toggleX = toggleOut->absX + toggleOut->absW * 0.5f;
+  float toggleY = toggleOut->absY + toggleOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(toggleState.on == false);
+  REQUIRE(!toggleValues.empty());
+  CHECK(toggleValues.back() == false);
+
+  PrimeFrame::Event keySpace;
+  keySpace.type = PrimeFrame::EventType::KeyDown;
+  keySpace.key = 0x2C; // Space
+  router.dispatch(keySpace, frame, layout, &focus);
+  CHECK(toggleState.on == true);
+  REQUIRE(toggleValues.size() >= 2);
+  CHECK(toggleValues.back() == true);
+
+  float checkboxX = checkboxOut->absX + checkboxOut->absW * 0.5f;
+  float checkboxY = checkboxOut->absY + checkboxOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(checkboxState.checked == true);
+  REQUIRE(!checkboxValues.empty());
+  CHECK(checkboxValues.back() == true);
+
+  PrimeFrame::Event keyEnter;
+  keyEnter.type = PrimeFrame::EventType::KeyDown;
+  keyEnter.key = 0x28; // Enter
+  router.dispatch(keyEnter, frame, layout, &focus);
+  CHECK(checkboxState.checked == false);
+  REQUIRE(checkboxValues.size() >= 2);
+  CHECK(checkboxValues.back() == false);
+}
+
 TEST_CASE("PrimeStage tree view hover/selection callbacks and double click toggle") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 240.0f, 160.0f);

@@ -3502,6 +3502,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   spec.knobInset = clamp_non_negative(spec.knobInset, "ToggleSpec", "knobInset");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ToggleSpec", "tabIndex");
   bool enabled = spec.enabled;
+  bool on = spec.state ? spec.state->on : spec.on;
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -3533,7 +3534,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   float inset = std::max(0.0f, spec.knobInset);
   float knobSize = std::max(0.0f, bounds.height - inset * 2.0f);
   float maxX = std::max(0.0f, bounds.width - knobSize);
-  float knobX = spec.on ? maxX - inset : inset;
+  float knobX = on ? maxX - inset : inset;
   knobX = std::clamp(knobX, 0.0f, maxX);
   Rect knobRect{knobX, inset, knobSize, knobSize};
   create_rect_node(frame(),
@@ -3561,17 +3562,21 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
                                           spec.visible);
     if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
       node->focusable = true;
-      struct ToggleState {
+      struct ToggleInteractionState {
         bool pressed = false;
         bool value = false;
       };
-      auto state = std::make_shared<ToggleState>();
-      state->value = spec.on;
+      auto state = std::make_shared<ToggleInteractionState>();
+      state->value = on;
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
+                          toggleState = spec.state,
                           state](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->value = !state->value;
+          if (toggleState) {
+            toggleState->on = state->value;
+          }
           if (callbacks.onChanged) {
             callbacks.onChanged(state->value);
           }
@@ -3641,6 +3646,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   spec.gap = clamp_non_negative(spec.gap, "CheckboxSpec", "gap");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "CheckboxSpec", "tabIndex");
   bool enabled = spec.enabled;
+  bool checked = spec.state ? spec.state->checked : spec.checked;
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -3679,7 +3685,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   box.rectStyleOverride = spec.boxStyleOverride;
   box.visible = spec.visible;
   UiNode boxNode = row.createPanel(box);
-  if (spec.checked && spec.visible) {
+  if (checked && spec.visible) {
     float inset = std::max(0.0f, spec.checkInset);
     float checkSize = std::max(0.0f, spec.boxSize - inset * 2.0f);
     Rect checkRect{inset, inset, checkSize, checkSize};
@@ -3721,17 +3727,21 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
     if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
       node->focusable = true;
       node->hitTestVisible = true;
-      struct CheckboxState {
+      struct CheckboxInteractionState {
         bool pressed = false;
         bool checked = false;
       };
-      auto state = std::make_shared<CheckboxState>();
-      state->checked = spec.checked;
+      auto state = std::make_shared<CheckboxInteractionState>();
+      state->checked = checked;
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
+                          checkboxState = spec.state,
                           state](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->checked = !state->checked;
+          if (checkboxState) {
+            checkboxState->checked = state->checked;
+          }
           if (callbacks.onChanged) {
             callbacks.onChanged(state->checked);
           }
@@ -4170,6 +4180,13 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
 
   int tabCount = static_cast<int>(spec.labels.size());
   int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
+  if (spec.state) {
+    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
+                                         tabCount,
+                                         "TabsState",
+                                         "selectedIndex");
+    spec.state->selectedIndex = selectedIndex;
+  }
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -4259,6 +4276,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     auto state = std::make_shared<TabState>();
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
+                        tabsState = spec.state,
                         tabIndex,
                         tabCount,
                         state,
@@ -4271,6 +4289,9 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
           return;
         }
         *sharedSelected = next;
+        if (tabsState) {
+          tabsState->selectedIndex = next;
+        }
         if (callbacks.onTabChanged) {
           callbacks.onTabChanged(next);
         }
@@ -4369,6 +4390,13 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   int optionCount = static_cast<int>(spec.options.size());
   int selectedIndex =
       clamp_selected_index(spec.selectedIndex, optionCount, "DropdownSpec", "selectedIndex");
+  if (spec.state) {
+    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
+                                         optionCount,
+                                         "DropdownState",
+                                         "selectedIndex");
+    spec.state->selectedIndex = selectedIndex;
+  }
   std::string_view selectedLabel = spec.label;
   if (optionCount > 0) {
     selectedLabel = spec.options[static_cast<size_t>(selectedIndex)];
@@ -4451,14 +4479,15 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
     dropdownNode->tabIndex = enabled ? spec.tabIndex : -1;
   }
   if (dropdownNode && enabled) {
-    struct DropdownState {
+    struct DropdownInteractionState {
       bool pressed = false;
       int currentIndex = 0;
     };
-    auto state = std::make_shared<DropdownState>();
+    auto state = std::make_shared<DropdownInteractionState>();
     state->currentIndex = selectedIndex;
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
+                        dropdownState = spec.state,
                         optionCount,
                         state](PrimeFrame::Event const& event) mutable -> bool {
       auto select_with_step = [&](int step) {
@@ -4475,6 +4504,9 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
           index += span;
         }
         state->currentIndex = index;
+        if (dropdownState) {
+          dropdownState->selectedIndex = state->currentIndex;
+        }
         if (callbacks.onSelected) {
           callbacks.onSelected(state->currentIndex);
         }

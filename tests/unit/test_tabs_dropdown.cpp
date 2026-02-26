@@ -335,3 +335,128 @@ TEST_CASE("PrimeStage dropdown with no options emits onOpened but not onSelected
   CHECK(openedCount == 2);
   CHECK(selectedCount == 0);
 }
+
+TEST_CASE("PrimeStage tabs state-backed mode uses and updates TabsState") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 280.0f, 100.0f);
+
+  PrimeStage::TabsState tabsState;
+  tabsState.selectedIndex = 2;
+
+  PrimeStage::TabsSpec spec;
+  spec.state = &tabsState;
+  spec.labels = {"One", "Two", "Three"};
+  spec.selectedIndex = 0; // state-backed mode uses TabsState as source of truth
+  spec.size.preferredWidth = 240.0f;
+  spec.size.preferredHeight = 28.0f;
+  spec.tabStyle = 161u;
+  spec.activeTabStyle = 162u;
+  spec.textStyle = 171u;
+  spec.activeTextStyle = 172u;
+
+  std::vector<int> selections;
+  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
+
+  PrimeStage::UiNode tabs = root.createTabs(spec);
+  PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
+  REQUIRE(row != nullptr);
+  REQUIRE(row->children.size() == 3);
+
+  PrimeFrame::Node const* initiallyActive = frame.getNode(row->children[2]);
+  REQUIRE(initiallyActive != nullptr);
+  REQUIRE_FALSE(initiallyActive->primitives.empty());
+  PrimeFrame::Primitive const* activeRect = frame.getPrimitive(initiallyActive->primitives.front());
+  REQUIRE(activeRect != nullptr);
+  CHECK(activeRect->rect.token == spec.activeTabStyle);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 280.0f, 100.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::LayoutOut const* first = layout.get(row->children[0]);
+  REQUIRE(first != nullptr);
+  float firstX = first->absX + first->absW * 0.5f;
+  float firstY = first->absY + first->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, firstX, firstY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, firstX, firstY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(tabsState.selectedIndex == 0);
+  REQUIRE(!selections.empty());
+  CHECK(selections.back() == 0);
+
+  PrimeFrame::Event keyRight;
+  keyRight.type = PrimeFrame::EventType::KeyDown;
+  keyRight.key = 0x4F; // Right
+  router.dispatch(keyRight, frame, layout, &focus);
+  CHECK(tabsState.selectedIndex == 1);
+  REQUIRE(selections.size() >= 2);
+  CHECK(selections.back() == 1);
+}
+
+TEST_CASE("PrimeStage dropdown state-backed mode uses and updates DropdownState") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 100.0f);
+
+  PrimeStage::DropdownState dropdownState;
+  dropdownState.selectedIndex = 2;
+
+  PrimeStage::DropdownSpec spec;
+  spec.state = &dropdownState;
+  spec.options = {"Preview", "Edit", "Export"};
+  spec.selectedIndex = 0; // state-backed mode uses DropdownState as source of truth
+  spec.indicator = "v";
+  spec.backgroundStyle = 181u;
+  spec.textStyle = 191u;
+  spec.indicatorStyle = 192u;
+  spec.focusStyle = 193u;
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 24.0f;
+
+  int openedCount = 0;
+  std::vector<int> selections;
+  spec.callbacks.onOpened = [&]() { openedCount += 1; };
+  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
+
+  PrimeStage::UiNode dropdown = root.createDropdown(spec);
+  PrimeFrame::Node const* dropdownNode = frame.getNode(dropdown.nodeId());
+  REQUIRE(dropdownNode != nullptr);
+  PrimeFrame::Primitive const* labelPrim = findTextChild(frame, dropdownNode->id, spec.textStyle);
+  REQUIRE(labelPrim != nullptr);
+  CHECK(labelPrim->textBlock.text == "Export");
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 100.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(dropdown.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(openedCount == 1);
+  CHECK(dropdownState.selectedIndex == 0);
+  REQUIRE(!selections.empty());
+  CHECK(selections.back() == 0);
+
+  PrimeFrame::Event keyUp;
+  keyUp.type = PrimeFrame::EventType::KeyDown;
+  keyUp.key = 0x52; // Up
+  router.dispatch(keyUp, frame, layout, &focus);
+  CHECK(openedCount == 2);
+  CHECK(dropdownState.selectedIndex == 2);
+  REQUIRE(selections.size() >= 2);
+  CHECK(selections.back() == 2);
+}
