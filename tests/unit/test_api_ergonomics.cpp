@@ -230,6 +230,34 @@ TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
   CHECK(design.find("## Open Questions") == std::string::npos);
 }
 
+TEST_CASE("PrimeStage README and design docs match shipped workflow and API names") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(designPath));
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("./scripts/compile.sh") != std::string::npos);
+  CHECK(readme.find("./scripts/compile.sh --test") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("createTextField(TextFieldSpec const& spec)") != std::string::npos);
+  CHECK(design.find("createEditBox") == std::string::npos);
+  CHECK(design.find("ButtonCallbacks const& callbacks") == std::string::npos);
+  CHECK(design.find("## Focus Behavior (Current)") != std::string::npos);
+  CHECK(design.find("Focusable by default") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();

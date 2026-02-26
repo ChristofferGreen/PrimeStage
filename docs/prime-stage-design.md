@@ -40,24 +40,18 @@ If a patch affects layout or structure, trigger a layout pass or rebuild.
 See `docs/design-decisions.md` for the strict patch-operation whitelist used by PrimeStage runtime flows.
 
 ## Callback Model
-Widgets store `CallbackId` only. The owner (PrimeStage or application layer) keeps a move-only RAII handle for cleanup.
-No callback copies are made by widgets.
+PrimeStage widget callbacks are configured through widget specs.
+Examples:
+- `ButtonSpec::callbacks.onClick`
+- `TextFieldSpec::callbacks.onTextChanged`
+- `TabsSpec::callbacks.onTabChanged`
 
-Recommended handle shape (pointer-free):
-
-```cpp
-struct CallbackHandle {
-  std::optional<CallbackId> id;
-  std::optional<std::reference_wrapper<CallbackTable>> table;
-
-  ~CallbackHandle() { reset(); }
-  void reset();
-  CallbackHandle(CallbackHandle const&) = delete;
-  CallbackHandle& operator=(CallbackHandle const&) = delete;
-  CallbackHandle(CallbackHandle&&) noexcept;
-  CallbackHandle& operator=(CallbackHandle&&) noexcept;
-};
-```
+Application code should provide callback behavior at spec level and avoid direct `PrimeFrame::Callback`
+table mutation for standard widget usage.
+For advanced extension points, use PrimeStage callback composition helpers:
+- `appendNodeOnEvent(...)`
+- `appendNodeOnFocus(...)`
+- `appendNodeOnBlur(...)`
 
 ## Widget Authoring API
 Widgets are exposed as free-standing functions that return a fluent `UiNode` value type.
@@ -67,14 +61,24 @@ Core primitives live in `PrimeStage/Ui.h`; the Studio kit (roles, defaults, comp
 Example:
 
 ```cpp
-UiNode root = createPanel(frame, rootId, panelSpec);
+UiNode root(frame, rootId, true);
 
-root.createButton(primarySpec, primaryCallbacks);
-root.createButton(secondarySpec);
+ButtonSpec primary;
+primary.label = "Apply";
+primary.callbacks.onClick = [&] { appState.pendingApply = true; };
+root.createButton(primary);
 
-root.createVerticalLayout(layoutSpec, [](UiNode& col) {
-  col.createButton(aSpec);
-  col.createButton(bSpec);
+TextFieldSpec field;
+field.state = &appState.nameField;
+field.placeholder = "Name";
+field.callbacks.onTextChanged = [&](std::string_view text) {
+  appState.name = std::string(text);
+};
+root.createTextField(field);
+
+root.createVerticalStack(layoutSpec, [](UiNode& col) {
+  col.createButton(primary);
+  col.createTextField(field);
 });
 ```
 
@@ -85,7 +89,7 @@ Container sizing and layout metadata are unified via `ContainerSpec`, which is s
 `ScrollView` returns a small struct that exposes both the root node and a dedicated content node
 so callers can attach children and apply scroll offsets without mixing in scrollbar primitives.
 
-### UiNode Shape (Draft)
+### UiNode Shape (Current)
 
 ```cpp
 struct UiNode {
@@ -94,30 +98,27 @@ struct UiNode {
 
   UiNode createPanel(PanelSpec const& spec);
   UiNode createLabel(LabelSpec const& spec);
+  UiNode createParagraph(ParagraphSpec const& spec);
+  UiNode createTextLine(TextLineSpec const& spec);
   UiNode createDivider(DividerSpec const& spec);
   UiNode createSpacer(SpacerSpec const& spec);
 
-  UiNode createButton(ButtonSpec const& spec, ButtonCallbacks const& callbacks = {});
-  UiNode createEditBox(EditBoxSpec const& spec, EditBoxCallbacks const& callbacks = {});
-  UiNode createImage(ImageSpec const& spec);
-
-  ScrollView createScrollView(ScrollViewSpec const& spec);
-  UiNode createListView(ListViewSpec const& spec);
+  UiNode createButton(ButtonSpec const& spec);
+  UiNode createTextField(TextFieldSpec const& spec);
+  UiNode createSelectableText(SelectableTextSpec const& spec);
+  UiNode createToggle(ToggleSpec const& spec);
+  UiNode createCheckbox(CheckboxSpec const& spec);
+  UiNode createSlider(SliderSpec const& spec);
+  UiNode createTabs(TabsSpec const& spec);
+  UiNode createDropdown(DropdownSpec const& spec);
+  UiNode createProgressBar(ProgressBarSpec const& spec);
   UiNode createTable(TableSpec const& spec);
   UiNode createTreeView(TreeViewSpec const& spec);
-
-  UiNode createToggle(ToggleSpec const& spec, ToggleCallbacks const& callbacks = {});
-  UiNode createCheckbox(CheckboxSpec const& spec, CheckboxCallbacks const& callbacks = {});
-  UiNode createSlider(SliderSpec const& spec, SliderCallbacks const& callbacks = {});
-  UiNode createTabs(TabsSpec const& spec, TabsCallbacks const& callbacks = {});
-  UiNode createDropdown(DropdownSpec const& spec, DropdownCallbacks const& callbacks = {});
-  UiNode createProgressBar(ProgressBarSpec const& spec);
-  UiNode createTooltip(TooltipSpec const& spec);
-  UiNode createPopover(PopoverSpec const& spec);
+  ScrollView createScrollView(ScrollViewSpec const& spec);
 
   template <typename Fn>
-  UiNode createVerticalLayout(VerticalLayoutSpec const& spec, Fn&& fn) {
-    UiNode child = createVerticalLayout(spec);
+  UiNode createVerticalStack(StackSpec const& spec, Fn&& fn) {
+    UiNode child = createVerticalStack(spec);
     fn(child);
     return child;
   }
@@ -129,14 +130,12 @@ Base widgets:
 - Panel, Label, Divider, Spacer
 
 Interactive widgets:
-- Button, EditBox (with input constraints), Image
+- Button, TextField, SelectableText
 - Toggle, Checkbox, Slider
 - Tabs, Dropdown, ProgressBar
-- Tooltip, Popover
 
 Collection widgets:
 - ScrollView
-- ListView
 - Table
 - TreeView
 
@@ -155,6 +154,12 @@ Window chrome is composed explicitly via widgets or helper builders, not auto-ge
 Focus is represented as a dedicated rect node that can be patched each frame.
 When focus changes, the rect morphs to the new target bounds via simple interpolation.
 This keeps animation transient and does not require a rebuild.
+
+## Focus Behavior (Current)
+- Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,
+  `ProgressBar`, `Table`, `TreeView`.
+- Not focusable by default: `SelectableText`.
+- Focus visuals are semantic-by-default for focusable controls; `focusStyle` is an optional override.
 
 ## HTML Stack
 PrimeStage can target an HTML backend as a separate surface.

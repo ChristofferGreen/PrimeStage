@@ -2,7 +2,27 @@
 
 PrimeStage is the UI authoring layer that owns ground-truth widget state and emits rect hierarchies for PrimeFrame. The Studio UI kit now lives in the PrimeStudio repo.
 
-## Building
+## Build And Test (Preferred)
+
+Use the project build script as the canonical workflow:
+
+```sh
+./scripts/compile.sh
+```
+
+Run full tests:
+
+```sh
+./scripts/compile.sh --test
+```
+
+Build-type options:
+- `./scripts/compile.sh --debug`
+- `./scripts/compile.sh --release`
+- `./scripts/compile.sh --relwithdebinfo`
+- `./scripts/compile.sh --minsizerel`
+
+## Direct CMake (Optional)
 
 ```sh
 cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug
@@ -37,3 +57,4 @@ Or run the test binary directly:
 ## Docs
 - `docs/prime-stage-design.md`
 - `docs/api-ergonomics-guidelines.md`
+- `docs/design-decisions.md`

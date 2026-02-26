@@ -93,9 +93,10 @@ Release Exit Criteria (for API-quality milestone):
   - decide and document patch-operation safety whitelist
   - delivered via `docs/design-decisions.md`, `docs/prime-stage-design.md` alignment updates, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [21] Sync docs with current build/test workflow and API.
+- ☑ [21] Sync docs with current build/test workflow and API.
   - update `README.md` to promote `scripts/compile.sh` and `scripts/compile.sh --test`
   - reconcile `docs/prime-stage-design.md` with current API names/signatures (`TextField` vs draft `EditBox`, callback model, focus behavior)
+  - delivered via README workflow updates, design-doc API/focus reconciliation in `docs/prime-stage-design.md`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [25] Add visual regression coverage for interaction states.
   - add snapshot tests for focus/hover/pressed/selection layering
