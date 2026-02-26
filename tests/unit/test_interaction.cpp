@@ -38,6 +38,13 @@ static PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, int pointe
   return event;
 }
 
+static PrimeFrame::Event makeKeyDownEvent(PrimeStage::KeyCode key) {
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = PrimeStage::keyCodeInt(key);
+  return event;
+}
+
 static PrimeFrame::Primitive const* findRectPrimitiveByTokenInSubtree(PrimeFrame::Frame const& frame,
                                                                        PrimeFrame::NodeId nodeId,
                                                                        PrimeFrame::RectStyleToken token) {
@@ -693,6 +700,69 @@ TEST_CASE("PrimeStage toggle and checkbox support state-backed uncontrolled mode
   CHECK(checkboxState.checked == false);
   REQUIRE(checkboxValues.size() >= 2);
   CHECK(checkboxValues.back() == false);
+}
+
+TEST_CASE("PrimeStage accessibility keyboard focus and activation contract is consistent") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 180.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  int buttonActivations = 0;
+  int toggleActivations = 0;
+  int checkboxActivations = 0;
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Apply";
+  buttonSpec.tabIndex = 10;
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  buttonSpec.callbacks.onClick = [&]() { buttonActivations += 1; };
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.tabIndex = 20;
+  toggleSpec.size.preferredWidth = 56.0f;
+  toggleSpec.size.preferredHeight = 24.0f;
+  toggleSpec.trackStyle = 501u;
+  toggleSpec.knobStyle = 502u;
+  toggleSpec.callbacks.onChanged = [&](bool) { toggleActivations += 1; };
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.label = "Enable";
+  checkboxSpec.tabIndex = 30;
+  checkboxSpec.boxStyle = 511u;
+  checkboxSpec.checkStyle = 512u;
+  checkboxSpec.callbacks.onChanged = [&](bool) { checkboxActivations += 1; };
+
+  PrimeStage::UiNode button = stack.createButton(buttonSpec);
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+  (void)toggle;
+  (void)checkbox;
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 180.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == button.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Space), frame, layout, &focus);
+  CHECK(buttonActivations == 2);
+
+  CHECK(focus.handleTab(frame, layout, true));
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Space), frame, layout, &focus);
+  CHECK(toggleActivations == 2);
+
+  CHECK(focus.handleTab(frame, layout, true));
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Space), frame, layout, &focus);
+  CHECK(checkboxActivations == 2);
 }
 
 TEST_CASE("PrimeStage tree view hover/selection callbacks and double click toggle") {

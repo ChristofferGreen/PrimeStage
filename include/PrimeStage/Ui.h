@@ -53,6 +53,45 @@ constexpr int keyCodeInt(KeyCode key) {
   return static_cast<int>(keyCodeValue(key));
 }
 
+enum class AccessibilityRole : uint8_t {
+  Unspecified,
+  Group,
+  StaticText,
+  Button,
+  TextField,
+  Toggle,
+  Checkbox,
+  Slider,
+  TabList,
+  Tab,
+  ComboBox,
+  ProgressBar,
+  Table,
+  Tree,
+  TreeItem,
+};
+
+struct AccessibilityState {
+  bool disabled = false;
+  std::optional<bool> checked;
+  std::optional<bool> selected;
+  std::optional<bool> expanded;
+  std::optional<float> valueNow;
+  std::optional<float> valueMin;
+  std::optional<float> valueMax;
+  std::optional<int> level;
+  std::optional<int> positionInSet;
+  std::optional<int> setSize;
+};
+
+struct AccessibilitySemantics {
+  AccessibilityRole role = AccessibilityRole::Unspecified;
+  std::string_view label;
+  std::string_view description;
+  std::string_view valueText;
+  AccessibilityState state{};
+};
+
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;
@@ -83,6 +122,7 @@ struct PanelSpec : ContainerSpec {
 
 struct LabelSpec {
   std::string_view text;
+  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -94,6 +134,7 @@ struct LabelSpec {
 
 struct ParagraphSpec {
   std::string_view text;
+  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -107,6 +148,7 @@ struct ParagraphSpec {
 
 struct TextLineSpec {
   std::string_view text;
+  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -135,6 +177,7 @@ struct ButtonCallbacks {
 
 struct ButtonSpec {
   std::string_view label;
+  AccessibilitySemantics accessibility{};
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
   PrimeFrame::RectStyleToken hoverStyle = 0;
@@ -208,6 +251,7 @@ struct TextFieldSpec {
   TextFieldCallbacks callbacks{};
   TextCompositionCallbacks compositionCallbacks{};
   TextFieldClipboard clipboard{};
+  AccessibilitySemantics accessibility{};
   std::string_view text;
   std::string_view placeholder;
   float paddingX = 16.0f;
@@ -269,6 +313,7 @@ struct SelectableTextSpec {
   SelectableTextState* state = nullptr;
   SelectableTextCallbacks callbacks{};
   SelectableTextClipboard clipboard{};
+  AccessibilitySemantics accessibility{};
   std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
@@ -313,6 +358,7 @@ struct ToggleState {
 
 struct ToggleSpec {
   ToggleState* state = nullptr;
+  AccessibilitySemantics accessibility{};
   bool on = false;
   bool enabled = true;
   int tabIndex = -1;
@@ -338,6 +384,7 @@ struct CheckboxState {
 
 struct CheckboxSpec {
   CheckboxState* state = nullptr;
+  AccessibilitySemantics accessibility{};
   std::string_view label;
   bool checked = false;
   bool enabled = true;
@@ -365,6 +412,7 @@ struct SliderCallbacks {
 };
 
 struct SliderSpec {
+  AccessibilitySemantics accessibility{};
   float value = 0.0f;
   bool enabled = true;
   int tabIndex = -1;
@@ -400,6 +448,7 @@ struct TabsState {
 
 struct TabsSpec {
   TabsState* state = nullptr;
+  AccessibilitySemantics accessibility{};
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
   bool enabled = true;
@@ -431,6 +480,7 @@ struct DropdownState {
 
 struct DropdownSpec {
   DropdownState* state = nullptr;
+  AccessibilitySemantics accessibility{};
   std::vector<std::string_view> options;
   int selectedIndex = 0;
   bool enabled = true;
@@ -453,6 +503,7 @@ struct DropdownSpec {
 };
 
 struct ProgressBarSpec {
+  AccessibilitySemantics accessibility{};
   float value = 0.0f;
   float minFillWidth = 0.0f;
   int tabIndex = -1;
@@ -514,6 +565,7 @@ struct TableCallbacks {
 };
 
 struct TableSpec {
+  AccessibilitySemantics accessibility{};
   float headerInset = 6.0f;
   float headerHeight = 20.0f;
   float rowHeight = 28.0f;
@@ -571,6 +623,7 @@ struct TreeViewCallbacks {
 };
 
 struct TreeViewSpec {
+  AccessibilitySemantics accessibility{};
   float rowStartX = 8.0f;
   float rowStartY = 36.0f;
   float rowWidthInset = 20.0f;

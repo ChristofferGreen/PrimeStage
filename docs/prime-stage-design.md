@@ -199,3 +199,8 @@ Previously open architecture questions are resolved and tracked in `docs/design-
 IME/composition API planning for text controls is tracked in `docs/ime-composition-plan.md`.
 That plan defines `TextField` lifecycle semantics for composition start/update/commit/cancel and
 stages the host/frame integration steps.
+
+## Accessibility Planning
+Accessibility role/state planning is tracked in `docs/accessibility-semantics-roadmap.md`.
+That roadmap defines metadata model, focus-order mapping, and keyboard-activation expectations for
+future backend accessibility adapters.

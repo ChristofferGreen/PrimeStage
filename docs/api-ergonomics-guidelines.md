@@ -39,6 +39,7 @@ What app code should avoid:
 - Use `WidgetIdentityReconciler` for focus reconciliation across rebuilds instead of ad-hoc
   node-id tracking enums.
 - For text composition/IME planning, see `docs/ime-composition-plan.md`.
+- For accessibility role/state planning, see `docs/accessibility-semantics-roadmap.md`.
 
 Example (`TextField` with app-owned state):
 

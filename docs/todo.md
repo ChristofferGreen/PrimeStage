@@ -146,9 +146,10 @@ Release Exit Criteria (for API-quality milestone):
   - add tests for non-ASCII and composition-heavy input workflows
   - delivered via composition API planning types in `include/PrimeStage/Ui.h`, implementation plan in `docs/ime-composition-plan.md` with design/guideline links, and UTF-8/composition-like workflow regression coverage in `tests/unit/test_text_field.cpp` + source/docs guards in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [36] Add accessibility semantics roadmap.
+- ☑ [36] Add accessibility semantics roadmap.
   - define widget role/state metadata model (for future HTML/backend accessibility integration)
   - ensure focus order and activation semantics map cleanly to accessibility expectations
+  - delivered via accessibility metadata model types in `include/PrimeStage/Ui.h`, roadmap doc `docs/accessibility-semantics-roadmap.md`, design/guideline links in docs, and behavior/source guards in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [38] Add performance benchmarks and budgets.
   - benchmark rebuild/layout/render cost for representative widget scenes

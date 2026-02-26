@@ -428,6 +428,45 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(todo.find("[37] Add API validation and diagnostics for widget specs.") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage accessibility roadmap defines semantics model and behavior contract") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path uiHeader = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path roadmapPath = repoRoot / "docs" / "accessibility-semantics-roadmap.md";
+  std::filesystem::path interactionTests = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  REQUIRE(std::filesystem::exists(uiHeader));
+  REQUIRE(std::filesystem::exists(roadmapPath));
+  REQUIRE(std::filesystem::exists(interactionTests));
+
+  std::ifstream uiInput(uiHeader);
+  REQUIRE(uiInput.good());
+  std::string ui((std::istreambuf_iterator<char>(uiInput)),
+                 std::istreambuf_iterator<char>());
+  REQUIRE(!ui.empty());
+  CHECK(ui.find("enum class AccessibilityRole") != std::string::npos);
+  CHECK(ui.find("struct AccessibilityState") != std::string::npos);
+  CHECK(ui.find("struct AccessibilitySemantics") != std::string::npos);
+  CHECK(ui.find("AccessibilitySemantics accessibility{};") != std::string::npos);
+
+  std::ifstream roadmapInput(roadmapPath);
+  REQUIRE(roadmapInput.good());
+  std::string roadmap((std::istreambuf_iterator<char>(roadmapInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!roadmap.empty());
+  CHECK(roadmap.find("Metadata Model") != std::string::npos);
+  CHECK(roadmap.find("Focus Order Contract") != std::string::npos);
+  CHECK(roadmap.find("Activation Contract") != std::string::npos);
+  CHECK(roadmap.find("AccessibilityRole") != std::string::npos);
+
+  std::ifstream interactionInput(interactionTests);
+  REQUIRE(interactionInput.good());
+  std::string interaction((std::istreambuf_iterator<char>(interactionInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!interaction.empty());
+  CHECK(interaction.find("accessibility keyboard focus and activation contract") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
