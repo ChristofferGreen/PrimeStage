@@ -202,6 +202,34 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("needsFrame") == std::string::npos);
 }
 
+TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path decisionPath = repoRoot / "docs" / "design-decisions.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  REQUIRE(std::filesystem::exists(decisionPath));
+  REQUIRE(std::filesystem::exists(designPath));
+
+  std::ifstream decisionInput(decisionPath);
+  REQUIRE(decisionInput.good());
+  std::string decisions((std::istreambuf_iterator<char>(decisionInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!decisions.empty());
+  CHECK(decisions.find("Decision 1: Table Remains a First-Class Widget") != std::string::npos);
+  CHECK(decisions.find("Decision 2: Window Chrome Is Composed Explicitly") != std::string::npos);
+  CHECK(decisions.find("Decision 3: Patch Operations Use a Strict Safety Whitelist") !=
+        std::string::npos);
+  CHECK(decisions.find("Whitelisted patch fields") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("docs/design-decisions.md") != std::string::npos);
+  CHECK(design.find("## Open Questions") == std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();

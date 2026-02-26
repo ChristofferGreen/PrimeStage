@@ -87,10 +87,11 @@ Release Exit Criteria (for API-quality milestone):
   - avoid ad-hoc `needsRebuild` / `needsLayout` / `needsFrame` orchestration in example apps
   - delivered via `include/PrimeStage/AppRuntime.h` (`FrameLifecycle` helper), migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_app_runtime.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [24] Resolve and record design decisions from open questions.
+- ☑ [24] Resolve and record design decisions from open questions.
   - decide table vs specialized list strategy
   - decide window-chrome ownership (auto-generated vs composed widgets)
   - decide and document patch-operation safety whitelist
+  - delivered via `docs/design-decisions.md`, `docs/prime-stage-design.md` alignment updates, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [21] Sync docs with current build/test workflow and API.
   - update `README.md` to promote `scripts/compile.sh` and `scripts/compile.sh --test`

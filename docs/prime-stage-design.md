@@ -4,6 +4,7 @@
 PrimeStage is the UI authoring layer that owns ground-truth widget state and emits rect hierarchies for PrimeFrame.
 It builds render-ready UI scenes, wires callbacks, and provides a terse authoring API.
 Contributor ergonomics and app-facing ownership contracts are documented in `docs/api-ergonomics-guidelines.md`.
+Resolved architecture choices are documented in `docs/design-decisions.md`.
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.
@@ -36,6 +37,7 @@ Patches should only touch fields that do not restructure the graph:
 - Scroll offsets
 
 If a patch affects layout or structure, trigger a layout pass or rebuild.
+See `docs/design-decisions.md` for the strict patch-operation whitelist used by PrimeStage runtime flows.
 
 ## Callback Model
 Widgets store `CallbackId` only. The owner (PrimeStage or application layer) keeps a move-only RAII handle for cleanup.
@@ -138,6 +140,8 @@ Collection widgets:
 - Table
 - TreeView
 
+`Table` remains a first-class widget API, with collection internals reusable behind the scenes.
+
 ## Windows
 Windowing is built in PrimeStage as a thin layer that emits window roots into PrimeFrame.
 The window manager is stateless: it builds windows from ground truth and wires callbacks for move/resize/focus.
@@ -145,6 +149,7 @@ Transient interactions (drag, hover) are applied as patches inside callbacks.
 
 Window roots are just top-level nodes with a title bar and content slot.
 Z-order is determined by input order or explicit `zOrder` fields from ground truth.
+Window chrome is composed explicitly via widgets or helper builders, not auto-generated implicitly.
 
 ## Focus Animation
 Focus is represented as a dedicated rect node that can be patched each frame.
@@ -161,7 +166,5 @@ The HTML surface typically uses a single window root.
 - Rich animation system beyond simple rect morphing.
 - Complex widget theming beyond token mapping to PrimeFrame styles.
 
-## Open Questions
-- Should table be a specialized list view or a first-class widget?
-- Should window chrome be auto-generated or composed explicitly with widgets?
-- Should patch operations be strictly limited to a whitelist of fields?
+## Design Decisions
+Previously open architecture questions are resolved and tracked in `docs/design-decisions.md`.
