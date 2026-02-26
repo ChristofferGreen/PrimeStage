@@ -17,6 +17,8 @@ cmake --build build-release
 Optional configuration:
 - `-DPRIMESTAGE_BUILD_TESTS=ON/OFF` toggles tests.
 - `-DPRIMESTAGE_BUILD_EXAMPLES=ON/OFF` toggles example binaries.
+- `-DPRIMESTAGE_HEADLESS_ONLY=ON/OFF` skips PrimeManifest (no rendering). Defaults to `OFF`.
+- `-DPRIMESTAGE_ENABLE_PRIMEMANIFEST=ON/OFF` toggles PrimeManifest integration. Required unless headless mode is on.
 
 ## Tests
 

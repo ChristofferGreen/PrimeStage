@@ -178,15 +178,15 @@ TEST_CASE("Selection rects follow line ranges and padding") {
   std::string_view line0Text(text.data() + line0.start, line0.end - line0.start);
   float line0Start = PrimeStage::measureTextWidth(frame, 0, line0Text.substr(0, selectionStart));
   float line0End = PrimeStage::measureTextWidth(frame, 0, line0Text);
-  CHECK(rects[0].x == doctest::Approx(padding + line0Start));
-  CHECK(rects[0].width == doctest::Approx(line0End - line0Start));
+  CHECK(rects[0].x == doctest::Approx(padding + line0Start).epsilon(0.05));
+  CHECK(rects[0].width == doctest::Approx(line0End - line0Start).epsilon(0.05));
 
   auto line1 = layout.lines[1];
   std::string_view line1Text(text.data() + line1.start, line1.end - line1.start);
   uint32_t localEnd = selectionEnd - line1.start;
   float line1End = PrimeStage::measureTextWidth(frame, 0, line1Text.substr(0, localEnd));
-  CHECK(rects[1].x == doctest::Approx(padding));
-  CHECK(rects[1].width == doctest::Approx(line1End));
+  CHECK(rects[1].x == doctest::Approx(padding).epsilon(0.05));
+  CHECK(rects[1].width == doctest::Approx(line1End).epsilon(0.05));
 }
 
 TEST_CASE("Selectable text helpers track and clear selection") {

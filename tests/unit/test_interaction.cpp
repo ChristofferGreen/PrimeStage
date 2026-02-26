@@ -321,6 +321,9 @@ TEST_CASE("PrimeStage tree view hover/selection callbacks and double click toggl
   CHECK(expandedRow == 0);
   CHECK(expandedValue == false);
 
+  PrimeFrame::Event up = makePointerEvent(PrimeFrame::EventType::PointerUp, 1, move.x, move.y);
+  router.dispatch(up, frame, layout);
+
   PrimeFrame::Event outMove = makePointerEvent(PrimeFrame::EventType::PointerMove, 1,
                                                out->absX - 10.0f, out->absY - 10.0f);
   router.dispatch(outMove, frame, layout);

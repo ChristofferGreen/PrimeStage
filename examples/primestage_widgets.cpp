@@ -79,6 +79,8 @@ enum RectStyleId : uint16_t {
   RectTreeCaretLine = 35,
   RectScrollTrack = 36,
   RectScrollThumb = 37,
+  RectTabBar = 38,
+  RectTableRowSelected = 39,
 };
 
 enum TextStyleId : uint16_t {
@@ -100,11 +102,22 @@ struct DemoState {
   int tabIndex = 0;
   int dropdownIndex = 0;
   int clickCount = 0;
+  int tableSelectedRow = -1;
   std::vector<PrimeStage::TreeNode> tree;
   std::string selectableTextContent;
   std::string overlayText;
   std::vector<std::string> dropdownItems;
   std::vector<std::string> tabLabels;
+};
+
+enum class RestoreFocusTarget : uint8_t {
+  None,
+  TextField,
+  TreeView,
+  Toggle,
+  Checkbox,
+  Slider,
+  Progress,
 };
 
 struct DemoApp {
@@ -119,8 +132,7 @@ struct DemoApp {
   bool needsRebuild = true;
   bool needsLayout = true;
   bool needsFrame = true;
-  bool restoreTextFieldFocus = false;
-  bool restoreSelectableFocus = false;
+  RestoreFocusTarget restoreFocusTarget = RestoreFocusTarget::None;
   uint32_t surfaceWidth = 1280u;
   uint32_t surfaceHeight = 720u;
   float surfaceScale = 1.0f;
@@ -132,6 +144,11 @@ struct DemoApp {
   float lastPointerY = 0.0f;
   PrimeFrame::NodeId textFieldNode{};
   PrimeFrame::NodeId selectableTextNode{};
+  PrimeFrame::NodeId treeViewNode{};
+  PrimeFrame::NodeId toggleNode{};
+  PrimeFrame::NodeId checkboxNode{};
+  PrimeFrame::NodeId sliderNode{};
+  PrimeFrame::NodeId progressNode{};
 };
 
 void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderOptions) {
@@ -159,6 +176,10 @@ void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderO
   const PrimeFrame::Color toggleOff = makeColor(57, 73, 93);
   const PrimeFrame::Color scrollTrack = makeColor(26, 35, 48);
   const PrimeFrame::Color scrollThumb = makeColor(59, 76, 99);
+  const PrimeFrame::Color tabBar = makeColor(18, 24, 33);
+  const PrimeFrame::Color tabIdle = makeColor(27, 37, 52);
+  const PrimeFrame::Color tabActive = makeColor(60, 82, 112);
+  const PrimeFrame::Color tableRowSelected = makeColor(36, 74, 110);
 
   theme->palette = {
       background,
@@ -180,6 +201,10 @@ void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderO
       toggleOff,
       scrollTrack,
       scrollThumb,
+      tabBar,
+      tabIdle,
+      tabActive,
+      tableRowSelected,
   };
 
   auto rectStyle = [](PrimeFrame::ColorToken token, float opacity = 1.0f) {
@@ -207,8 +232,8 @@ void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderO
       rectStyle(12),  // RectSliderTrack
       rectStyle(6),   // RectSliderFill
       rectStyle(4),   // RectSliderThumb
-      rectStyle(2),   // RectTab
-      rectStyle(1),   // RectTabActive
+      rectStyle(20),  // RectTab
+      rectStyle(21),  // RectTabActive
       rectStyle(2),   // RectDropdown
       rectStyle(12),  // RectProgressTrack
       rectStyle(6),   // RectProgressFill
@@ -225,6 +250,8 @@ void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderO
       rectStyle(4),   // RectTreeCaretLine
       rectStyle(17),  // RectScrollTrack
       rectStyle(18),  // RectScrollThumb
+      rectStyle(19),  // RectTabBar
+      rectStyle(22, 0.5f),  // RectTableRowSelected
   };
 
   auto textStyle = [](float size, float weight, PrimeFrame::ColorToken color, float lineHeight = 0.0f) {
@@ -237,12 +264,12 @@ void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderO
   };
 
   theme->textStyles = {
-      textStyle(15.0f, 450.0f, 4),  // TextBody
-      textStyle(13.0f, 400.0f, 5),  // TextMuted
-      textStyle(20.0f, 600.0f, 4),  // TextHeading
-      textStyle(12.0f, 400.0f, 5),  // TextSmall
-      textStyle(14.0f, 600.0f, 6),  // TextAccent
-      textStyle(13.0f, 500.0f, 4),  // TextMono
+      textStyle(14.0f, 450.0f, 4),  // TextBody
+      textStyle(12.0f, 400.0f, 5),  // TextMuted
+      textStyle(18.0f, 600.0f, 4),  // TextHeading
+      textStyle(11.0f, 400.0f, 5),  // TextSmall
+      textStyle(13.0f, 600.0f, 6),  // TextAccent
+      textStyle(12.0f, 500.0f, 4),  // TextMono
   };
 
   renderOptions.clear = true;
@@ -255,11 +282,11 @@ PrimeStage::UiNode createSection(PrimeStage::UiNode parent,
   PrimeStage::PanelSpec panel;
   panel.size.stretchX = 1.0f;
   panel.layout = PrimeFrame::LayoutType::VerticalStack;
-  panel.padding.left = 18.0f;
-  panel.padding.top = 16.0f;
-  panel.padding.right = 18.0f;
-  panel.padding.bottom = 18.0f;
-  panel.gap = 12.0f;
+  panel.padding.left = 12.0f;
+  panel.padding.top = 10.0f;
+  panel.padding.right = 12.0f;
+  panel.padding.bottom = 12.0f;
+  panel.gap = 8.0f;
   panel.rectStyle = RectPanelAlt;
   panel.visible = true;
   PrimeStage::UiNode section = parent.createPanel(panel);
@@ -312,6 +339,37 @@ PrimeHost::CursorShape cursorShapeForHint(PrimeStage::CursorHint hint) {
   }
 }
 
+void appendNodeEventCallback(PrimeFrame::Frame& frame,
+                             PrimeFrame::NodeId nodeId,
+                             std::function<bool(PrimeFrame::Event const&)> onEvent) {
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return;
+  }
+  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback* callback = frame.getCallback(node->callbacks);
+    if (!callback) {
+      return;
+    }
+    auto previous = callback->onEvent;
+    callback->onEvent = [handler = std::move(onEvent), previous = std::move(previous)](
+                            PrimeFrame::Event const& event) -> bool {
+      if (handler && handler(event)) {
+        return true;
+      }
+      if (previous) {
+        return previous(event);
+      }
+      return false;
+    };
+    return;
+  }
+
+  PrimeFrame::Callback callback;
+  callback.onEvent = std::move(onEvent);
+  node->callbacks = frame.addCallback(std::move(callback));
+}
+
 std::optional<std::string_view> textFromSpan(const PrimeHost::EventBatch& batch,
                                              PrimeHost::TextSpan span) {
   if (span.length == 0u) {
@@ -359,14 +417,32 @@ void initializeState(DemoState& state) {
 }
 
 void rebuildUi(DemoApp& app) {
+  PrimeFrame::NodeId focusedNode = app.focus.focusedNode();
+  app.restoreFocusTarget = RestoreFocusTarget::None;
+  if (focusedNode == app.textFieldNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::TextField;
+  } else if (focusedNode == app.treeViewNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::TreeView;
+  } else if (focusedNode == app.toggleNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::Toggle;
+  } else if (focusedNode == app.checkboxNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::Checkbox;
+  } else if (focusedNode == app.sliderNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::Slider;
+  } else if (focusedNode == app.progressNode) {
+    app.restoreFocusTarget = RestoreFocusTarget::Progress;
+  }
+
   app.frame = PrimeFrame::Frame();
   app.router.clearAllCaptures();
-  app.focus.clearFocus(app.frame);
   applyDemoTheme(app.frame, app.renderOptions);
-  app.restoreTextFieldFocus = app.state.textField.focused;
-  app.restoreSelectableFocus = app.state.selectableText.focused;
   app.textFieldNode = PrimeFrame::NodeId{};
   app.selectableTextNode = PrimeFrame::NodeId{};
+  app.treeViewNode = PrimeFrame::NodeId{};
+  app.toggleNode = PrimeFrame::NodeId{};
+  app.checkboxNode = PrimeFrame::NodeId{};
+  app.sliderNode = PrimeFrame::NodeId{};
+  app.progressNode = PrimeFrame::NodeId{};
 
   PrimeFrame::NodeId rootId = app.frame.createNode();
   app.frame.addRoot(rootId);
@@ -390,11 +466,11 @@ void rebuildUi(DemoApp& app) {
   PrimeStage::StackSpec contentSpec;
   contentSpec.size.stretchX = 1.0f;
   contentSpec.size.stretchY = 0.0f;
-  contentSpec.padding.left = 32.0f;
-  contentSpec.padding.top = 28.0f;
-  contentSpec.padding.right = 32.0f;
-  contentSpec.padding.bottom = 28.0f;
-  contentSpec.gap = 22.0f;
+  contentSpec.padding.left = 20.0f;
+  contentSpec.padding.top = 18.0f;
+  contentSpec.padding.right = 20.0f;
+  contentSpec.padding.bottom = 18.0f;
+  contentSpec.gap = 14.0f;
   contentSpec.clipChildren = true;
   contentSpec.visible = true;
 
@@ -435,31 +511,48 @@ void rebuildUi(DemoApp& app) {
     tabViews.push_back(labelText);
   }
 
+  PrimeStage::PanelSpec tabsBarSpec;
+  tabsBarSpec.layout = PrimeFrame::LayoutType::Overlay;
+  tabsBarSpec.size.stretchX = 1.0f;
+  tabsBarSpec.size.preferredHeight = 40.0f;
+  tabsBarSpec.padding.left = 8.0f;
+  tabsBarSpec.padding.right = 8.0f;
+  tabsBarSpec.padding.top = 8.0f;
+  tabsBarSpec.padding.bottom = 8.0f;
+  tabsBarSpec.rectStyle = RectTabBar;
+  tabsBarSpec.visible = true;
+  PrimeStage::UiNode tabsBar = content.createPanel(tabsBarSpec);
+
   PrimeStage::TabsSpec tabsSpec;
   tabsSpec.labels = tabViews;
   tabsSpec.selectedIndex = tabIndex;
+  tabsSpec.tabPaddingX = 12.0f;
+  tabsSpec.tabPaddingY = 5.0f;
+  tabsSpec.gap = 6.0f;
   tabsSpec.tabStyle = RectTab;
   tabsSpec.activeTabStyle = RectTabActive;
-  tabsSpec.textStyle = TextBody;
+  tabsSpec.textStyle = TextMuted;
   tabsSpec.activeTextStyle = TextAccent;
+  tabsSpec.activeTextStyleOverride.weight = 600.0f;
+  tabsSpec.size.stretchX = 1.0f;
+  tabsSpec.size.preferredHeight = 28.0f;
   tabsSpec.visible = true;
-  PrimeStage::UiNode tabsNode = content.createTabs(tabsSpec);
+  PrimeStage::UiNode tabsNode = tabsBar.createTabs(tabsSpec);
   if (PrimeFrame::Node* rowNode = app.frame.getNode(tabsNode.nodeId())) {
     for (size_t i = 0; i < rowNode->children.size(); ++i) {
       PrimeFrame::NodeId tabId = rowNode->children[i];
-      if (PrimeFrame::Node* tabNode = app.frame.getNode(tabId)) {
-        PrimeFrame::Callback callback;
-        callback.onEvent = [&app, index = static_cast<int>(i)](PrimeFrame::Event const& event) -> bool {
-          if (event.type == PrimeFrame::EventType::PointerDown) {
-            app.state.tabIndex = index;
-            app.needsRebuild = true;
-            app.needsFrame = true;
-            return true;
-          }
-          return false;
-        };
-        tabNode->callbacks = app.frame.addCallback(std::move(callback));
-      }
+      appendNodeEventCallback(
+          app.frame,
+          tabId,
+          [&app, index = static_cast<int>(i)](PrimeFrame::Event const& event) -> bool {
+            if (event.type == PrimeFrame::EventType::PointerDown) {
+              app.state.tabIndex = index;
+              app.needsRebuild = true;
+              app.needsFrame = true;
+              return true;
+            }
+            return false;
+          });
     }
   }
 
@@ -485,7 +578,7 @@ void rebuildUi(DemoApp& app) {
   PrimeStage::ParagraphSpec pageCopy;
   pageCopy.textStyle = TextBody;
   pageCopy.wrap = PrimeFrame::WrapMode::Word;
-  pageCopy.maxWidth = 640.0f;
+  pageCopy.maxWidth = 520.0f;
   pageCopy.visible = true;
   switch (tabIndex) {
     case 0:
@@ -547,9 +640,10 @@ void rebuildUi(DemoApp& app) {
       primaryButton.backgroundStyle = RectButtonPrimary;
       primaryButton.hoverStyle = RectButtonPrimaryHover;
       primaryButton.pressedStyle = RectButtonPrimaryPressed;
+      primaryButton.focusStyle = RectFieldFocus;
       primaryButton.textStyle = TextBody;
-      primaryButton.size.preferredWidth = 180.0f;
-      primaryButton.size.preferredHeight = 36.0f;
+      primaryButton.size.preferredWidth = 160.0f;
+      primaryButton.size.preferredHeight = 32.0f;
       primaryButton.callbacks.onClick = [&app]() {
         app.state.clickCount += 1;
         app.needsRebuild = true;
@@ -562,9 +656,10 @@ void rebuildUi(DemoApp& app) {
       secondaryButton.backgroundStyle = RectButtonBase;
       secondaryButton.hoverStyle = RectButtonHover;
       secondaryButton.pressedStyle = RectButtonPressed;
+      secondaryButton.focusStyle = RectFieldFocus;
       secondaryButton.textStyle = TextBody;
-      secondaryButton.size.preferredWidth = 140.0f;
-      secondaryButton.size.preferredHeight = 36.0f;
+      secondaryButton.size.preferredWidth = 120.0f;
+      secondaryButton.size.preferredHeight = 32.0f;
       secondaryButton.callbacks.onClick = [&app]() {
         app.state.toggleOn = !app.state.toggleOn;
         app.needsRebuild = true;
@@ -588,43 +683,39 @@ void rebuildUi(DemoApp& app) {
       toggleSpec.on = app.state.toggleOn;
       toggleSpec.trackStyle = app.state.toggleOn ? RectToggleOn : RectToggleOff;
       toggleSpec.knobStyle = RectToggleKnob;
-      toggleSpec.size.preferredWidth = 52.0f;
-      toggleSpec.size.preferredHeight = 26.0f;
+      toggleSpec.focusStyle = RectFieldFocus;
+      toggleSpec.size.preferredWidth = 46.0f;
+      toggleSpec.size.preferredHeight = 22.0f;
       PrimeStage::UiNode toggleNode = toggleRow.createToggle(toggleSpec);
-      if (PrimeFrame::Node* node = app.frame.getNode(toggleNode.nodeId())) {
-        PrimeFrame::Callback callback;
-        callback.onEvent = [&app](PrimeFrame::Event const& event) -> bool {
-          if (event.type == PrimeFrame::EventType::PointerDown) {
-            app.state.toggleOn = !app.state.toggleOn;
-            app.needsRebuild = true;
-            app.needsFrame = true;
-            return true;
-          }
-          return false;
-        };
-        node->callbacks = app.frame.addCallback(std::move(callback));
-      }
+      app.toggleNode = toggleNode.nodeId();
+      appendNodeEventCallback(app.frame, toggleNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
+        if (event.type == PrimeFrame::EventType::PointerDown) {
+          app.state.toggleOn = !app.state.toggleOn;
+          app.needsRebuild = true;
+          app.needsFrame = true;
+          return true;
+        }
+        return false;
+      });
 
       PrimeStage::CheckboxSpec checkboxSpec;
       checkboxSpec.label = "Enable notifications";
       checkboxSpec.checked = app.state.checkboxChecked;
       checkboxSpec.boxStyle = RectCheckboxBox;
       checkboxSpec.checkStyle = RectCheckboxCheck;
+      checkboxSpec.focusStyle = RectFieldFocus;
       checkboxSpec.textStyle = TextBody;
       PrimeStage::UiNode checkboxNode = toggleRow.createCheckbox(checkboxSpec);
-      if (PrimeFrame::Node* node = app.frame.getNode(checkboxNode.nodeId())) {
-        PrimeFrame::Callback callback;
-        callback.onEvent = [&app](PrimeFrame::Event const& event) -> bool {
-          if (event.type == PrimeFrame::EventType::PointerDown) {
-            app.state.checkboxChecked = !app.state.checkboxChecked;
-            app.needsRebuild = true;
-            app.needsFrame = true;
-            return true;
-          }
-          return false;
-        };
-        node->callbacks = app.frame.addCallback(std::move(callback));
-      }
+      app.checkboxNode = checkboxNode.nodeId();
+      appendNodeEventCallback(app.frame, checkboxNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
+        if (event.type == PrimeFrame::EventType::PointerDown) {
+          app.state.checkboxChecked = !app.state.checkboxChecked;
+          app.needsRebuild = true;
+          app.needsFrame = true;
+          return true;
+        }
+        return false;
+      });
       break;
     }
     case 1: {
@@ -634,19 +725,26 @@ void rebuildUi(DemoApp& app) {
       table.headerStyle = RectTableHeader;
       table.rowStyle = RectTableRow;
       table.rowAltStyle = RectTableRowAlt;
+      table.selectionStyle = RectTableRowSelected;
       table.dividerStyle = RectTableDivider;
+      table.focusStyle = RectFieldFocus;
+      table.selectedRow = app.state.tableSelectedRow;
       table.headerPaddingX = 12.0f;
       table.cellPaddingX = 12.0f;
-      table.rowHeight = 28.0f;
+      table.rowHeight = 24.0f;
       table.columns = {
-          {"Asset", 180.0f, TextMuted, TextBody},
-          {"Type", 120.0f, TextMuted, TextBody},
-          {"Size", 100.0f, TextMuted, TextBody},
+          {"Asset", 160.0f, TextMuted, TextBody},
+          {"Type", 110.0f, TextMuted, TextBody},
+          {"Size", 90.0f, TextMuted, TextBody},
       };
       table.rows = {
           {"icons.png", "Texture", "512 KB"},
           {"theme.ogg", "Audio", "3.1 MB"},
           {"ui.vert", "Shader", "14 KB"},
+      };
+      table.callbacks.onRowClicked = [&app](PrimeStage::TableRowInfo const& info) {
+        app.state.tableSelectedRow = info.rowIndex;
+        app.needsFrame = true;
       };
       tableSection.createTable(table);
 
@@ -669,8 +767,9 @@ void rebuildUi(DemoApp& app) {
       treeSpec.scrollBar.thumbStyle = RectScrollThumb;
       treeSpec.scrollBar.trackHoverOpacity = 0.85f;
       treeSpec.scrollBar.thumbHoverOpacity = 0.9f;
-      treeSpec.size.preferredWidth = 520.0f;
-      treeSpec.size.preferredHeight = 220.0f;
+      treeSpec.keyboardNavigation = true;
+      treeSpec.size.preferredWidth = 440.0f;
+      treeSpec.size.preferredHeight = 180.0f;
       treeSpec.callbacks.onSelectionChanged = [&app](PrimeStage::TreeViewRowInfo const& info) {
         clearTreeSelection(app.state.tree);
         if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
@@ -686,7 +785,8 @@ void rebuildUi(DemoApp& app) {
         app.needsRebuild = true;
         app.needsFrame = true;
       };
-      treeSection.createTreeView(treeSpec);
+      PrimeStage::UiNode treeNode = treeSection.createTreeView(treeSpec);
+      app.treeViewNode = treeNode.nodeId();
       break;
     }
     case 2: {
@@ -724,8 +824,8 @@ void rebuildUi(DemoApp& app) {
       fieldSpec.cursorStyle = RectButtonPrimary;
       fieldSpec.selectionStyle = RectSelection;
       fieldSpec.clipboard = textClipboard;
-      fieldSpec.size.preferredWidth = 420.0f;
-      fieldSpec.size.preferredHeight = 32.0f;
+      fieldSpec.size.preferredWidth = 360.0f;
+      fieldSpec.size.preferredHeight = 28.0f;
       fieldSpec.callbacks.onStateChanged = [&app]() {
         app.needsRebuild = true;
         app.needsFrame = true;
@@ -761,8 +861,8 @@ void rebuildUi(DemoApp& app) {
       selectableSpec.selectionStyle = RectSelection;
       selectableSpec.focusStyle = RectFieldFocus;
       selectableSpec.clipboard = selectableClipboard;
-      selectableSpec.maxWidth = 520.0f;
-      selectableSpec.size.preferredWidth = 520.0f;
+      selectableSpec.maxWidth = 420.0f;
+      selectableSpec.size.preferredWidth = 420.0f;
       selectableSpec.visible = true;
       selectableSpec.callbacks.onStateChanged = [&app]() {
         app.needsRebuild = true;
@@ -787,25 +887,21 @@ void rebuildUi(DemoApp& app) {
       dropdownSpec.backgroundStyle = RectDropdown;
       dropdownSpec.textStyle = TextBody;
       dropdownSpec.indicatorStyle = TextMuted;
-      dropdownSpec.size.preferredWidth = 220.0f;
-      dropdownSpec.size.preferredHeight = 32.0f;
+      dropdownSpec.size.preferredWidth = 200.0f;
+      dropdownSpec.size.preferredHeight = 28.0f;
       PrimeStage::UiNode dropdownNode = navigation.createDropdown(dropdownSpec);
-      if (PrimeFrame::Node* node = app.frame.getNode(dropdownNode.nodeId())) {
-        PrimeFrame::Callback callback;
-        callback.onEvent = [&app](PrimeFrame::Event const& event) -> bool {
-          if (event.type == PrimeFrame::EventType::PointerDown) {
-            if (!app.state.dropdownItems.empty()) {
-              app.state.dropdownIndex = (app.state.dropdownIndex + 1) %
-                                        static_cast<int>(app.state.dropdownItems.size());
-              app.needsRebuild = true;
-              app.needsFrame = true;
-            }
-            return true;
+      appendNodeEventCallback(app.frame, dropdownNode.nodeId(), [&app](PrimeFrame::Event const& event) -> bool {
+        if (event.type == PrimeFrame::EventType::PointerDown) {
+          if (!app.state.dropdownItems.empty()) {
+            app.state.dropdownIndex = (app.state.dropdownIndex + 1) %
+                                      static_cast<int>(app.state.dropdownItems.size());
+            app.needsRebuild = true;
+            app.needsFrame = true;
           }
-          return false;
-        };
-        node->callbacks = app.frame.addCallback(std::move(callback));
-      }
+          return true;
+        }
+        return false;
+      });
 
       PrimeStage::UiNode ranges = createSection(pageBody, "Sliders + Progress");
 
@@ -815,22 +911,25 @@ void rebuildUi(DemoApp& app) {
       sliderSpec.fillStyle = RectSliderFill;
       sliderSpec.thumbStyle = RectSliderThumb;
       sliderSpec.focusStyle = RectFieldFocus;
-      sliderSpec.size.preferredWidth = 320.0f;
+      sliderSpec.size.preferredWidth = 260.0f;
       sliderSpec.callbacks.onValueChanged = [&app](float value) {
         app.state.sliderValue = value;
         app.state.progressValue = value;
         app.needsRebuild = true;
         app.needsFrame = true;
       };
-      ranges.createSlider(sliderSpec);
+      PrimeStage::UiNode sliderNode = ranges.createSlider(sliderSpec);
+      app.sliderNode = sliderNode.nodeId();
 
       PrimeStage::ProgressBarSpec progressSpec;
       progressSpec.value = app.state.progressValue;
       progressSpec.trackStyle = RectProgressTrack;
       progressSpec.fillStyle = RectProgressFill;
-      progressSpec.size.preferredWidth = 320.0f;
-      progressSpec.size.preferredHeight = 14.0f;
-      ranges.createProgressBar(progressSpec);
+      progressSpec.focusStyle = RectFieldFocus;
+      progressSpec.size.preferredWidth = 260.0f;
+      progressSpec.size.preferredHeight = 12.0f;
+      PrimeStage::UiNode progressNode = ranges.createProgressBar(progressSpec);
+      app.progressNode = progressNode.nodeId();
       break;
     }
     default: {
@@ -860,13 +959,37 @@ void updateLayoutIfNeeded(DemoApp& app) {
   options.rootHeight = static_cast<float>(heightPx) / scale;
   app.layoutEngine.layout(app.frame, app.layout, options);
   app.focus.updateAfterRebuild(app.frame, app.layout);
-  if (app.restoreTextFieldFocus && app.textFieldNode.isValid()) {
-    app.focus.setFocus(app.frame, app.layout, app.textFieldNode);
-  } else if (app.restoreSelectableFocus && app.selectableTextNode.isValid()) {
-    app.focus.setFocus(app.frame, app.layout, app.selectableTextNode);
+
+  PrimeFrame::NodeId restoreNode{};
+  switch (app.restoreFocusTarget) {
+    case RestoreFocusTarget::TextField:
+      restoreNode = app.textFieldNode;
+      break;
+    case RestoreFocusTarget::TreeView:
+      restoreNode = app.treeViewNode;
+      break;
+    case RestoreFocusTarget::Toggle:
+      restoreNode = app.toggleNode;
+      break;
+    case RestoreFocusTarget::Checkbox:
+      restoreNode = app.checkboxNode;
+      break;
+    case RestoreFocusTarget::Slider:
+      restoreNode = app.sliderNode;
+      break;
+    case RestoreFocusTarget::Progress:
+      restoreNode = app.progressNode;
+      break;
+    case RestoreFocusTarget::None:
+      break;
   }
-  app.restoreTextFieldFocus = false;
-  app.restoreSelectableFocus = false;
+
+  if (restoreNode.isValid()) {
+    app.focus.setFocus(app.frame, app.layout, restoreNode);
+  } else if (app.state.tabIndex == 1 && app.treeViewNode.isValid()) {
+    app.focus.setFocus(app.frame, app.layout, app.treeViewNode);
+  }
+  app.restoreFocusTarget = RestoreFocusTarget::None;
   app.needsLayout = false;
 }
 

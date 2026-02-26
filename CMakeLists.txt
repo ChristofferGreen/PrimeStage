@@ -5,7 +5,12 @@ option(PRIMESTAGE_FETCH_PRIMEFRAME "Fetch PrimeFrame dependency" ON)
 set(PRIMEFRAME_GIT_REPOSITORY "git@github.com:ChristofferGreen/PrimeFrame.git" CACHE STRING "PrimeFrame git repository")
 set(PRIMEFRAME_GIT_TAG "master" CACHE STRING "PrimeFrame git tag or commit")
 
-option(PRIMESTAGE_ENABLE_PRIMEMANIFEST "Enable PrimeManifest integration" OFF)
+option(PRIMESTAGE_FETCH_PRIMEHOST "Fetch PrimeHost dependency" ON)
+set(PRIMEHOST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeHost.git" CACHE STRING "PrimeHost git repository")
+set(PRIMEHOST_GIT_TAG "master" CACHE STRING "PrimeHost git tag or commit")
+
+option(PRIMESTAGE_HEADLESS_ONLY "Build PrimeStage without PrimeManifest (no rendering)" OFF)
+option(PRIMESTAGE_ENABLE_PRIMEMANIFEST "Enable PrimeManifest integration" ON)
 set(PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeManifest.git"
     CACHE STRING "PrimeManifest git repository")
 set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "master" CACHE STRING "PrimeManifest git tag or commit")
@@ -17,6 +22,17 @@ if(PRIMESTAGE_FETCH_PRIMEFRAME)
     GIT_TAG ${PRIMEFRAME_GIT_TAG}
   )
   FetchContent_MakeAvailable(PrimeFrame)
+endif()
+
+if(PRIMESTAGE_FETCH_PRIMEHOST)
+  include(FetchContent)
+  set(PRIMEHOST_BUILD_TESTS OFF CACHE BOOL "Build PrimeHost tests" FORCE)
+  set(PRIMEHOST_BUILD_EXAMPLES OFF CACHE BOOL "Build PrimeHost examples" FORCE)
+  FetchContent_Declare(PrimeHost
+    GIT_REPOSITORY ${PRIMEHOST_GIT_REPOSITORY}
+    GIT_TAG ${PRIMEHOST_GIT_TAG}
+  )
+  FetchContent_MakeAvailable(PrimeHost)
 endif()
 
 set(CMAKE_DEBUG_POSTFIX "-debug")
@@ -60,6 +76,10 @@ if(TARGET PrimeFrame)
   target_link_libraries(PrimeStage PUBLIC PrimeFrame)
 endif()
 
+if(NOT PRIMESTAGE_HEADLESS_ONLY AND NOT PRIMESTAGE_ENABLE_PRIMEMANIFEST)
+  message(FATAL_ERROR "PrimeManifest is required unless PRIMESTAGE_HEADLESS_ONLY=ON.")
+endif()
+
 if(PRIMESTAGE_ENABLE_PRIMEMANIFEST AND NOT TARGET PrimeManifest)
   include(FetchContent)
   set(PRIMEMANIFEST_BUILD_TESTS OFF CACHE BOOL "Build PrimeManifest tests" FORCE)
@@ -91,6 +111,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_tabs_dropdown.cpp
     tests/unit/test_tree_view.cpp
     tests/unit/test_treeview_input.cpp
+    tests/unit/test_focus_widgets.cpp
     tests/unit/test_widgets.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
@@ -101,8 +122,19 @@ endif()
 
 option(PRIMESTAGE_BUILD_EXAMPLES "Build PrimeStage example apps" OFF)
 if(PRIMESTAGE_BUILD_EXAMPLES)
+  if(PRIMESTAGE_HEADLESS_ONLY)
+    message(FATAL_ERROR "PrimeStage examples require rendering; disable PRIMESTAGE_HEADLESS_ONLY.")
+  endif()
+  if(NOT PRIMESTAGE_ENABLE_PRIMEMANIFEST)
+    message(FATAL_ERROR "PrimeStage examples require PrimeManifest. Configure with -DPRIMESTAGE_ENABLE_PRIMEMANIFEST=ON.")
+  endif()
   add_executable(primestage_example examples/primestage_example.cpp)
   target_link_libraries(primestage_example PRIVATE PrimeStage)
   target_include_directories(primestage_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   ps_require_cxx23(primestage_example)
+
+  add_executable(primestage_widgets examples/primestage_widgets.cpp)
+  target_link_libraries(primestage_widgets PRIVATE PrimeStage PrimeHost)
+  target_include_directories(primestage_widgets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  ps_require_cxx23(primestage_widgets)
 endif()

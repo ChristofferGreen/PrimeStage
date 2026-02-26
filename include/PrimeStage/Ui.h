@@ -254,6 +254,8 @@ struct ToggleSpec {
   PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken knobStyle = 0;
   PrimeFrame::RectStyleOverride knobStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   bool visible = true;
   SizeSpec size;
 };
@@ -268,6 +270,8 @@ struct CheckboxSpec {
   PrimeFrame::RectStyleOverride boxStyleOverride{};
   PrimeFrame::RectStyleToken checkStyle = 0;
   PrimeFrame::RectStyleOverride checkStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   bool visible = true;
@@ -344,6 +348,8 @@ struct ProgressBarSpec {
   PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken fillStyle = 0;
   PrimeFrame::RectStyleOverride fillStyleOverride{};
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
   bool visible = true;
   SizeSpec size;
 };
@@ -386,6 +392,15 @@ struct TableColumn {
   PrimeFrame::TextStyleToken cellStyle = 0;
 };
 
+struct TableRowInfo {
+  int rowIndex = -1;
+  std::span<const std::string_view> row{};
+};
+
+struct TableCallbacks {
+  std::function<void(TableRowInfo const&)> onRowClicked;
+};
+
 struct TableSpec {
   float headerInset = 6.0f;
   float headerHeight = 20.0f;
@@ -396,11 +411,16 @@ struct TableSpec {
   PrimeFrame::RectStyleToken headerStyle = 0;
   PrimeFrame::RectStyleToken rowStyle = 0;
   PrimeFrame::RectStyleToken rowAltStyle = 0;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
   PrimeFrame::RectStyleToken dividerStyle = 0;
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
+  int selectedRow = -1;
   bool showHeaderDividers = true;
   bool showColumnDividers = true;
   bool clipChildren = true;
   bool visible = true;
+  TableCallbacks callbacks{};
   std::vector<TableColumn> columns;
   std::vector<std::vector<std::string_view>> rows;
   SizeSpec size;

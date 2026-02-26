@@ -32,9 +32,9 @@ static PrimeFrame::NodeId findVerticalStack(PrimeFrame::Frame const& frame,
   return PrimeFrame::NodeId{};
 }
 
-static bool rowHasRectToken(PrimeFrame::Frame const& frame,
-                            PrimeFrame::Node const& row,
-                            PrimeFrame::RectStyleToken token) {
+static PrimeFrame::Primitive const* findRectToken(PrimeFrame::Frame const& frame,
+                                                  PrimeFrame::Node const& row,
+                                                  PrimeFrame::RectStyleToken token) {
   for (PrimeFrame::NodeId child : row.children) {
     PrimeFrame::Node const* childNode = frame.getNode(child);
     if (!childNode || childNode->primitives.empty()) {
@@ -43,10 +43,10 @@ static bool rowHasRectToken(PrimeFrame::Frame const& frame,
     PrimeFrame::Primitive const* prim = frame.getPrimitive(childNode->primitives.front());
     if (prim && prim->type == PrimeFrame::PrimitiveType::Rect &&
         prim->rect.token == token) {
-      return true;
+      return prim;
     }
   }
-  return false;
+  return nullptr;
 }
 
 TEST_CASE("PrimeStage tree view flattens expanded nodes and selection accent") {
@@ -106,11 +106,14 @@ TEST_CASE("PrimeStage tree view flattens expanded nodes and selection accent") {
 
   PrimeFrame::Node const* selectedRow = frame.getNode(rowsNode->children[2]);
   REQUIRE(selectedRow != nullptr);
-  CHECK(rowHasRectToken(frame, *selectedRow, spec.selectionAccentStyle));
+  CHECK(findRectToken(frame, *selectedRow, spec.selectionAccentStyle) != nullptr);
 
   PrimeFrame::Node const* unselectedRow = frame.getNode(rowsNode->children[0]);
   REQUIRE(unselectedRow != nullptr);
-  CHECK_FALSE(rowHasRectToken(frame, *unselectedRow, spec.selectionAccentStyle));
+  PrimeFrame::Primitive const* accent = findRectToken(frame, *unselectedRow, spec.selectionAccentStyle);
+  REQUIRE(accent != nullptr);
+  REQUIRE(accent->rect.overrideStyle.opacity.has_value());
+  CHECK(accent->rect.overrideStyle.opacity.value() == doctest::Approx(0.0f));
 }
 
 TEST_CASE("PrimeStage tree view scroll bar auto thumb sizes") {
