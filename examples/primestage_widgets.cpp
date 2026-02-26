@@ -1,4 +1,5 @@
 #include "PrimeHost/PrimeHost.h"
+#include "PrimeStage/InputBridge.h"
 #include "PrimeStage/PrimeStage.h"
 #include "PrimeStage/Render.h"
 #include "PrimeStage/TextSelection.h"
@@ -22,7 +23,6 @@
 
 namespace {
 
-constexpr uint32_t KeyEscape = 0x29u;
 constexpr float ScrollLinePixels = 32.0f;
 constexpr std::string_view WidgetIdTextField = "settings.textField";
 constexpr std::string_view WidgetIdTreeView = "assets.treeView";
@@ -136,8 +136,7 @@ struct DemoApp {
   uint32_t renderHeight = 0u;
   float renderScale = 1.0f;
   PrimeStage::RenderOptions renderOptions{};
-  float lastPointerX = 0.0f;
-  float lastPointerY = 0.0f;
+  PrimeStage::InputBridgeState inputBridge{};
 };
 
 void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderOptions) {
@@ -326,17 +325,6 @@ PrimeHost::CursorShape cursorShapeForHint(PrimeStage::CursorHint hint) {
     default:
       return PrimeHost::CursorShape::Arrow;
   }
-}
-
-std::optional<std::string_view> textFromSpan(const PrimeHost::EventBatch& batch,
-                                             PrimeHost::TextSpan span) {
-  if (span.length == 0u) {
-    return std::string_view{};
-  }
-  if (span.offset + span.length > batch.textBytes.size()) {
-    return std::nullopt;
-  }
-  return std::string_view(batch.textBytes.data() + span.offset, span.length);
 }
 
 void initializeState(DemoState& state) {
@@ -948,6 +936,7 @@ int main(int argc, char** argv) {
   DemoApp app;
   app.host = hostResult.value().get();
   initializeState(app.state);
+  app.inputBridge.scrollLinePixels = ScrollLinePixels;
 
   PrimeHost::SurfaceConfig config{};
   config.width = app.surfaceWidth;
@@ -1030,65 +1019,20 @@ int main(int argc, char** argv) {
 
     for (const auto& event : batch.events) {
       if (auto* input = std::get_if<PrimeHost::InputEvent>(&event.payload)) {
-        if (auto* pointer = std::get_if<PrimeHost::PointerEvent>(input)) {
-          PrimeFrame::Event frameEvent;
-          frameEvent.pointerId = static_cast<int>(pointer->pointerId);
-          frameEvent.x = static_cast<float>(pointer->x);
-          frameEvent.y = static_cast<float>(pointer->y);
-          app.lastPointerX = frameEvent.x;
-          app.lastPointerY = frameEvent.y;
-          switch (pointer->phase) {
-            case PrimeHost::PointerPhase::Down:
-              frameEvent.type = PrimeFrame::EventType::PointerDown;
-              break;
-            case PrimeHost::PointerPhase::Move:
-              frameEvent.type = PrimeFrame::EventType::PointerMove;
-              break;
-            case PrimeHost::PointerPhase::Up:
-              frameEvent.type = PrimeFrame::EventType::PointerUp;
-              break;
-            case PrimeHost::PointerPhase::Cancel:
-              frameEvent.type = PrimeFrame::EventType::PointerCancel;
-              break;
-          }
-          if (dispatchFrameEvent(app, frameEvent)) {
-            app.needsFrame = true;
-          }
-          bypassCap = true;
-        } else if (auto* key = std::get_if<PrimeHost::KeyEvent>(input)) {
-          if (key->pressed && key->keyCode == KeyEscape) {
-            running = false;
-            continue;
-          }
-          PrimeFrame::Event frameEvent;
-          frameEvent.type = key->pressed ? PrimeFrame::EventType::KeyDown
-                                         : PrimeFrame::EventType::KeyUp;
-          frameEvent.key = static_cast<int>(key->keyCode);
-          frameEvent.modifiers = key->modifiers;
-          if (dispatchFrameEvent(app, frameEvent)) {
-            app.needsFrame = true;
-          }
-        } else if (auto* text = std::get_if<PrimeHost::TextEvent>(input)) {
-          auto view = textFromSpan(batch, text->text);
-          if (view) {
-            PrimeFrame::Event frameEvent;
-            frameEvent.type = PrimeFrame::EventType::TextInput;
-            frameEvent.text = std::string(*view);
-            if (dispatchFrameEvent(app, frameEvent)) {
-              app.needsFrame = true;
-            }
-          }
-        } else if (auto* scroll = std::get_if<PrimeHost::ScrollEvent>(input)) {
-          PrimeFrame::Event frameEvent;
-          frameEvent.type = PrimeFrame::EventType::PointerScroll;
-          frameEvent.x = app.lastPointerX;
-          frameEvent.y = app.lastPointerY;
-          float deltaScale = scroll->isLines ? ScrollLinePixels : 1.0f;
-          frameEvent.scrollX = scroll->deltaX * deltaScale;
-          frameEvent.scrollY = scroll->deltaY * deltaScale;
-          if (dispatchFrameEvent(app, frameEvent)) {
-            app.needsFrame = true;
-          }
+        PrimeStage::InputBridgeResult bridgeResult = PrimeStage::bridgeHostInputEvent(
+            *input,
+            batch,
+            app.inputBridge,
+            [&app](PrimeFrame::Event const& frameEvent) { return dispatchFrameEvent(app, frameEvent); },
+            PrimeStage::HostKey::Escape);
+        if (bridgeResult.requestExit) {
+          running = false;
+          continue;
+        }
+        if (bridgeResult.requestFrame) {
+          app.needsFrame = true;
+        }
+        if (bridgeResult.bypassFrameCap) {
           bypassCap = true;
         }
       } else if (auto* resize = std::get_if<PrimeHost::ResizeEvent>(&event.payload)) {

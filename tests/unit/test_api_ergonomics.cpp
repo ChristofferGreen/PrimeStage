@@ -182,12 +182,17 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("dropdownSpec.callbacks.onSelected") != std::string::npos);
   CHECK(source.find("widgetIdentity.registerNode") != std::string::npos);
   CHECK(source.find("widgetIdentity.restoreFocus") != std::string::npos);
+  CHECK(source.find("bridgeHostInputEvent") != std::string::npos);
+  CHECK(source.find("HostKey::Escape") != std::string::npos);
 
   // App-level widget usage should not rely on raw PrimeFrame callback mutation.
   CHECK(source.find("appendNodeEventCallback") == std::string::npos);
   CHECK(source.find("node->callbacks =") == std::string::npos);
   CHECK(source.find("PrimeFrame::Callback callback") == std::string::npos);
   CHECK(source.find("RestoreFocusTarget") == std::string::npos);
+  CHECK(source.find("std::get_if<PrimeHost::PointerEvent>") == std::string::npos);
+  CHECK(source.find("std::get_if<PrimeHost::KeyEvent>") == std::string::npos);
+  CHECK(source.find("KeyEscape") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {

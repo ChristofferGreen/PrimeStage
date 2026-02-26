@@ -62,10 +62,11 @@ Release Exit Criteria (for API-quality milestone):
   - acceptance: focus ring appears for all focusable widgets without setting `focusStyle` per widget
   - delivered by semantic focus-style resolution in `src/PrimeStage.cpp` across focusable widget builders with regression coverage in `tests/unit/test_focus_widgets.cpp`
 
-- ☐ [14] Add a PrimeStage input bridge layer for host integrations.
+- ☑ [14] Add a PrimeStage input bridge layer for host integrations.
   - map host/platform events to widget events centrally (avoid per-app low-level event translation and keycode wiring)
   - replace raw numeric keycode handling with symbolic key enums in app-facing APIs
   - acceptance: app event loop no longer translates `PrimeHost` events to `PrimeFrame::Event` inline
+  - delivered via `include/PrimeStage/InputBridge.h`, example migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_input_bridge.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [16] Add integration tests for real interaction flows.
   - cover click/type/rebuild/focus-retention scenarios in example-like app compositions

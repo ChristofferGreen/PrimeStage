@@ -114,10 +114,14 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_treeview_input.cpp
     tests/unit/test_focus_widgets.cpp
     tests/unit/test_focus_compositing.cpp
+    tests/unit/test_input_bridge.cpp
     tests/unit/test_widget_identity.cpp
     tests/unit/test_widgets.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
+  if(TARGET PrimeHost)
+    target_link_libraries(PrimeStage_tests PRIVATE PrimeHost)
+  endif()
   target_include_directories(PrimeStage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   ps_require_cxx23(PrimeStage_tests)
   add_test(NAME PrimeStage_tests COMMAND $<TARGET_FILE:PrimeStage_tests>)

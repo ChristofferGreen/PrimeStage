@@ -15,7 +15,7 @@ Application responsibilities:
 - Own durable domain state and widget state objects.
 - Provide callback implementations that update app state.
 - Trigger rebuild/layout scheduling in app runtime loops.
-- Bridge host/platform events into `PrimeFrame::Event`.
+- Feed host input through `PrimeStage` input bridge helpers.
 
 What app code should avoid:
 - Writing `node->callbacks = ...` directly for standard widgets.
@@ -91,6 +91,31 @@ apply.callbacks.onClick = [&] {
 root.createButton(apply);
 ```
 
+## Host Input Bridge
+- Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
+  to `PrimeFrame::Event`.
+- Use `PrimeStage::HostKey` values instead of raw numeric key constants in app code.
+
+Example:
+
+```cpp
+PrimeStage::InputBridgeState inputBridge;
+inputBridge.scrollLinePixels = 32.0f;
+
+PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+    input,
+    batch,
+    inputBridge,
+    [&](PrimeFrame::Event const& event) { return dispatchFrameEvent(event); });
+
+if (result.requestExit) {
+  running = false;
+}
+if (result.requestFrame) {
+  requestFrame();
+}
+```
+
 ## Focus Semantics Contract
 Default focus behavior expected by app code:
 - Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,
@@ -117,4 +142,4 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Host input bridge with symbolic key APIs (`[14]`).
+- Additional integration flow coverage (`[16]`/`[20]`).
