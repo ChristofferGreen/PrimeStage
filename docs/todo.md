@@ -36,9 +36,10 @@ Release Exit Criteria (for API-quality milestone):
   - avoid attaching external pointer handlers to tab/dropdown child nodes
   - delivered by explicit callback APIs in `include/PrimeStage/Ui.h`, built-in interaction in `src/PrimeStage.cpp`, and demo/test migrations in `examples/primestage_widgets.cpp` and `tests/unit/test_tabs_dropdown.cpp`
 
-- ☐ [12] Remove `PrimeFrame` callback plumbing from app-level widget usage.
+- ☑ [12] Remove `PrimeFrame` callback plumbing from app-level widget usage.
   - provide PrimeStage-level event binding APIs so user code does not mutate node callbacks directly
   - acceptance: no `node->callbacks = ...` / callback-composition helpers needed in `examples/primestage_widgets.cpp`
+  - delivered via widget-spec callbacks in `examples/primestage_widgets.cpp` with regression guard in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [19] Add core callback-composition utilities in PrimeStage.
   - expose safe helper APIs for extending existing widget callbacks (`onEvent`, `onFocus`, `onBlur`) without clobbering previous behavior

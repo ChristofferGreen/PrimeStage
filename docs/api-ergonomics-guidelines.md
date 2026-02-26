@@ -94,5 +94,5 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Removal of app-level direct `PrimeFrame` callback plumbing in examples (`[12]`/`[19]`).
+- Callback-composition utilities for advanced extension points (`[19]`).
 - Host input bridge with symbolic key APIs (`[14]`).

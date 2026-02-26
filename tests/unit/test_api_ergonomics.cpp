@@ -7,6 +7,9 @@
 
 #include "third_party/doctest.h"
 
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 
 namespace {
@@ -161,4 +164,25 @@ TEST_CASE("PrimeStage text field without state is non-editable by default") {
                   layout,
                   &focus);
   CHECK_FALSE(focus.focusedNode().isValid());
+}
+
+TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame callback plumbing") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path examplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  REQUIRE(std::filesystem::exists(examplePath));
+
+  std::ifstream input(examplePath);
+  REQUIRE(input.good());
+  std::string source((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+
+  CHECK(source.find("tabsSpec.callbacks.onTabChanged") != std::string::npos);
+  CHECK(source.find("dropdownSpec.callbacks.onOpened") != std::string::npos);
+  CHECK(source.find("dropdownSpec.callbacks.onSelected") != std::string::npos);
+
+  // App-level widget usage should not rely on raw PrimeFrame callback mutation.
+  CHECK(source.find("appendNodeEventCallback") == std::string::npos);
+  CHECK(source.find("node->callbacks =") == std::string::npos);
+  CHECK(source.find("PrimeFrame::Callback callback") == std::string::npos);
 }
