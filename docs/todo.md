@@ -136,9 +136,10 @@ Release Exit Criteria (for API-quality milestone):
   - reduce full-app state bookkeeping for common controls (toggle/checkbox/dropdown/tabs)
   - delivered via state-backed widget APIs (`ToggleState`/`CheckboxState`/`TabsState`/`DropdownState`) in `include/PrimeStage/Ui.h`, runtime state ownership wiring in `src/PrimeStage.cpp`, and coverage in `tests/unit/test_interaction.cpp`, `tests/unit/test_tabs_dropdown.cpp`, and `tests/unit/test_api_ergonomics.cpp` with docs updates in `docs/api-ergonomics-guidelines.md` and `docs/prime-stage-design.md`
 
-- ☐ [33] Normalize cross-platform input semantics in PrimeStage.
+- ☑ [33] Normalize cross-platform input semantics in PrimeStage.
   - standardize key naming/translation (no hard-coded numeric key constants in examples)
   - document and test pointer scroll direction/units consistently across host backends
+  - delivered via shared `KeyCode` semantics in `include/PrimeStage/Ui.h`, input normalization updates in `include/PrimeStage/InputBridge.h`, internal/test migration away from raw key literals in `src/PrimeStage.cpp` + input tests, and docs/test guards in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [35] Add IME/composition support plan for text input controls.
   - define API for composition start/update/commit/cancel

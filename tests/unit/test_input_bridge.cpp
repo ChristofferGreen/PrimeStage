@@ -163,3 +163,62 @@ TEST_CASE("Input bridge maps scroll events using pointer position and line scale
   CHECK(result.requestFrame);
   CHECK(result.bypassFrameCap);
 }
+
+TEST_CASE("Input bridge preserves pixel scroll units and normalizes direction sign") {
+  PrimeStage::InputBridgeState state;
+  state.pointerX = 48.0f;
+  state.pointerY = 96.0f;
+  state.scrollLinePixels = 100.0f; // ignored for pixel-mode events
+  state.scrollDirectionSign = -1.0f;
+
+  PrimeHost::ScrollEvent scroll;
+  scroll.deltaX = 6.0f;
+  scroll.deltaY = -3.0f;
+  scroll.isLines = false;
+  PrimeHost::InputEvent input = scroll;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        return true;
+      });
+
+  CHECK(captured.type == PrimeFrame::EventType::PointerScroll);
+  CHECK(captured.x == doctest::Approx(48.0f));
+  CHECK(captured.y == doctest::Approx(96.0f));
+  CHECK(captured.scrollX == doctest::Approx(-6.0f));
+  CHECK(captured.scrollY == doctest::Approx(3.0f));
+  CHECK(result.requestFrame);
+  CHECK(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge treats non-negative direction sign as default orientation") {
+  PrimeStage::InputBridgeState state;
+  state.scrollDirectionSign = 0.0f;
+
+  PrimeHost::ScrollEvent scroll;
+  scroll.deltaX = 1.0f;
+  scroll.deltaY = 2.0f;
+  scroll.isLines = true;
+  PrimeHost::InputEvent input = scroll;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        return true;
+      });
+
+  CHECK(captured.scrollX == doctest::Approx(32.0f));
+  CHECK(captured.scrollY == doctest::Approx(64.0f));
+  CHECK(result.requestFrame);
+}

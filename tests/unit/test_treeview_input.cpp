@@ -63,11 +63,11 @@ TEST_CASE("TreeView keyboard navigation selects rows") {
 
   PrimeFrame::Event keyDown;
   keyDown.type = PrimeFrame::EventType::KeyDown;
-  keyDown.key = 0x51; // KeyDown
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Down);
   router.dispatch(keyDown, frame, layout, &focus);
   CHECK(selected == 1);
 
-  keyDown.key = 0x51; // move down again
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Down);
   router.dispatch(keyDown, frame, layout, &focus);
   CHECK(selected == 1);
 }
@@ -156,7 +156,7 @@ TEST_CASE("TreeView scroll follows keyboard selection") {
 
   PrimeFrame::Event keyDown;
   keyDown.type = PrimeFrame::EventType::KeyDown;
-  keyDown.key = 0x51; // KeyDown
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Down);
   for (int i = 0; i < 6; ++i) {
     router.dispatch(keyDown, frame, layout, &focus);
   }

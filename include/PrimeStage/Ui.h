@@ -25,6 +25,34 @@ enum class CursorHint : uint8_t {
   IBeam,
 };
 
+enum class KeyCode : uint32_t {
+  A = 0x04u,
+  C = 0x06u,
+  V = 0x19u,
+  X = 0x1Bu,
+  Enter = 0x28u,
+  Escape = 0x29u,
+  Backspace = 0x2Au,
+  Space = 0x2Cu,
+  Delete = 0x4Cu,
+  Right = 0x4Fu,
+  Left = 0x50u,
+  Down = 0x51u,
+  Up = 0x52u,
+  Home = 0x4Au,
+  End = 0x4Du,
+  PageUp = 0x4Bu,
+  PageDown = 0x4Eu,
+};
+
+constexpr uint32_t keyCodeValue(KeyCode key) {
+  return static_cast<uint32_t>(key);
+}
+
+constexpr int keyCodeInt(KeyCode key) {
+  return static_cast<int>(keyCodeValue(key));
+}
+
 struct SizeSpec {
   std::optional<float> minWidth;
   std::optional<float> maxWidth;

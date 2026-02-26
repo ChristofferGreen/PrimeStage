@@ -118,13 +118,21 @@ root.createButton(apply);
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
   to `PrimeFrame::Event`.
-- Use `PrimeStage::HostKey` values instead of raw numeric key constants in app code.
+- Use `PrimeStage::KeyCode`/`PrimeStage::HostKey` values instead of raw numeric key constants in
+  app code.
+- Normalize wheel/touchpad deltas in one place:
+  - set `InputBridgeState::scrollLinePixels` for line-based host events.
+  - set `InputBridgeState::scrollDirectionSign` to `-1.0f` if a host backend reports opposite
+    vertical scroll sign.
+  - PrimeStage emits `PrimeFrame::EventType::PointerScroll` with positive `scrollY` mapped to the
+    same semantic direction across backends.
 
 Example:
 
 ```cpp
 PrimeStage::InputBridgeState inputBridge;
 inputBridge.scrollLinePixels = 32.0f;
+inputBridge.scrollDirectionSign = 1.0f;
 
 PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
     input,

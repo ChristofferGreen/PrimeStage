@@ -22,6 +22,15 @@ PrimeHost handles OS integration and input delivery.
 - `PrimeFrame`: layout + rect hierarchy + render batch output.
 - `PrimeManifest`: renderer backend.
 
+### Input Normalization
+- PrimeStage uses symbolic key names (`KeyCode`/`HostKey`) for input translation.
+- PrimeHost input is normalized through `bridgeHostInputEvent(...)` so widget code sees consistent
+  `PrimeFrame::Event` semantics.
+- Scroll normalization is explicit:
+  - `scrollLinePixels` converts line-based host deltas to pixels.
+  - `scrollDirectionSign` aligns backend sign conventions so `PointerScroll.scrollY` direction is
+    consistent across host integrations.
+
 ## Scene Lifecycle
 PrimeStage builds an ephemeral `PrimeScene` (rect graph) from ground truth.
 

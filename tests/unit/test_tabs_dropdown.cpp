@@ -226,14 +226,14 @@ TEST_CASE("PrimeStage tabs onTabChanged supports pointer and keyboard activation
 
   PrimeFrame::Event keyLeft;
   keyLeft.type = PrimeFrame::EventType::KeyDown;
-  keyLeft.key = 0x50; // Left
+  keyLeft.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Left);
   router.dispatch(keyLeft, frame, layout, &focus);
   REQUIRE(selections.size() >= 2);
   CHECK(selections.back() == 1);
 
   PrimeFrame::Event keyEnter;
   keyEnter.type = PrimeFrame::EventType::KeyDown;
-  keyEnter.key = 0x28; // Enter
+  keyEnter.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter);
   router.dispatch(keyEnter, frame, layout, &focus);
   REQUIRE(selections.size() >= 3);
   CHECK(selections.back() == 2);
@@ -283,7 +283,7 @@ TEST_CASE("PrimeStage dropdown onOpened and onSelected support pointer and keybo
 
   PrimeFrame::Event keySpace;
   keySpace.type = PrimeFrame::EventType::KeyDown;
-  keySpace.key = 0x2C; // Space
+  keySpace.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Space);
   router.dispatch(keySpace, frame, layout, &focus);
   CHECK(openedCount == 2);
   REQUIRE(selections.size() >= 2);
@@ -329,7 +329,7 @@ TEST_CASE("PrimeStage dropdown with no options emits onOpened but not onSelected
 
   PrimeFrame::Event keyEnter;
   keyEnter.type = PrimeFrame::EventType::KeyDown;
-  keyEnter.key = 0x28; // Enter
+  keyEnter.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter);
   router.dispatch(keyEnter, frame, layout, &focus);
 
   CHECK(openedCount == 2);
@@ -391,7 +391,7 @@ TEST_CASE("PrimeStage tabs state-backed mode uses and updates TabsState") {
 
   PrimeFrame::Event keyRight;
   keyRight.type = PrimeFrame::EventType::KeyDown;
-  keyRight.key = 0x4F; // Right
+  keyRight.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Right);
   router.dispatch(keyRight, frame, layout, &focus);
   CHECK(tabsState.selectedIndex == 1);
   REQUIRE(selections.size() >= 2);
@@ -453,7 +453,7 @@ TEST_CASE("PrimeStage dropdown state-backed mode uses and updates DropdownState"
 
   PrimeFrame::Event keyUp;
   keyUp.type = PrimeFrame::EventType::KeyDown;
-  keyUp.key = 0x52; // Up
+  keyUp.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Up);
   router.dispatch(keyUp, frame, layout, &focus);
   CHECK(openedCount == 2);
   CHECK(dropdownState.selectedIndex == 2);

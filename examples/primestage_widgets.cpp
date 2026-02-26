@@ -921,6 +921,7 @@ int main(int argc, char** argv) {
   app.host = hostResult.value().get();
   initializeState(app.state);
   app.inputBridge.scrollLinePixels = ScrollLinePixels;
+  app.inputBridge.scrollDirectionSign = 1.0f;
 
   PrimeHost::SurfaceConfig config{};
   config.width = app.surfaceWidth;

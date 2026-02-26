@@ -184,6 +184,7 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("widgetIdentity.restoreFocus") != std::string::npos);
   CHECK(source.find("bridgeHostInputEvent") != std::string::npos);
   CHECK(source.find("HostKey::Escape") != std::string::npos);
+  CHECK(source.find("scrollDirectionSign") != std::string::npos);
   CHECK(source.find("PrimeStage::FrameLifecycle") != std::string::npos);
   CHECK(source.find("runRebuildIfNeeded(app)") != std::string::npos);
   CHECK(source.find("app.runtime.requestRebuild()") != std::string::npos);
@@ -197,9 +198,39 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("std::get_if<PrimeHost::PointerEvent>") == std::string::npos);
   CHECK(source.find("std::get_if<PrimeHost::KeyEvent>") == std::string::npos);
   CHECK(source.find("KeyEscape") == std::string::npos);
+  CHECK(source.find("0x28") == std::string::npos);
+  CHECK(source.find("0x50") == std::string::npos);
   CHECK(source.find("needsRebuild") == std::string::npos);
   CHECK(source.find("needsLayout") == std::string::npos);
   CHECK(source.find("needsFrame") == std::string::npos);
+}
+
+TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path inputBridgePath = repoRoot / "include" / "PrimeStage" / "InputBridge.h";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  REQUIRE(std::filesystem::exists(inputBridgePath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+
+  std::ifstream inputBridgeInput(inputBridgePath);
+  REQUIRE(inputBridgeInput.good());
+  std::string inputBridge((std::istreambuf_iterator<char>(inputBridgeInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!inputBridge.empty());
+  CHECK(inputBridge.find("using HostKey = KeyCode;") != std::string::npos);
+  CHECK(inputBridge.find("scrollLinePixels") != std::string::npos);
+  CHECK(inputBridge.find("scrollDirectionSign") != std::string::npos);
+  CHECK(inputBridge.find("scroll->deltaY * deltaScale * directionSign") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("KeyCode") != std::string::npos);
+  CHECK(guidelines.find("scrollLinePixels") != std::string::npos);
+  CHECK(guidelines.find("scrollDirectionSign") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {

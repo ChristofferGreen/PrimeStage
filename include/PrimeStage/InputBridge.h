@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PrimeStage/Ui.h"
 #include "PrimeFrame/Events.h"
 #include "PrimeHost/Host.h"
 
@@ -10,22 +11,10 @@
 
 namespace PrimeStage {
 
-enum class HostKey : uint32_t {
-  Enter = 0x28u,
-  Escape = 0x29u,
-  Space = 0x2Cu,
-  Left = 0x50u,
-  Right = 0x4Fu,
-  Down = 0x51u,
-  Up = 0x52u,
-  Home = 0x4Au,
-  End = 0x4Du,
-  PageUp = 0x4Bu,
-  PageDown = 0x4Eu,
-};
+using HostKey = KeyCode;
 
 constexpr uint32_t hostKeyCode(HostKey key) {
-  return static_cast<uint32_t>(key);
+  return keyCodeValue(key);
 }
 
 inline bool isHostKeyPressed(PrimeHost::KeyEvent const& event, HostKey key) {
@@ -35,7 +24,11 @@ inline bool isHostKeyPressed(PrimeHost::KeyEvent const& event, HostKey key) {
 struct InputBridgeState {
   float pointerX = 0.0f;
   float pointerY = 0.0f;
+  // Converts line-based wheel deltas to pixels when PrimeHost marks an event as line units.
   float scrollLinePixels = 32.0f;
+  // Normalized PrimeFrame semantics: positive scrollY moves content toward larger Y offsets.
+  // Set to -1 when a backend reports opposite-sign vertical deltas.
+  float scrollDirectionSign = 1.0f;
 };
 
 struct InputBridgeResult {
@@ -121,8 +114,9 @@ InputBridgeResult bridgeHostInputEvent(PrimeHost::InputEvent const& input,
     frameEvent.x = state.pointerX;
     frameEvent.y = state.pointerY;
     float deltaScale = scroll->isLines ? state.scrollLinePixels : 1.0f;
-    frameEvent.scrollX = scroll->deltaX * deltaScale;
-    frameEvent.scrollY = scroll->deltaY * deltaScale;
+    float directionSign = state.scrollDirectionSign < 0.0f ? -1.0f : 1.0f;
+    frameEvent.scrollX = scroll->deltaX * deltaScale * directionSign;
+    frameEvent.scrollY = scroll->deltaY * deltaScale * directionSign;
     result.requestFrame = dispatchFrameEvent(frameEvent);
     result.bypassFrameCap = true;
     return result;

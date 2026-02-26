@@ -31,14 +31,14 @@ struct Rect {
   float height = 0.0f;
 };
 
-constexpr int KeyEnter = 0x28;
-constexpr int KeySpace = 0x2C;
-constexpr int KeyLeft = 0x50;
-constexpr int KeyRight = 0x4F;
-constexpr int KeyDown = 0x51;
-constexpr int KeyUp = 0x52;
-constexpr int KeyHome = 0x4A;
-constexpr int KeyEnd = 0x4D;
+constexpr int KeyEnter = keyCodeInt(KeyCode::Enter);
+constexpr int KeySpace = keyCodeInt(KeyCode::Space);
+constexpr int KeyLeft = keyCodeInt(KeyCode::Left);
+constexpr int KeyRight = keyCodeInt(KeyCode::Right);
+constexpr int KeyDown = keyCodeInt(KeyCode::Down);
+constexpr int KeyUp = keyCodeInt(KeyCode::Up);
+constexpr int KeyHome = keyCodeInt(KeyCode::Home);
+constexpr int KeyEnd = keyCodeInt(KeyCode::End);
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
 
@@ -2572,18 +2572,18 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
             if (!state->focused) {
               return false;
             }
-            constexpr int KeyReturn = 0x28;
-            constexpr int KeyEscape = 0x29;
-            constexpr int KeyBackspace = 0x2A;
-            constexpr int KeyLeft = 0x50;
-            constexpr int KeyRight = 0x4F;
-            constexpr int KeyHome = 0x4A;
-            constexpr int KeyEnd = 0x4D;
-            constexpr int KeyDelete = 0x4C;
-            constexpr int KeyA = 0x04;
-            constexpr int KeyC = 0x06;
-            constexpr int KeyV = 0x19;
-            constexpr int KeyX = 0x1B;
+            constexpr int KeyReturn = keyCodeInt(KeyCode::Enter);
+            constexpr int KeyEscape = keyCodeInt(KeyCode::Escape);
+            constexpr int KeyBackspace = keyCodeInt(KeyCode::Backspace);
+            constexpr int KeyLeft = keyCodeInt(KeyCode::Left);
+            constexpr int KeyRight = keyCodeInt(KeyCode::Right);
+            constexpr int KeyHome = keyCodeInt(KeyCode::Home);
+            constexpr int KeyEnd = keyCodeInt(KeyCode::End);
+            constexpr int KeyDelete = keyCodeInt(KeyCode::Delete);
+            constexpr int KeyA = keyCodeInt(KeyCode::A);
+            constexpr int KeyC = keyCodeInt(KeyCode::C);
+            constexpr int KeyV = keyCodeInt(KeyCode::V);
+            constexpr int KeyX = keyCodeInt(KeyCode::X);
             constexpr uint32_t ShiftMask = 1u << 0u;
             constexpr uint32_t ControlMask = 1u << 1u;
             constexpr uint32_t SuperMask = 1u << 3u;
@@ -3196,16 +3196,16 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
           if (!state->focused) {
             return false;
           }
-          constexpr int KeyA = 0x04;
-          constexpr int KeyC = 0x06;
-          constexpr int KeyLeft = 0x50;
-          constexpr int KeyRight = 0x4F;
-          constexpr int KeyHome = 0x4A;
-          constexpr int KeyEnd = 0x4D;
-          constexpr int KeyUp = 0x52;
-          constexpr int KeyDown = 0x51;
-          constexpr int KeyPageUp = 0x4B;
-          constexpr int KeyPageDown = 0x4E;
+          constexpr int KeyA = keyCodeInt(KeyCode::A);
+          constexpr int KeyC = keyCodeInt(KeyCode::C);
+          constexpr int KeyLeft = keyCodeInt(KeyCode::Left);
+          constexpr int KeyRight = keyCodeInt(KeyCode::Right);
+          constexpr int KeyHome = keyCodeInt(KeyCode::Home);
+          constexpr int KeyEnd = keyCodeInt(KeyCode::End);
+          constexpr int KeyUp = keyCodeInt(KeyCode::Up);
+          constexpr int KeyDown = keyCodeInt(KeyCode::Down);
+          constexpr int KeyPageUp = keyCodeInt(KeyCode::PageUp);
+          constexpr int KeyPageDown = keyCodeInt(KeyCode::PageDown);
           constexpr uint32_t ShiftMask = 1u << 0u;
           constexpr uint32_t ControlMask = 1u << 1u;
           constexpr uint32_t AltMask = 1u << 2u;
@@ -5563,15 +5563,15 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                    interaction->scrollThumbPressedOpacity);
   };
 
-  constexpr int KeyEnter = 0x28;
-  constexpr int KeyRight = 0x4F;
-  constexpr int KeyLeft = 0x50;
-  constexpr int KeyDown = 0x51;
-  constexpr int KeyUp = 0x52;
-  constexpr int KeyHome = 0x4A;
-  constexpr int KeyEnd = 0x4D;
-  constexpr int KeyPageUp = 0x4B;
-  constexpr int KeyPageDown = 0x4E;
+  constexpr int KeyEnter = keyCodeInt(KeyCode::Enter);
+  constexpr int KeyRight = keyCodeInt(KeyCode::Right);
+  constexpr int KeyLeft = keyCodeInt(KeyCode::Left);
+  constexpr int KeyDown = keyCodeInt(KeyCode::Down);
+  constexpr int KeyUp = keyCodeInt(KeyCode::Up);
+  constexpr int KeyHome = keyCodeInt(KeyCode::Home);
+  constexpr int KeyEnd = keyCodeInt(KeyCode::End);
+  constexpr int KeyPageUp = keyCodeInt(KeyCode::PageUp);
+  constexpr int KeyPageDown = keyCodeInt(KeyCode::PageDown);
 
   for (size_t i = 0; i < rows.size(); ++i) {
     FlatTreeRow const& row = rows[i];
