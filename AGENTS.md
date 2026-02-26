@@ -21,6 +21,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 
 ## Tests
 - Unit tests live in `tests/unit` and use doctest.
+- Visual snapshot updates use `PRIMESTAGE_UPDATE_SNAPSHOTS=1 ./scripts/compile.sh --test`; follow `docs/visual-test-harness.md` for deterministic harness inputs and triage workflow.
 
 ## Code guidelines
 - Target C++23; prefer value semantics, RAII, `std::span`, and `std::optional`/`std::expected`.

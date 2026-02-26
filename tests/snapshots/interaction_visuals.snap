@@ -1,3 +1,9 @@
+[harness]
+version=interaction_v2
+theme=interaction_palette_v1
+font_policy=command_batch_no_raster
+layout_scale=1.00
+root_size=480x280
 [button_idle]
 R 0 0 140 30 B 1000
 [button_hover]

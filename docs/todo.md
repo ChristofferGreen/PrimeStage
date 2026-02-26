@@ -157,9 +157,10 @@ Release Exit Criteria (for API-quality milestone):
   - gate regressions in CI with trend/budget checks where feasible
   - delivered via benchmark harness `tests/perf/PrimeStage_benchmarks.cpp`, budget thresholds in `tests/perf/perf_budgets.txt`, CLI workflow wiring in `scripts/compile.sh`, CI budget gate in `.github/workflows/presubmit.yml`, documentation in `docs/performance-benchmarks.md`, and source/docs regression guards in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [39] Add deterministic visual-test harness.
+- ☑ [39] Add deterministic visual-test harness.
   - stabilize snapshot rendering inputs (fonts/theme/scale) to reduce platform-dependent drift
   - define golden update workflow and failure triage guidance
+  - delivered via deterministic harness helpers in `tests/unit/visual_test_harness.h`, visual regression migration in `tests/unit/test_visual_regression.cpp` with harness metadata block in `tests/snapshots/interaction_visuals.snap`, workflow/triage doc in `docs/visual-test-harness.md`, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [40] Define API evolution and compatibility policy.
   - document semver expectations and deprecation process for spec/callback changes

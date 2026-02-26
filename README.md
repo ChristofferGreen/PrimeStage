@@ -74,3 +74,4 @@ diagnostics.
 - `docs/api-ergonomics-guidelines.md`
 - `docs/design-decisions.md`
 - `docs/performance-benchmarks.md`
+- `docs/visual-test-harness.md`

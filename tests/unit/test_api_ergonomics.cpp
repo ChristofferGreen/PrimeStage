@@ -311,6 +311,58 @@ TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility p
   CHECK(workflow.find("--test-case=\"*focus*,*interaction*\"") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage deterministic visual-test harness and workflow are wired") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path harnessPath = repoRoot / "tests" / "unit" / "visual_test_harness.h";
+  std::filesystem::path visualTestPath = repoRoot / "tests" / "unit" / "test_visual_regression.cpp";
+  std::filesystem::path snapshotPath = repoRoot / "tests" / "snapshots" / "interaction_visuals.snap";
+  std::filesystem::path docsPath = repoRoot / "docs" / "visual-test-harness.md";
+  REQUIRE(std::filesystem::exists(harnessPath));
+  REQUIRE(std::filesystem::exists(visualTestPath));
+  REQUIRE(std::filesystem::exists(snapshotPath));
+  REQUIRE(std::filesystem::exists(docsPath));
+
+  std::ifstream harnessInput(harnessPath);
+  REQUIRE(harnessInput.good());
+  std::string harness((std::istreambuf_iterator<char>(harnessInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!harness.empty());
+  CHECK(harness.find("struct VisualHarnessConfig") != std::string::npos);
+  CHECK(harness.find("snapshotVersion = \"interaction_v2\"") != std::string::npos);
+  CHECK(harness.find("fontPolicy = \"command_batch_no_raster\"") != std::string::npos);
+  CHECK(harness.find("layoutScale = 1.0f") != std::string::npos);
+  CHECK(harness.find("deterministicSnapshotHeader") != std::string::npos);
+
+  std::ifstream visualTestInput(visualTestPath);
+  REQUIRE(visualTestInput.good());
+  std::string visualTests((std::istreambuf_iterator<char>(visualTestInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!visualTests.empty());
+  CHECK(visualTests.find("visual harness metadata pins deterministic inputs") != std::string::npos);
+  CHECK(visualTests.find("PRIMESTAGE_UPDATE_SNAPSHOTS") != std::string::npos);
+  CHECK(visualTests.find("deterministicSnapshotHeader") != std::string::npos);
+
+  std::ifstream snapshotInput(snapshotPath);
+  REQUIRE(snapshotInput.good());
+  std::string snapshot((std::istreambuf_iterator<char>(snapshotInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!snapshot.empty());
+  CHECK(snapshot.find("[harness]") != std::string::npos);
+  CHECK(snapshot.find("version=interaction_v2") != std::string::npos);
+  CHECK(snapshot.find("font_policy=command_batch_no_raster") != std::string::npos);
+  CHECK(snapshot.find("layout_scale=1.00") != std::string::npos);
+
+  std::ifstream docsInput(docsPath);
+  REQUIRE(docsInput.good());
+  std::string docs((std::istreambuf_iterator<char>(docsInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!docs.empty());
+  CHECK(docs.find("Golden Update Workflow") != std::string::npos);
+  CHECK(docs.find("Failure Triage Guidance") != std::string::npos);
+  CHECK(docs.find("PRIMESTAGE_UPDATE_SNAPSHOTS=1 ./scripts/compile.sh --test") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage performance benchmark harness and budget gate are wired") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
