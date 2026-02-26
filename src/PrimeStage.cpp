@@ -5,10 +5,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <cctype>
 #include <cstdint>
+#include <cstdio>
 #include <initializer_list>
 #include <limits>
 #include <memory>
@@ -49,6 +51,209 @@ bool is_pointer_inside(PrimeFrame::Event const& event) {
 
 bool is_utf8_continuation(uint8_t value) {
   return (value & 0xC0u) == 0x80u;
+}
+
+void report_validation_float(char const* context,
+                             char const* field,
+                             float original,
+                             float adjusted) {
+#if !defined(NDEBUG)
+  if (original != adjusted) {
+    std::fprintf(stderr,
+                 "PrimeStage validation: %s.%s adjusted from %.3f to %.3f\n",
+                 context,
+                 field,
+                 static_cast<double>(original),
+                 static_cast<double>(adjusted));
+  }
+#else
+  (void)context;
+  (void)field;
+  (void)original;
+  (void)adjusted;
+#endif
+}
+
+void report_validation_int(char const* context,
+                           char const* field,
+                           int original,
+                           int adjusted) {
+#if !defined(NDEBUG)
+  if (original != adjusted) {
+    std::fprintf(stderr,
+                 "PrimeStage validation: %s.%s adjusted from %d to %d\n",
+                 context,
+                 field,
+                 original,
+                 adjusted);
+  }
+#else
+  (void)context;
+  (void)field;
+  (void)original;
+  (void)adjusted;
+#endif
+}
+
+void report_validation_uint(char const* context,
+                            char const* field,
+                            uint32_t original,
+                            uint32_t adjusted) {
+#if !defined(NDEBUG)
+  if (original != adjusted) {
+    std::fprintf(stderr,
+                 "PrimeStage validation: %s.%s adjusted from %u to %u\n",
+                 context,
+                 field,
+                 static_cast<unsigned>(original),
+                 static_cast<unsigned>(adjusted));
+  }
+#else
+  (void)context;
+  (void)field;
+  (void)original;
+  (void)adjusted;
+#endif
+}
+
+float clamp_non_negative(float value, char const* context, char const* field) {
+  float adjusted = std::max(0.0f, value);
+  report_validation_float(context, field, value, adjusted);
+  return adjusted;
+}
+
+float clamp_unit_interval(float value, char const* context, char const* field) {
+  float adjusted = std::clamp(value, 0.0f, 1.0f);
+  report_validation_float(context, field, value, adjusted);
+  return adjusted;
+}
+
+std::optional<float> clamp_optional_non_negative(std::optional<float> value,
+                                                 char const* context,
+                                                 char const* field) {
+  if (!value.has_value()) {
+    return value;
+  }
+  float adjusted = std::max(0.0f, *value);
+  report_validation_float(context, field, *value, adjusted);
+  return adjusted;
+}
+
+std::optional<float> clamp_optional_unit_interval(std::optional<float> value,
+                                                  char const* context,
+                                                  char const* field) {
+  if (!value.has_value()) {
+    return value;
+  }
+  float adjusted = std::clamp(*value, 0.0f, 1.0f);
+  report_validation_float(context, field, *value, adjusted);
+  return adjusted;
+}
+
+void sanitize_size_spec(SizeSpec& size, char const* context) {
+  size.minWidth = clamp_optional_non_negative(size.minWidth, context, "minWidth");
+  size.maxWidth = clamp_optional_non_negative(size.maxWidth, context, "maxWidth");
+  size.preferredWidth =
+      clamp_optional_non_negative(size.preferredWidth, context, "preferredWidth");
+  size.stretchX = clamp_non_negative(size.stretchX, context, "stretchX");
+
+  size.minHeight = clamp_optional_non_negative(size.minHeight, context, "minHeight");
+  size.maxHeight = clamp_optional_non_negative(size.maxHeight, context, "maxHeight");
+  size.preferredHeight =
+      clamp_optional_non_negative(size.preferredHeight, context, "preferredHeight");
+  size.stretchY = clamp_non_negative(size.stretchY, context, "stretchY");
+
+  if (size.minWidth.has_value() && size.maxWidth.has_value() &&
+      *size.minWidth > *size.maxWidth) {
+    report_validation_float(context, "maxWidth", *size.maxWidth, *size.minWidth);
+    size.maxWidth = size.minWidth;
+  }
+  if (size.minHeight.has_value() && size.maxHeight.has_value() &&
+      *size.minHeight > *size.maxHeight) {
+    report_validation_float(context, "maxHeight", *size.maxHeight, *size.minHeight);
+    size.maxHeight = size.minHeight;
+  }
+
+  if (size.preferredWidth.has_value()) {
+    float preferred = *size.preferredWidth;
+    if (size.minWidth.has_value() && preferred < *size.minWidth) {
+      report_validation_float(context, "preferredWidth", preferred, *size.minWidth);
+      preferred = *size.minWidth;
+    }
+    if (size.maxWidth.has_value() && preferred > *size.maxWidth) {
+      report_validation_float(context, "preferredWidth", preferred, *size.maxWidth);
+      preferred = *size.maxWidth;
+    }
+    size.preferredWidth = preferred;
+  }
+
+  if (size.preferredHeight.has_value()) {
+    float preferred = *size.preferredHeight;
+    if (size.minHeight.has_value() && preferred < *size.minHeight) {
+      report_validation_float(context, "preferredHeight", preferred, *size.minHeight);
+      preferred = *size.minHeight;
+    }
+    if (size.maxHeight.has_value() && preferred > *size.maxHeight) {
+      report_validation_float(context, "preferredHeight", preferred, *size.maxHeight);
+      preferred = *size.maxHeight;
+    }
+    size.preferredHeight = preferred;
+  }
+
+#if !defined(NDEBUG)
+  assert(!size.minWidth.has_value() || *size.minWidth >= 0.0f);
+  assert(!size.maxWidth.has_value() || *size.maxWidth >= 0.0f);
+  assert(!size.preferredWidth.has_value() || *size.preferredWidth >= 0.0f);
+  assert(!size.minHeight.has_value() || *size.minHeight >= 0.0f);
+  assert(!size.maxHeight.has_value() || *size.maxHeight >= 0.0f);
+  assert(!size.preferredHeight.has_value() || *size.preferredHeight >= 0.0f);
+  assert(!size.minWidth.has_value() || !size.maxWidth.has_value() ||
+         *size.minWidth <= *size.maxWidth);
+  assert(!size.minHeight.has_value() || !size.maxHeight.has_value() ||
+         *size.minHeight <= *size.maxHeight);
+#endif
+}
+
+PrimeFrame::Insets sanitize_insets(PrimeFrame::Insets insets, char const* context) {
+  insets.left = clamp_non_negative(insets.left, context, "padding.left");
+  insets.top = clamp_non_negative(insets.top, context, "padding.top");
+  insets.right = clamp_non_negative(insets.right, context, "padding.right");
+  insets.bottom = clamp_non_negative(insets.bottom, context, "padding.bottom");
+  return insets;
+}
+
+int clamp_selected_index(int value, int count, char const* context, char const* field) {
+  if (count <= 0) {
+    int adjusted = 0;
+    report_validation_int(context, field, value, adjusted);
+    return adjusted;
+  }
+  int adjusted = std::clamp(value, 0, count - 1);
+  report_validation_int(context, field, value, adjusted);
+  return adjusted;
+}
+
+int clamp_selected_row_or_none(int value, int count, char const* context, char const* field) {
+  if (count <= 0) {
+    int adjusted = -1;
+    report_validation_int(context, field, value, adjusted);
+    return adjusted;
+  }
+  if (value < 0 || value >= count) {
+    int adjusted = -1;
+    report_validation_int(context, field, value, adjusted);
+    return adjusted;
+  }
+  return value;
+}
+
+uint32_t clamp_text_index(uint32_t value,
+                          uint32_t maxValue,
+                          char const* context,
+                          char const* field) {
+  uint32_t adjusted = std::min(value, maxValue);
+  report_validation_uint(context, field, value, adjusted);
+  return adjusted;
 }
 
 #if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
@@ -104,29 +309,36 @@ void apply_rect(PrimeFrame::Node& node, Rect const& rect) {
   }
 }
 
-void apply_size_spec(PrimeFrame::Node& node, SizeSpec const& size) {
-  node.sizeHint.width.min = size.minWidth;
-  node.sizeHint.width.max = size.maxWidth;
-  if (!node.sizeHint.width.preferred.has_value() && size.preferredWidth.has_value()) {
-    node.sizeHint.width.preferred = size.preferredWidth;
-  }
-  node.sizeHint.width.stretch = size.stretchX;
+void apply_size_spec(PrimeFrame::Node& node,
+                     SizeSpec const& size,
+                     char const* context = "SizeSpec") {
+  SizeSpec sanitized = size;
+  sanitize_size_spec(sanitized, context);
 
-  node.sizeHint.height.min = size.minHeight;
-  node.sizeHint.height.max = size.maxHeight;
-  if (!node.sizeHint.height.preferred.has_value() && size.preferredHeight.has_value()) {
-    node.sizeHint.height.preferred = size.preferredHeight;
+  node.sizeHint.width.min = sanitized.minWidth;
+  node.sizeHint.width.max = sanitized.maxWidth;
+  if (!node.sizeHint.width.preferred.has_value() && sanitized.preferredWidth.has_value()) {
+    node.sizeHint.width.preferred = sanitized.preferredWidth;
   }
-  node.sizeHint.height.stretch = size.stretchY;
+  node.sizeHint.width.stretch = sanitized.stretchX;
+
+  node.sizeHint.height.min = sanitized.minHeight;
+  node.sizeHint.height.max = sanitized.maxHeight;
+  if (!node.sizeHint.height.preferred.has_value() && sanitized.preferredHeight.has_value()) {
+    node.sizeHint.height.preferred = sanitized.preferredHeight;
+  }
+  node.sizeHint.height.stretch = sanitized.stretchY;
 }
 
 Rect resolve_rect(SizeSpec const& size) {
+  SizeSpec sanitized = size;
+  sanitize_size_spec(sanitized, "SizeSpec");
   Rect resolved;
-  if (size.preferredWidth.has_value()) {
-    resolved.width = *size.preferredWidth;
+  if (sanitized.preferredWidth.has_value()) {
+    resolved.width = *sanitized.preferredWidth;
   }
-  if (size.preferredHeight.has_value()) {
-    resolved.height = *size.preferredHeight;
+  if (sanitized.preferredHeight.has_value()) {
+    resolved.height = *sanitized.preferredHeight;
   }
   return resolved;
 }
@@ -160,7 +372,8 @@ PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
                                PrimeFrame::Insets const& padding,
                                float gap,
                                bool clipChildren,
-                               bool visible) {
+                               bool visible,
+                               char const* context = "UiNode") {
   PrimeFrame::NodeId id = frame.createNode();
   PrimeFrame::Node* node = frame.getNode(id);
   if (!node) {
@@ -168,11 +381,11 @@ PrimeFrame::NodeId create_node(PrimeFrame::Frame& frame,
   }
   apply_rect(*node, rect);
   if (size) {
-    apply_size_spec(*node, *size);
+    apply_size_spec(*node, *size, context);
   }
   node->layout = layout;
-  node->padding = padding;
-  node->gap = gap;
+  node->padding = sanitize_insets(padding, context);
+  node->gap = clamp_non_negative(gap, context, "gap");
   node->clipChildren = clipChildren;
   node->visible = visible;
   if (parent.isValid()) {
@@ -1771,7 +1984,14 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   return createSpacer(spec);
 }
 
-UiNode UiNode::createButton(ButtonSpec const& spec) {
+UiNode UiNode::createButton(ButtonSpec const& specInput) {
+  ButtonSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ButtonSpec.size");
+  spec.textInsetX = clamp_non_negative(spec.textInsetX, "ButtonSpec", "textInsetX");
+  spec.baseOpacity = clamp_unit_interval(spec.baseOpacity, "ButtonSpec", "baseOpacity");
+  spec.hoverOpacity = clamp_unit_interval(spec.hoverOpacity, "ButtonSpec", "hoverOpacity");
+  spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
+
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
   if (bounds.height <= 0.0f &&
@@ -1992,7 +2212,19 @@ UiNode UiNode::createButton(ButtonSpec const& spec) {
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createTextField(TextFieldSpec const& spec) {
+UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
+  TextFieldSpec spec = specInput;
+  sanitize_size_spec(spec.size, "TextFieldSpec.size");
+  spec.paddingX = clamp_non_negative(spec.paddingX, "TextFieldSpec", "paddingX");
+  spec.cursorWidth = clamp_non_negative(spec.cursorWidth, "TextFieldSpec", "cursorWidth");
+  if (spec.cursorBlinkInterval.count() < 0) {
+    report_validation_int("TextFieldSpec",
+                          "cursorBlinkIntervalMs",
+                          static_cast<int>(spec.cursorBlinkInterval.count()),
+                          0);
+    spec.cursorBlinkInterval = std::chrono::milliseconds(0);
+  }
+
   Rect bounds = resolve_rect(spec.size);
   TextFieldState* state = spec.state;
   std::string_view previewText = state ? std::string_view(state->text) : spec.text;
@@ -2062,11 +2294,21 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   std::string_view activeText = state ? std::string_view(state->text) : spec.text;
   uint32_t textSize = static_cast<uint32_t>(activeText.size());
   uint32_t cursorIndex = state ? state->cursor : spec.cursorIndex;
+  uint32_t selectionAnchor = state ? state->selectionAnchor : cursorIndex;
   uint32_t selectionStart = state ? state->selectionStart : spec.selectionStart;
   uint32_t selectionEnd = state ? state->selectionEnd : spec.selectionEnd;
-  cursorIndex = std::min(cursorIndex, textSize);
-  selectionStart = std::min(selectionStart, textSize);
-  selectionEnd = std::min(selectionEnd, textSize);
+  cursorIndex = clamp_text_index(cursorIndex, textSize, "TextFieldSpec", "cursor");
+  selectionAnchor =
+      clamp_text_index(selectionAnchor, textSize, "TextFieldSpec", "selectionAnchor");
+  selectionStart =
+      clamp_text_index(selectionStart, textSize, "TextFieldSpec", "selectionStart");
+  selectionEnd = clamp_text_index(selectionEnd, textSize, "TextFieldSpec", "selectionEnd");
+  if (state) {
+    state->cursor = cursorIndex;
+    state->selectionAnchor = selectionAnchor;
+    state->selectionStart = selectionStart;
+    state->selectionEnd = selectionEnd;
+  }
   bool showCursor = state ? (state->focused && state->cursorVisible) : spec.showCursor;
 
   std::vector<float> caretPositions;
@@ -2600,7 +2842,12 @@ UiNode UiNode::createTextField(TextFieldSpec const& spec) {
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
+UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
+  SelectableTextSpec spec = specInput;
+  sanitize_size_spec(spec.size, "SelectableTextSpec.size");
+  spec.paddingX = clamp_non_negative(spec.paddingX, "SelectableTextSpec", "paddingX");
+  spec.maxWidth = clamp_non_negative(spec.maxWidth, "SelectableTextSpec", "maxWidth");
+
   Rect bounds = resolve_rect(spec.size);
   std::string_view text = spec.text;
   float maxWidth = spec.maxWidth;
@@ -2662,14 +2909,25 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
     return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
   }
 
-  uint32_t selectionStart = spec.selectionStart;
-  uint32_t selectionEnd = spec.selectionEnd;
+  uint32_t textSize = static_cast<uint32_t>(text.size());
+  uint32_t selectionStart =
+      clamp_text_index(spec.selectionStart, textSize, "SelectableTextSpec", "selectionStart");
+  uint32_t selectionEnd =
+      clamp_text_index(spec.selectionEnd, textSize, "SelectableTextSpec", "selectionEnd");
   if (spec.state) {
     spec.state->text = text;
-    uint32_t size = static_cast<uint32_t>(text.size());
-    spec.state->selectionAnchor = std::min(spec.state->selectionAnchor, size);
-    spec.state->selectionStart = std::min(spec.state->selectionStart, size);
-    spec.state->selectionEnd = std::min(spec.state->selectionEnd, size);
+    spec.state->selectionAnchor = clamp_text_index(spec.state->selectionAnchor,
+                                                   textSize,
+                                                   "SelectableTextState",
+                                                   "selectionAnchor");
+    spec.state->selectionStart = clamp_text_index(spec.state->selectionStart,
+                                                  textSize,
+                                                  "SelectableTextState",
+                                                  "selectionStart");
+    spec.state->selectionEnd = clamp_text_index(spec.state->selectionEnd,
+                                                textSize,
+                                                "SelectableTextState",
+                                                "selectionEnd");
     selectionStart = spec.state->selectionStart;
     selectionEnd = spec.state->selectionEnd;
   }
@@ -3127,7 +3385,11 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& spec) {
   return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createToggle(ToggleSpec const& spec) {
+UiNode UiNode::createToggle(ToggleSpec const& specInput) {
+  ToggleSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ToggleSpec.size");
+  spec.knobInset = clamp_non_negative(spec.knobInset, "ToggleSpec", "knobInset");
+
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
@@ -3245,7 +3507,13 @@ UiNode UiNode::createToggle(ToggleSpec const& spec) {
   return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createCheckbox(CheckboxSpec const& spec) {
+UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
+  CheckboxSpec spec = specInput;
+  sanitize_size_spec(spec.size, "CheckboxSpec.size");
+  spec.boxSize = clamp_non_negative(spec.boxSize, "CheckboxSpec", "boxSize");
+  spec.checkInset = clamp_non_negative(spec.checkInset, "CheckboxSpec", "checkInset");
+  spec.gap = clamp_non_negative(spec.gap, "CheckboxSpec", "gap");
+
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
   float contentHeight = std::max(spec.boxSize, lineHeight);
@@ -3384,7 +3652,25 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& spec) {
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createSlider(SliderSpec const& spec) {
+UiNode UiNode::createSlider(SliderSpec const& specInput) {
+  SliderSpec spec = specInput;
+  sanitize_size_spec(spec.size, "SliderSpec.size");
+  spec.value = clamp_unit_interval(spec.value, "SliderSpec", "value");
+  spec.trackThickness = clamp_non_negative(spec.trackThickness, "SliderSpec", "trackThickness");
+  spec.thumbSize = clamp_non_negative(spec.thumbSize, "SliderSpec", "thumbSize");
+  spec.fillHoverOpacity =
+      clamp_optional_unit_interval(spec.fillHoverOpacity, "SliderSpec", "fillHoverOpacity");
+  spec.fillPressedOpacity =
+      clamp_optional_unit_interval(spec.fillPressedOpacity, "SliderSpec", "fillPressedOpacity");
+  spec.trackHoverOpacity =
+      clamp_optional_unit_interval(spec.trackHoverOpacity, "SliderSpec", "trackHoverOpacity");
+  spec.trackPressedOpacity =
+      clamp_optional_unit_interval(spec.trackPressedOpacity, "SliderSpec", "trackPressedOpacity");
+  spec.thumbHoverOpacity =
+      clamp_optional_unit_interval(spec.thumbHoverOpacity, "SliderSpec", "thumbHoverOpacity");
+  spec.thumbPressedOpacity =
+      clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
+
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
@@ -3717,12 +4003,15 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
   return UiNode(frame(), slider.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createTabs(TabsSpec const& spec) {
+UiNode UiNode::createTabs(TabsSpec const& specInput) {
+  TabsSpec spec = specInput;
+  sanitize_size_spec(spec.size, "TabsSpec.size");
+  spec.tabPaddingX = clamp_non_negative(spec.tabPaddingX, "TabsSpec", "tabPaddingX");
+  spec.tabPaddingY = clamp_non_negative(spec.tabPaddingY, "TabsSpec", "tabPaddingY");
+  spec.gap = clamp_non_negative(spec.gap, "TabsSpec", "gap");
+
   int tabCount = static_cast<int>(spec.labels.size());
-  int selectedIndex = 0;
-  if (tabCount > 0) {
-    selectedIndex = std::clamp(spec.selectedIndex, 0, tabCount - 1);
-  }
+  int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -3898,12 +4187,15 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createDropdown(DropdownSpec const& spec) {
+UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
+  DropdownSpec spec = specInput;
+  sanitize_size_spec(spec.size, "DropdownSpec.size");
+  spec.paddingX = clamp_non_negative(spec.paddingX, "DropdownSpec", "paddingX");
+  spec.indicatorGap = clamp_non_negative(spec.indicatorGap, "DropdownSpec", "indicatorGap");
+
   int optionCount = static_cast<int>(spec.options.size());
-  int selectedIndex = 0;
-  if (optionCount > 0) {
-    selectedIndex = std::clamp(spec.selectedIndex, 0, optionCount - 1);
-  }
+  int selectedIndex =
+      clamp_selected_index(spec.selectedIndex, optionCount, "DropdownSpec", "selectedIndex");
   std::string_view selectedLabel = spec.label;
   if (optionCount > 0) {
     selectedLabel = spec.options[static_cast<size_t>(selectedIndex)];
@@ -4074,7 +4366,12 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
   return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
+UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
+  ProgressBarSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ProgressBarSpec.size");
+  spec.value = clamp_unit_interval(spec.value, "ProgressBarSpec", "value");
+  spec.minFillWidth = clamp_non_negative(spec.minFillWidth, "ProgressBarSpec", "minFillWidth");
+
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
@@ -4145,7 +4442,20 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& spec) {
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);
 }
 
-UiNode UiNode::createTable(TableSpec const& spec) {
+UiNode UiNode::createTable(TableSpec const& specInput) {
+  TableSpec spec = specInput;
+  sanitize_size_spec(spec.size, "TableSpec.size");
+  spec.headerInset = clamp_non_negative(spec.headerInset, "TableSpec", "headerInset");
+  spec.headerHeight = clamp_non_negative(spec.headerHeight, "TableSpec", "headerHeight");
+  spec.rowHeight = clamp_non_negative(spec.rowHeight, "TableSpec", "rowHeight");
+  spec.rowGap = clamp_non_negative(spec.rowGap, "TableSpec", "rowGap");
+  spec.headerPaddingX = clamp_non_negative(spec.headerPaddingX, "TableSpec", "headerPaddingX");
+  spec.cellPaddingX = clamp_non_negative(spec.cellPaddingX, "TableSpec", "cellPaddingX");
+  spec.selectedRow = clamp_selected_row_or_none(spec.selectedRow,
+                                                static_cast<int>(spec.rows.size()),
+                                                "TableSpec",
+                                                "selectedRow");
+
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
   Rect tableBounds = resolve_rect(spec.size);
@@ -4526,7 +4836,32 @@ UiNode UiNode::createTable(TableSpec const& spec) {
 
 
 
-ScrollView UiNode::createScrollView(ScrollViewSpec const& spec) {
+ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
+  ScrollViewSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ScrollViewSpec.size");
+  spec.vertical.thickness = clamp_non_negative(spec.vertical.thickness, "ScrollViewSpec.vertical", "thickness");
+  spec.vertical.inset = clamp_non_negative(spec.vertical.inset, "ScrollViewSpec.vertical", "inset");
+  spec.vertical.startPadding =
+      clamp_non_negative(spec.vertical.startPadding, "ScrollViewSpec.vertical", "startPadding");
+  spec.vertical.endPadding =
+      clamp_non_negative(spec.vertical.endPadding, "ScrollViewSpec.vertical", "endPadding");
+  spec.vertical.thumbLength =
+      clamp_non_negative(spec.vertical.thumbLength, "ScrollViewSpec.vertical", "thumbLength");
+  spec.vertical.thumbOffset =
+      clamp_non_negative(spec.vertical.thumbOffset, "ScrollViewSpec.vertical", "thumbOffset");
+  spec.horizontal.thickness =
+      clamp_non_negative(spec.horizontal.thickness, "ScrollViewSpec.horizontal", "thickness");
+  spec.horizontal.inset =
+      clamp_non_negative(spec.horizontal.inset, "ScrollViewSpec.horizontal", "inset");
+  spec.horizontal.startPadding =
+      clamp_non_negative(spec.horizontal.startPadding, "ScrollViewSpec.horizontal", "startPadding");
+  spec.horizontal.endPadding =
+      clamp_non_negative(spec.horizontal.endPadding, "ScrollViewSpec.horizontal", "endPadding");
+  spec.horizontal.thumbLength =
+      clamp_non_negative(spec.horizontal.thumbLength, "ScrollViewSpec.horizontal", "thumbLength");
+  spec.horizontal.thumbOffset =
+      clamp_non_negative(spec.horizontal.thumbOffset, "ScrollViewSpec.horizontal", "thumbOffset");
+
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return ScrollView{UiNode(frame(), id_, allowAbsolute_),

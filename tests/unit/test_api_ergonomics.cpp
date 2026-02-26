@@ -327,6 +327,33 @@ TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks"
   CHECK(workflow.find("./scripts/compile.sh --debug --asan --ubsan --test") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path sourceFile = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(sourceFile));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream sourceInput(sourceFile);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("sanitize_size_spec") != std::string::npos);
+  CHECK(source.find("clamp_selected_index") != std::string::npos);
+  CHECK(source.find("clamp_selected_row_or_none") != std::string::npos);
+  CHECK(source.find("clamp_text_index") != std::string::npos);
+  CHECK(source.find("PrimeStage validation:") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[37] Add API validation and diagnostics for widget specs.") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();

@@ -115,10 +115,11 @@ Release Exit Criteria (for API-quality milestone):
   - keep third-party warnings isolated (do not block local code quality gate)
   - delivered via CMake quality-gate options in `CMakeLists.txt`, CLI wiring in `scripts/compile.sh`, presubmit `toolchain-quality` job in `.github/workflows/presubmit.yml`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [37] Add API validation and diagnostics for widget specs.
+- ☑ [37] Add API validation and diagnostics for widget specs.
   - detect invalid/inconsistent spec inputs (negative sizes, impossible ranges, invalid selection indices)
   - provide debug diagnostics/assertions and safe runtime fallbacks
   - add unit tests for validation behavior
+  - delivered via spec sanitizers/index clamps in `src/PrimeStage.cpp`, runtime validation coverage in `tests/unit/test_spec_validation.cpp`, and source/docs guard checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [27] Define and implement disabled/read-only widget semantics.
   - add common `enabled`/`readOnly` behavior contract for interactive widgets where applicable

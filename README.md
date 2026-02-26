@@ -61,6 +61,12 @@ Or run the test binary directly:
 ./PrimeStage_tests
 ```
 
+## Spec Validation
+
+PrimeStage clamps invalid widget-spec inputs to safe values at runtime (for example negative sizes,
+inverted min/max bounds, and out-of-range selection indices). Debug builds also emit validation
+diagnostics.
+
 ## Docs
 - `docs/prime-stage-design.md`
 - `docs/api-ergonomics-guidelines.md`

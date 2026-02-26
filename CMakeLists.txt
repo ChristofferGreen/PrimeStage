@@ -169,6 +169,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_visual_regression.cpp
     tests/unit/test_widgets_demo_regression.cpp
     tests/unit/test_widgets.cpp
+    tests/unit/test_spec_validation.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
   if(TARGET PrimeHost)
