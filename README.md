@@ -25,6 +25,7 @@ Build-type options:
 Quality-gate options:
 - `./scripts/compile.sh --warnings-as-errors`
 - `./scripts/compile.sh --asan --ubsan --test` (sanitizer mode builds tests with examples disabled)
+- `./scripts/compile.sh --release --perf-budget` (runs benchmark suite and enforces p95 budgets)
 
 ## Direct CMake (Optional)
 
@@ -46,6 +47,7 @@ Optional configuration:
 - `-DPRIMESTAGE_WARNINGS_AS_ERRORS=ON/OFF` enables warning gates on PrimeStage-owned targets.
 - `-DPRIMESTAGE_ENABLE_ASAN=ON/OFF` enables AddressSanitizer for test builds.
 - `-DPRIMESTAGE_ENABLE_UBSAN=ON/OFF` enables UndefinedBehaviorSanitizer for test builds.
+- `-DPRIMESTAGE_BUILD_BENCHMARKS=ON/OFF` toggles the `PrimeStage_benchmarks` executable.
 
 ## Tests
 
@@ -71,3 +73,4 @@ diagnostics.
 - `docs/prime-stage-design.md`
 - `docs/api-ergonomics-guidelines.md`
 - `docs/design-decisions.md`
+- `docs/performance-benchmarks.md`

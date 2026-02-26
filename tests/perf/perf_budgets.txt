@@ -1,0 +1,11 @@
+# PrimeStage performance budgets (p95, microseconds)
+# Format: <metric_name> <max_p95_microseconds>
+scene.dashboard.rebuild.p95_us 5000
+scene.dashboard.layout.p95_us 2000
+scene.dashboard.render.p95_us 90000
+scene.tree.rebuild.p95_us 7000
+scene.tree.layout.p95_us 3000
+scene.tree.render.p95_us 130000
+interaction.typing.p95_us 5000
+interaction.drag.p95_us 4000
+interaction.wheel.p95_us 1000

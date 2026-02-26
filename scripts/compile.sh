@@ -7,6 +7,8 @@ run_tests=0
 warnings_as_errors=0
 enable_asan=0
 enable_ubsan=0
+run_perf=0
+check_perf_budget=0
 build_examples="ON"
 
 for arg in "$@"; do
@@ -20,8 +22,10 @@ for arg in "$@"; do
     --warnings-as-errors) warnings_as_errors=1 ;;
     --asan) enable_asan=1 ;;
     --ubsan) enable_ubsan=1 ;;
+    --perf) run_perf=1 ;;
+    --perf-budget) run_perf=1; check_perf_budget=1 ;;
     *)
-      echo "Usage: $0 [--debug|--release|--relwithdebinfo|--minsizerel|Debug|Release|RelWithDebInfo|MinSizeRel] [--test] [--warnings-as-errors] [--asan] [--ubsan]" >&2
+      echo "Usage: $0 [--debug|--release|--relwithdebinfo|--minsizerel|Debug|Release|RelWithDebInfo|MinSizeRel] [--test] [--warnings-as-errors] [--asan] [--ubsan] [--perf] [--perf-budget]" >&2
       exit 1
       ;;
   esac
@@ -41,6 +45,7 @@ cmake -S "$root_dir" -B "$build_dir" \
   -DPRIMESTAGE_ENABLE_PRIMEMANIFEST=ON \
   -DPRIMESTAGE_FETCH_PRIMEHOST=ON \
   -DPRIMESTAGE_BUILD_TESTS=ON \
+  -DPRIMESTAGE_BUILD_BENCHMARKS=ON \
   -DPRIMESTAGE_WARNINGS_AS_ERRORS=$([[ "$warnings_as_errors" -eq 1 ]] && echo ON || echo OFF) \
   -DPRIMESTAGE_ENABLE_ASAN=$([[ "$enable_asan" -eq 1 ]] && echo ON || echo OFF) \
   -DPRIMESTAGE_ENABLE_UBSAN=$([[ "$enable_ubsan" -eq 1 ]] && echo ON || echo OFF)
@@ -49,4 +54,24 @@ cmake --build "$build_dir"
 
 if [[ "$run_tests" -eq 1 ]]; then
   ctest --test-dir "$build_dir" --output-on-failure
+fi
+
+if [[ "$run_perf" -eq 1 ]]; then
+  benchmark_bin="$build_dir/PrimeStage_benchmarks"
+  if [[ ! -x "$benchmark_bin" ]]; then
+    echo "Expected benchmark executable not found: $benchmark_bin" >&2
+    exit 1
+  fi
+
+  benchmark_args=(
+    --output "$build_dir/perf-results.json"
+  )
+  if [[ "$check_perf_budget" -eq 1 ]]; then
+    benchmark_args+=(
+      --budget-file "$root_dir/tests/perf/perf_budgets.txt"
+      --check-budgets
+    )
+  fi
+
+  "$benchmark_bin" "${benchmark_args[@]}"
 fi

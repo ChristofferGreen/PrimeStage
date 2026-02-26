@@ -36,6 +36,14 @@ jobs:
       - name: Full Test Pass
         run: ./scripts/compile.sh --${{ matrix.build_type }} --test
 
+      - name: Performance Budget Gate
+        if: matrix.build_type == 'release'
+        run: |
+          ./build-release/PrimeStage_benchmarks \
+            --budget-file tests/perf/perf_budgets.txt \
+            --check-budgets \
+            --output build-release/perf-results.json
+
   toolchain-quality:
     name: Toolchain Quality Gates
     runs-on: macos-14

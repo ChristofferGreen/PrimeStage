@@ -151,10 +151,11 @@ Release Exit Criteria (for API-quality milestone):
   - ensure focus order and activation semantics map cleanly to accessibility expectations
   - delivered via accessibility metadata model types in `include/PrimeStage/Ui.h`, roadmap doc `docs/accessibility-semantics-roadmap.md`, design/guideline links in docs, and behavior/source guards in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [38] Add performance benchmarks and budgets.
+- ☑ [38] Add performance benchmarks and budgets.
   - benchmark rebuild/layout/render cost for representative widget scenes
   - set target budgets for interaction-heavy flows (typing, drag, wheel scroll)
   - gate regressions in CI with trend/budget checks where feasible
+  - delivered via benchmark harness `tests/perf/PrimeStage_benchmarks.cpp`, budget thresholds in `tests/perf/perf_budgets.txt`, CLI workflow wiring in `scripts/compile.sh`, CI budget gate in `.github/workflows/presubmit.yml`, documentation in `docs/performance-benchmarks.md`, and source/docs regression guards in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [39] Add deterministic visual-test harness.
   - stabilize snapshot rendering inputs (fonts/theme/scale) to reduce platform-dependent drift

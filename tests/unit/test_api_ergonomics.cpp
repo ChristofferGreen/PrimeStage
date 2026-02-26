@@ -311,6 +311,80 @@ TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility p
   CHECK(workflow.find("--test-case=\"*focus*,*interaction*\"") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage performance benchmark harness and budget gate are wired") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path benchmarkPath = repoRoot / "tests" / "perf" / "PrimeStage_benchmarks.cpp";
+  std::filesystem::path budgetPath = repoRoot / "tests" / "perf" / "perf_budgets.txt";
+  std::filesystem::path docsPath = repoRoot / "docs" / "performance-benchmarks.md";
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path scriptPath = repoRoot / "scripts" / "compile.sh";
+  std::filesystem::path workflowPath = repoRoot / ".github" / "workflows" / "presubmit.yml";
+  REQUIRE(std::filesystem::exists(benchmarkPath));
+  REQUIRE(std::filesystem::exists(budgetPath));
+  REQUIRE(std::filesystem::exists(docsPath));
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(scriptPath));
+  REQUIRE(std::filesystem::exists(workflowPath));
+
+  std::ifstream benchmarkInput(benchmarkPath);
+  REQUIRE(benchmarkInput.good());
+  std::string benchmark((std::istreambuf_iterator<char>(benchmarkInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!benchmark.empty());
+  CHECK(benchmark.find("scene.dashboard.rebuild.p95_us") != std::string::npos);
+  CHECK(benchmark.find("scene.tree.render.p95_us") != std::string::npos);
+  CHECK(benchmark.find("interaction.typing.p95_us") != std::string::npos);
+  CHECK(benchmark.find("interaction.drag.p95_us") != std::string::npos);
+  CHECK(benchmark.find("interaction.wheel.p95_us") != std::string::npos);
+  CHECK(benchmark.find("PrimeStage::renderFrameToTarget") != std::string::npos);
+
+  std::ifstream budgetInput(budgetPath);
+  REQUIRE(budgetInput.good());
+  std::string budgets((std::istreambuf_iterator<char>(budgetInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!budgets.empty());
+  CHECK(budgets.find("scene.dashboard.rebuild.p95_us") != std::string::npos);
+  CHECK(budgets.find("scene.tree.render.p95_us") != std::string::npos);
+  CHECK(budgets.find("interaction.typing.p95_us") != std::string::npos);
+  CHECK(budgets.find("interaction.drag.p95_us") != std::string::npos);
+  CHECK(budgets.find("interaction.wheel.p95_us") != std::string::npos);
+
+  std::ifstream docsInput(docsPath);
+  REQUIRE(docsInput.good());
+  std::string docs((std::istreambuf_iterator<char>(docsInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!docs.empty());
+  CHECK(docs.find("typing, slider drag, and wheel scrolling") != std::string::npos);
+  CHECK(docs.find("./scripts/compile.sh --release --perf-budget") != std::string::npos);
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("PRIMESTAGE_BUILD_BENCHMARKS") != std::string::npos);
+  CHECK(cmake.find("PrimeStage_benchmarks") != std::string::npos);
+
+  std::ifstream scriptInput(scriptPath);
+  REQUIRE(scriptInput.good());
+  std::string script((std::istreambuf_iterator<char>(scriptInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!script.empty());
+  CHECK(script.find("--perf") != std::string::npos);
+  CHECK(script.find("--perf-budget") != std::string::npos);
+  CHECK(script.find("tests/perf/perf_budgets.txt") != std::string::npos);
+  CHECK(script.find("PrimeStage_benchmarks") != std::string::npos);
+
+  std::ifstream workflowInput(workflowPath);
+  REQUIRE(workflowInput.good());
+  std::string workflow((std::istreambuf_iterator<char>(workflowInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!workflow.empty());
+  CHECK(workflow.find("Performance Budget Gate") != std::string::npos);
+  CHECK(workflow.find("PrimeStage_benchmarks") != std::string::npos);
+  CHECK(workflow.find("--budget-file tests/perf/perf_budgets.txt") != std::string::npos);
+  CHECK(workflow.find("--check-budgets") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
