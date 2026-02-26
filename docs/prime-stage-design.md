@@ -5,6 +5,8 @@ PrimeStage is the UI authoring layer that owns ground-truth widget state and emi
 It builds render-ready UI scenes, wires callbacks, and provides a terse authoring API.
 Contributor ergonomics and app-facing ownership contracts are documented in `docs/api-ergonomics-guidelines.md`.
 Resolved architecture choices are documented in `docs/design-decisions.md`.
+Public API evolution and compatibility expectations are documented in
+`docs/api-evolution-policy.md`.
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.
@@ -204,3 +206,8 @@ stages the host/frame integration steps.
 Accessibility role/state planning is tracked in `docs/accessibility-semantics-roadmap.md`.
 That roadmap defines metadata model, focus-order mapping, and keyboard-activation expectations for
 future backend accessibility adapters.
+
+## API Evolution Policy
+Public API compatibility rules and migration notes are tracked in
+`docs/api-evolution-policy.md`.
+Use that policy when changing widget specs, callbacks, and public naming.

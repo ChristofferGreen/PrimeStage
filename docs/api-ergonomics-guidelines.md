@@ -3,6 +3,7 @@
 ## Goal
 PrimeStage should let apps build interactive UI without mutating `PrimeFrame` internals directly.
 App code should describe state and callbacks at the widget-spec level, while PrimeStage owns node setup and callback plumbing.
+Public API compatibility and migration policy is tracked in `docs/api-evolution-policy.md`.
 
 ## Responsibility Split
 PrimeStage responsibilities:

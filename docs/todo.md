@@ -162,9 +162,10 @@ Release Exit Criteria (for API-quality milestone):
   - define golden update workflow and failure triage guidance
   - delivered via deterministic harness helpers in `tests/unit/visual_test_harness.h`, visual regression migration in `tests/unit/test_visual_regression.cpp` with harness metadata block in `tests/snapshots/interaction_visuals.snap`, workflow/triage doc in `docs/visual-test-harness.md`, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [40] Define API evolution and compatibility policy.
+- ☑ [40] Define API evolution and compatibility policy.
   - document semver expectations and deprecation process for spec/callback changes
   - provide migration notes when replacing draft APIs (for example `EditBox` naming in design docs)
+  - delivered via compatibility policy doc `docs/api-evolution-policy.md` (semver/deprecation/checklist + `EditBox` -> `TextField` migration notes), design/guideline/readme links in docs, and regression guards in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [41] Add install/export/package support for PrimeStage.
   - add `install()` rules and CMake package exports for library + public headers

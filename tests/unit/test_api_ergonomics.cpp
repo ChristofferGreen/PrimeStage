@@ -266,8 +266,10 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path readmePath = repoRoot / "README.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path policyPath = repoRoot / "docs" / "api-evolution-policy.md";
   REQUIRE(std::filesystem::exists(readmePath));
   REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(policyPath));
 
   std::ifstream readmeInput(readmePath);
   REQUIRE(readmeInput.good());
@@ -276,6 +278,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   REQUIRE(!readme.empty());
   CHECK(readme.find("./scripts/compile.sh") != std::string::npos);
   CHECK(readme.find("./scripts/compile.sh --test") != std::string::npos);
+  CHECK(readme.find("docs/api-evolution-policy.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -287,6 +290,59 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(design.find("ButtonCallbacks const& callbacks") == std::string::npos);
   CHECK(design.find("## Focus Behavior (Current)") != std::string::npos);
   CHECK(design.find("Focusable by default") != std::string::npos);
+  CHECK(design.find("docs/api-evolution-policy.md") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage API evolution policy defines semver deprecation and migration notes") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path policyPath = repoRoot / "docs" / "api-evolution-policy.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(policyPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream policyInput(policyPath);
+  REQUIRE(policyInput.good());
+  std::string policy((std::istreambuf_iterator<char>(policyInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!policy.empty());
+  CHECK(policy.find("Versioning Expectations") != std::string::npos);
+  CHECK(policy.find("Patch release") != std::string::npos);
+  CHECK(policy.find("Minor release") != std::string::npos);
+  CHECK(policy.find("Major release") != std::string::npos);
+  CHECK(policy.find("Deprecation Process") != std::string::npos);
+  CHECK(policy.find("Migration Notes") != std::string::npos);
+  CHECK(policy.find("EditBox") != std::string::npos);
+  CHECK(policy.find("TextField") != std::string::npos);
+  CHECK(policy.find("createEditBox") != std::string::npos);
+  CHECK(policy.find("createTextField") != std::string::npos);
+  CHECK(policy.find("Compatibility Review Checklist") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/api-evolution-policy.md") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("## API Evolution Policy") != std::string::npos);
+  CHECK(design.find("docs/api-evolution-policy.md") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("docs/api-evolution-policy.md") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility path") {

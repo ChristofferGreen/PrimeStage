@@ -29,3 +29,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep hot paths allocation-free; reuse buffers and caches where possible.
 - Avoid raw `new`; use `std::unique_ptr` or `std::shared_ptr` with clear ownership intent.
 - For public widget specs, clamp invalid inputs to safe runtime fallbacks and emit debug diagnostics; add unit tests for new validation paths.
+- For public API/spec/callback changes, follow `docs/api-evolution-policy.md` (semver impact classification, staged deprecation, and migration notes).
