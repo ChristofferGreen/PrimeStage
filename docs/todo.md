@@ -74,10 +74,11 @@ Release Exit Criteria (for API-quality milestone):
   - include explicit focus contract matrix: interaction-enabled widgets focusable by default; selectable text not focusable
   - delivered via `tests/unit/test_integration_flows.cpp` (end-to-end interaction/rebuild focus retention and focus-contract matrix coverage) and `CMakeLists.txt` test target updates
 
-- ☐ [20] Add app-level interaction regression suite for the widgets demo.
+- ☑ [20] Add app-level interaction regression suite for the widgets demo.
   - scenario coverage: click-to-focus, tab traversal, value changes, text editing, tab/page switches, rebuild stability
   - include wheel + scrollbar interaction scenarios for overflow/scrollable regions
   - run in CI via `scripts/compile.sh --test`
+  - delivered via `tests/unit/test_widgets_demo_regression.cpp` (demo-like page-flow/rebuild regression and wheel+scrollbar interaction coverage) and `CMakeLists.txt` test target updates
 
 ## P1 (Do Next)
 
