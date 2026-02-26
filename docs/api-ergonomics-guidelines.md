@@ -116,6 +116,14 @@ if (result.requestFrame) {
 }
 ```
 
+## Frame Lifecycle Helper
+- Prefer `PrimeStage::FrameLifecycle` for app-level rebuild/layout/frame scheduling.
+- Use `requestRebuild()` when widget callbacks change scene structure or state that requires UI rebuild.
+- Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
+- Use `requestFrame()` for patch-only updates that do not require rebuild/layout.
+- In frame loops, consume work with `runRebuildIfNeeded(...)` and `runLayoutIfNeeded(...)`, then call
+  `markFramePresented()` after presenting.
+
 ## Focus Semantics Contract
 Default focus behavior expected by app code:
 - Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,

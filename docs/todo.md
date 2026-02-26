@@ -82,9 +82,10 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [23] Add a PrimeStage app runtime helper for frame lifecycle.
+- ☑ [23] Add a PrimeStage app runtime helper for frame lifecycle.
   - centralize rebuild/layout/render scheduling and dirty-flag handling
   - avoid ad-hoc `needsRebuild` / `needsLayout` / `needsFrame` orchestration in example apps
+  - delivered via `include/PrimeStage/AppRuntime.h` (`FrameLifecycle` helper), migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_app_runtime.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [24] Resolve and record design decisions from open questions.
   - decide table vs specialized list strategy

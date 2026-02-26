@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PrimeStage/AppRuntime.h"
 #include "PrimeStage/Ui.h"
 
 #include <cstdint>

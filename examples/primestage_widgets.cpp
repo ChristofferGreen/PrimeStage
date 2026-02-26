@@ -125,9 +125,7 @@ struct DemoApp {
   PrimeFrame::EventRouter router;
   PrimeFrame::FocusManager focus;
   DemoState state;
-  bool needsRebuild = true;
-  bool needsLayout = true;
-  bool needsFrame = true;
+  PrimeStage::FrameLifecycle runtime{};
   PrimeStage::WidgetIdentityReconciler widgetIdentity;
   uint32_t surfaceWidth = 1280u;
   uint32_t surfaceHeight = 720u;
@@ -464,8 +462,7 @@ void rebuildUi(DemoApp& app) {
   tabsSpec.visible = true;
   tabsSpec.callbacks.onTabChanged = [&app](int nextIndex) {
     app.state.tabIndex = nextIndex;
-    app.needsRebuild = true;
-    app.needsFrame = true;
+    app.runtime.requestRebuild();
   };
   tabsBar.createTabs(tabsSpec);
 
@@ -559,8 +556,7 @@ void rebuildUi(DemoApp& app) {
       primaryButton.size.preferredHeight = 32.0f;
       primaryButton.callbacks.onClick = [&app]() {
         app.state.clickCount += 1;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       buttonRow.createButton(primaryButton);
 
@@ -575,8 +571,7 @@ void rebuildUi(DemoApp& app) {
       secondaryButton.size.preferredHeight = 32.0f;
       secondaryButton.callbacks.onClick = [&app]() {
         app.state.toggleOn = !app.state.toggleOn;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       buttonRow.createButton(secondaryButton);
 
@@ -601,8 +596,7 @@ void rebuildUi(DemoApp& app) {
       toggleSpec.size.preferredHeight = 22.0f;
       toggleSpec.callbacks.onChanged = [&app](bool on) {
         app.state.toggleOn = on;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       PrimeStage::UiNode toggleNode = toggleRow.createToggle(toggleSpec);
       app.widgetIdentity.registerNode(WidgetIdToggle, toggleNode.nodeId());
@@ -616,8 +610,7 @@ void rebuildUi(DemoApp& app) {
       checkboxSpec.textStyle = TextBody;
       checkboxSpec.callbacks.onChanged = [&app](bool checked) {
         app.state.checkboxChecked = checked;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       PrimeStage::UiNode checkboxNode = toggleRow.createCheckbox(checkboxSpec);
       app.widgetIdentity.registerNode(WidgetIdCheckbox, checkboxNode.nodeId());
@@ -649,7 +642,7 @@ void rebuildUi(DemoApp& app) {
       };
       table.callbacks.onRowClicked = [&app](PrimeStage::TableRowInfo const& info) {
         app.state.tableSelectedRow = info.rowIndex;
-        app.needsFrame = true;
+        app.runtime.requestFrame();
       };
       tableSection.createTable(table);
 
@@ -680,15 +673,13 @@ void rebuildUi(DemoApp& app) {
         if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
           node->selected = true;
         }
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       treeSpec.callbacks.onExpandedChanged = [&app](PrimeStage::TreeViewRowInfo const& info, bool expanded) {
         if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
           node->expanded = expanded;
         }
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       PrimeStage::UiNode treeNode = treeSection.createTreeView(treeSpec);
       app.widgetIdentity.registerNode(WidgetIdTreeView, treeNode.nodeId());
@@ -732,12 +723,10 @@ void rebuildUi(DemoApp& app) {
       fieldSpec.size.preferredWidth = 360.0f;
       fieldSpec.size.preferredHeight = 28.0f;
       fieldSpec.callbacks.onStateChanged = [&app]() {
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       fieldSpec.callbacks.onTextChanged = [&app](std::string_view) {
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       fieldSpec.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
         if (app.host && app.surfaceId.isValid()) {
@@ -746,8 +735,7 @@ void rebuildUi(DemoApp& app) {
       };
       fieldSpec.callbacks.onRequestBlur = [&app]() {
         app.focus.clearFocus(app.frame);
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       PrimeStage::UiNode fieldNode = textInputs.createTextField(fieldSpec);
       app.widgetIdentity.registerNode(WidgetIdTextField, fieldNode.nodeId());
@@ -770,8 +758,7 @@ void rebuildUi(DemoApp& app) {
       selectableSpec.size.preferredWidth = 420.0f;
       selectableSpec.visible = true;
       selectableSpec.callbacks.onStateChanged = [&app]() {
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       selectableSpec.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
         if (app.host && app.surfaceId.isValid()) {
@@ -803,12 +790,11 @@ void rebuildUi(DemoApp& app) {
       dropdownSpec.size.preferredWidth = 200.0f;
       dropdownSpec.size.preferredHeight = 28.0f;
       dropdownSpec.callbacks.onOpened = [&app]() {
-        app.needsFrame = true;
+        app.runtime.requestFrame();
       };
       dropdownSpec.callbacks.onSelected = [&app](int nextIndex) {
         app.state.dropdownIndex = nextIndex;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       navigation.createDropdown(dropdownSpec);
 
@@ -824,8 +810,7 @@ void rebuildUi(DemoApp& app) {
       sliderSpec.callbacks.onValueChanged = [&app](float value) {
         app.state.sliderValue = value;
         app.state.progressValue = value;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
       };
       PrimeStage::UiNode sliderNode = ranges.createSlider(sliderSpec);
       app.widgetIdentity.registerNode(WidgetIdSlider, sliderNode.nodeId());
@@ -850,33 +835,32 @@ void rebuildUi(DemoApp& app) {
       break;
     }
   }
+}
 
-  app.needsRebuild = false;
-  app.needsLayout = true;
+void runRebuildIfNeeded(DemoApp& app) {
+  app.runtime.runRebuildIfNeeded([&app]() { rebuildUi(app); });
 }
 
 void updateLayoutIfNeeded(DemoApp& app) {
-  if (!app.needsLayout) {
-    return;
-  }
-  PrimeFrame::LayoutOptions options;
-  float scale = app.renderScale > 0.0f ? app.renderScale
-                                       : (app.surfaceScale > 0.0f ? app.surfaceScale : 1.0f);
-  uint32_t widthPx = app.renderWidth > 0u ? app.renderWidth : app.surfaceWidth;
-  uint32_t heightPx = app.renderHeight > 0u ? app.renderHeight : app.surfaceHeight;
-  options.rootWidth = static_cast<float>(widthPx) / scale;
-  options.rootHeight = static_cast<float>(heightPx) / scale;
-  app.layoutEngine.layout(app.frame, app.layout, options);
-  app.focus.updateAfterRebuild(app.frame, app.layout);
+  app.runtime.runLayoutIfNeeded([&app]() {
+    PrimeFrame::LayoutOptions options;
+    float scale = app.renderScale > 0.0f ? app.renderScale
+                                         : (app.surfaceScale > 0.0f ? app.surfaceScale : 1.0f);
+    uint32_t widthPx = app.renderWidth > 0u ? app.renderWidth : app.surfaceWidth;
+    uint32_t heightPx = app.renderHeight > 0u ? app.renderHeight : app.surfaceHeight;
+    options.rootWidth = static_cast<float>(widthPx) / scale;
+    options.rootHeight = static_cast<float>(heightPx) / scale;
+    app.layoutEngine.layout(app.frame, app.layout, options);
+    app.focus.updateAfterRebuild(app.frame, app.layout);
 
-  bool restoredFocus = app.widgetIdentity.restoreFocus(app.focus, app.frame, app.layout);
-  if (!restoredFocus && app.state.tabIndex == 1) {
-    PrimeFrame::NodeId treeNode = app.widgetIdentity.findNode(WidgetIdTreeView);
-    if (treeNode.isValid()) {
-      app.focus.setFocus(app.frame, app.layout, treeNode);
+    bool restoredFocus = app.widgetIdentity.restoreFocus(app.focus, app.frame, app.layout);
+    if (!restoredFocus && app.state.tabIndex == 1) {
+      PrimeFrame::NodeId treeNode = app.widgetIdentity.findNode(WidgetIdTreeView);
+      if (treeNode.isValid()) {
+        app.focus.setFocus(app.frame, app.layout, treeNode);
+      }
     }
-  }
-  app.needsLayout = false;
+  });
 }
 
 bool dispatchFrameEvent(DemoApp& app, PrimeFrame::Event const& event) {
@@ -914,7 +898,7 @@ int main(int argc, char** argv) {
     app.renderWidth = snapshotWidth;
     app.renderHeight = snapshotHeight;
     app.renderScale = app.surfaceScale;
-    rebuildUi(app);
+    runRebuildIfNeeded(app);
     updateLayoutIfNeeded(app);
     bool ok = PrimeStage::renderFrameToPng(app.frame, app.layout, *snapshotPath, app.renderOptions);
     if (!ok) {
@@ -967,18 +951,26 @@ int main(int argc, char** argv) {
     if (target != app.surfaceId) {
       return;
     }
-    if (app.needsRebuild) {
-      rebuildUi(app);
-    }
+    runRebuildIfNeeded(app);
     auto bufferResult = app.host->acquireFrameBuffer(target);
     if (!bufferResult) {
       return;
     }
     PrimeHost::FrameBuffer buffer = bufferResult.value();
+    uint32_t previousRenderWidth = app.renderWidth;
+    uint32_t previousRenderHeight = app.renderHeight;
+    float previousRenderScale = app.renderScale;
+    float nextScale = buffer.scale > 0.0f ? buffer.scale : app.renderScale;
     app.renderWidth = buffer.size.width;
     app.renderHeight = buffer.size.height;
-    app.renderScale = buffer.scale > 0.0f ? buffer.scale : app.renderScale;
+    app.renderScale = nextScale;
     app.surfaceScale = app.renderScale;
+    bool renderTargetChanged = previousRenderWidth != app.renderWidth ||
+                               previousRenderHeight != app.renderHeight ||
+                               std::abs(previousRenderScale - app.renderScale) > 0.0001f;
+    if (renderTargetChanged) {
+      app.runtime.requestLayout();
+    }
     updateLayoutIfNeeded(app);
     PrimeStage::RenderTarget targetBuffer;
     targetBuffer.pixels = buffer.pixels;
@@ -988,12 +980,12 @@ int main(int argc, char** argv) {
     targetBuffer.scale = buffer.scale;
     PrimeStage::renderFrameToTarget(app.frame, app.layout, targetBuffer, app.renderOptions);
     app.host->presentFrameBuffer(target, buffer);
-    app.needsFrame = false;
+    app.runtime.markFramePresented();
   };
   app.host->setCallbacks(callbacks);
 
-  rebuildUi(app);
-  app.needsFrame = true;
+  runRebuildIfNeeded(app);
+  app.runtime.requestFrame();
   app.host->requestFrame(app.surfaceId, true);
 
   std::array<PrimeHost::Event, 256> events{};
@@ -1030,7 +1022,7 @@ int main(int argc, char** argv) {
           continue;
         }
         if (bridgeResult.requestFrame) {
-          app.needsFrame = true;
+          app.runtime.requestFrame();
         }
         if (bridgeResult.bypassFrameCap) {
           bypassCap = true;
@@ -1039,8 +1031,7 @@ int main(int argc, char** argv) {
         app.surfaceWidth = resize->width;
         app.surfaceHeight = resize->height;
         app.surfaceScale = resize->scale > 0.0f ? resize->scale : 1.0f;
-        app.needsRebuild = true;
-        app.needsFrame = true;
+        app.runtime.requestRebuild();
         bypassCap = true;
       } else if (auto* lifecycle = std::get_if<PrimeHost::LifecycleEvent>(&event.payload)) {
         if (lifecycle->phase == PrimeHost::LifecyclePhase::Destroyed) {
@@ -1049,11 +1040,9 @@ int main(int argc, char** argv) {
       }
     }
 
-    if (app.needsRebuild) {
-      rebuildUi(app);
-    }
+    runRebuildIfNeeded(app);
 
-    if (app.needsFrame) {
+    if (app.runtime.framePending()) {
       app.host->requestFrame(app.surfaceId, bypassCap);
     }
   }

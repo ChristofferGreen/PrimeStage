@@ -184,6 +184,10 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("widgetIdentity.restoreFocus") != std::string::npos);
   CHECK(source.find("bridgeHostInputEvent") != std::string::npos);
   CHECK(source.find("HostKey::Escape") != std::string::npos);
+  CHECK(source.find("PrimeStage::FrameLifecycle") != std::string::npos);
+  CHECK(source.find("runRebuildIfNeeded(app)") != std::string::npos);
+  CHECK(source.find("app.runtime.requestRebuild()") != std::string::npos);
+  CHECK(source.find("app.runtime.framePending()") != std::string::npos);
 
   // App-level widget usage should not rely on raw PrimeFrame callback mutation.
   CHECK(source.find("appendNodeEventCallback") == std::string::npos);
@@ -193,6 +197,9 @@ TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame c
   CHECK(source.find("std::get_if<PrimeHost::PointerEvent>") == std::string::npos);
   CHECK(source.find("std::get_if<PrimeHost::KeyEvent>") == std::string::npos);
   CHECK(source.find("KeyEscape") == std::string::npos);
+  CHECK(source.find("needsRebuild") == std::string::npos);
+  CHECK(source.find("needsLayout") == std::string::npos);
+  CHECK(source.find("needsFrame") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
