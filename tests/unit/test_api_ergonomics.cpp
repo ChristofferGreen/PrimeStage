@@ -1,0 +1,164 @@
+#include "PrimeStage/Ui.h"
+
+#include "PrimeFrame/Events.h"
+#include "PrimeFrame/Focus.h"
+#include "PrimeFrame/Frame.h"
+#include "PrimeFrame/Layout.h"
+
+#include "third_party/doctest.h"
+
+#include <string>
+
+namespace {
+
+constexpr float RootWidth = 320.0f;
+constexpr float RootHeight = 180.0f;
+
+PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame) {
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  if (PrimeFrame::Node* node = frame.getNode(rootId)) {
+    node->layout = PrimeFrame::LayoutType::Overlay;
+    node->sizeHint.width.preferred = RootWidth;
+    node->sizeHint.height.preferred = RootHeight;
+  }
+  return PrimeStage::UiNode(frame, rootId, true);
+}
+
+PrimeFrame::LayoutOutput layoutFrame(PrimeFrame::Frame& frame) {
+  PrimeFrame::LayoutOutput layout;
+  PrimeFrame::LayoutEngine engine;
+  PrimeFrame::LayoutOptions options;
+  options.rootWidth = RootWidth;
+  options.rootHeight = RootHeight;
+  engine.layout(frame, layout, options);
+  return layout;
+}
+
+PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, float x, float y) {
+  PrimeFrame::Event event;
+  event.type = type;
+  event.pointerId = 1;
+  event.x = x;
+  event.y = y;
+  return event;
+}
+
+} // namespace
+
+TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  int clickCount = 0;
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Apply";
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  buttonSpec.backgroundStyle = 101u;
+  buttonSpec.hoverStyle = 102u;
+  buttonSpec.pressedStyle = 103u;
+  buttonSpec.focusStyle = 104u;
+  buttonSpec.callbacks.onClick = [&]() { clickCount += 1; };
+
+  PrimeStage::UiNode button = root.createButton(buttonSpec);
+  PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
+  REQUIRE(buttonNode != nullptr);
+  CHECK(buttonNode->focusable);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::LayoutOut const* out = layout.get(button.nodeId());
+  REQUIRE(out != nullptr);
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(focus.focusedNode() == button.nodeId());
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(clickCount == 1);
+}
+
+TEST_CASE("PrimeStage text field editing is owned by app state") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::TextFieldState state;
+  state.text = "Prime";
+  state.cursor = static_cast<uint32_t>(state.text.size());
+  state.focused = true;
+
+  int stateChangedCount = 0;
+  std::string lastText;
+
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.state = &state;
+  fieldSpec.size.preferredWidth = 220.0f;
+  fieldSpec.size.preferredHeight = 28.0f;
+  fieldSpec.callbacks.onStateChanged = [&]() { stateChangedCount += 1; };
+  fieldSpec.callbacks.onTextChanged = [&](std::string_view text) { lastText = std::string(text); };
+
+  PrimeStage::UiNode field = root.createTextField(fieldSpec);
+  PrimeFrame::Node const* node = frame.getNode(field.nodeId());
+  REQUIRE(node != nullptr);
+  REQUIRE(node->callbacks != PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event textInput;
+  textInput.type = PrimeFrame::EventType::TextInput;
+  textInput.text = " Stage";
+  CHECK(callback->onEvent(textInput));
+  CHECK(state.text == "Prime Stage");
+  CHECK(state.cursor == 11u);
+  CHECK(lastText == "Prime Stage");
+
+  PrimeFrame::Event newlineFilteredInput;
+  newlineFilteredInput.type = PrimeFrame::EventType::TextInput;
+  newlineFilteredInput.text = "\n!";
+  CHECK(callback->onEvent(newlineFilteredInput));
+  CHECK(state.text == "Prime Stage!");
+  CHECK(state.cursor == 12u);
+  CHECK(lastText == "Prime Stage!");
+  CHECK(stateChangedCount >= 2);
+}
+
+TEST_CASE("PrimeStage text field without state is non-editable by default") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.text = "Preview";
+  fieldSpec.size.preferredWidth = 180.0f;
+  fieldSpec.size.preferredHeight = 24.0f;
+
+  PrimeStage::UiNode field = root.createTextField(fieldSpec);
+  PrimeFrame::Node const* node = frame.getNode(field.nodeId());
+  REQUIRE(node != nullptr);
+  CHECK_FALSE(node->focusable);
+  CHECK(node->callbacks == PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::LayoutOut const* out = layout.get(field.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK_FALSE(focus.focusedNode().isValid());
+}

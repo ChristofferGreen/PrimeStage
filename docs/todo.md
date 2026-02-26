@@ -19,9 +19,10 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [22] Define PrimeStage API ergonomics guidelines.
+- ☑ [22] Define PrimeStage API ergonomics guidelines.
   - document what belongs in PrimeStage vs what user code should never have to implement
   - include examples for state ownership, interaction wiring, and focus semantics
+  - delivered in `docs/api-ergonomics-guidelines.md` with regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [11] Add a uniform interactive-control contract across widgets.
   - include first-class state + callbacks for toggle/checkbox/tabs/dropdown (`checked`/`selectedIndex`/`onChanged`)

@@ -36,3 +36,4 @@ Or run the test binary directly:
 
 ## Docs
 - `docs/prime-stage-design.md`
+- `docs/api-ergonomics-guidelines.md`
