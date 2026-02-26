@@ -178,6 +178,20 @@ struct TextFieldClipboard {
   std::function<std::string()> getText;
 };
 
+struct TextCompositionState {
+  bool active = false;
+  std::string text;
+  uint32_t replacementStart = 0u;
+  uint32_t replacementEnd = 0u;
+};
+
+struct TextCompositionCallbacks {
+  std::function<void()> onCompositionStart;
+  std::function<void(std::string_view, uint32_t, uint32_t)> onCompositionUpdate;
+  std::function<void(std::string_view)> onCompositionCommit;
+  std::function<void()> onCompositionCancel;
+};
+
 struct TextFieldCallbacks {
   std::function<void()> onStateChanged;
   std::function<void(std::string_view)> onTextChanged;
@@ -190,7 +204,9 @@ struct TextFieldCallbacks {
 
 struct TextFieldSpec {
   TextFieldState* state = nullptr;
+  TextCompositionState* compositionState = nullptr;
   TextFieldCallbacks callbacks{};
+  TextCompositionCallbacks compositionCallbacks{};
   TextFieldClipboard clipboard{};
   std::string_view text;
   std::string_view placeholder;

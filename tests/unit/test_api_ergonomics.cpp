@@ -363,9 +363,13 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceFile = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path uiHeader = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path textFieldTest = repoRoot / "tests" / "unit" / "test_text_field.cpp";
+  std::filesystem::path imePlan = repoRoot / "docs" / "ime-composition-plan.md";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(sourceFile));
   REQUIRE(std::filesystem::exists(uiHeader));
+  REQUIRE(std::filesystem::exists(textFieldTest));
+  REQUIRE(std::filesystem::exists(imePlan));
   REQUIRE(std::filesystem::exists(todoPath));
 
   std::ifstream sourceInput(sourceFile);
@@ -393,6 +397,28 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(ui.find("CheckboxState* state = nullptr;") != std::string::npos);
   CHECK(ui.find("TabsState* state = nullptr;") != std::string::npos);
   CHECK(ui.find("DropdownState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("struct TextCompositionState") != std::string::npos);
+  CHECK(ui.find("struct TextCompositionCallbacks") != std::string::npos);
+  CHECK(ui.find("TextCompositionState* compositionState = nullptr;") != std::string::npos);
+  CHECK(ui.find("TextCompositionCallbacks compositionCallbacks{};") != std::string::npos);
+
+  std::ifstream textFieldInput(textFieldTest);
+  REQUIRE(textFieldInput.good());
+  std::string textFieldTests((std::istreambuf_iterator<char>(textFieldInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!textFieldTests.empty());
+  CHECK(textFieldTests.find("non-ASCII text input and backspace") != std::string::npos);
+  CHECK(textFieldTests.find("composition-like replacement workflows") != std::string::npos);
+  CHECK(textFieldTests.find("日本語") != std::string::npos);
+
+  std::ifstream imePlanInput(imePlan);
+  REQUIRE(imePlanInput.good());
+  std::string ime((std::istreambuf_iterator<char>(imePlanInput)),
+                  std::istreambuf_iterator<char>());
+  REQUIRE(!ime.empty());
+  CHECK(ime.find("composition start/update/commit/cancel") != std::string::npos);
+  CHECK(ime.find("TextCompositionCallbacks") != std::string::npos);
+  CHECK(ime.find("TextCompositionState") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

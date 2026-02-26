@@ -141,9 +141,10 @@ Release Exit Criteria (for API-quality milestone):
   - document and test pointer scroll direction/units consistently across host backends
   - delivered via shared `KeyCode` semantics in `include/PrimeStage/Ui.h`, input normalization updates in `include/PrimeStage/InputBridge.h`, internal/test migration away from raw key literals in `src/PrimeStage.cpp` + input tests, and docs/test guards in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [35] Add IME/composition support plan for text input controls.
+- ☑ [35] Add IME/composition support plan for text input controls.
   - define API for composition start/update/commit/cancel
   - add tests for non-ASCII and composition-heavy input workflows
+  - delivered via composition API planning types in `include/PrimeStage/Ui.h`, implementation plan in `docs/ime-composition-plan.md` with design/guideline links, and UTF-8/composition-like workflow regression coverage in `tests/unit/test_text_field.cpp` + source/docs guards in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [36] Add accessibility semantics roadmap.
   - define widget role/state metadata model (for future HTML/backend accessibility integration)

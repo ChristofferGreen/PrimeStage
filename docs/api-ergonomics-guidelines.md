@@ -38,6 +38,7 @@ What app code should avoid:
 - Rebuild safely at any time; durable state must survive scene disposal.
 - Use `WidgetIdentityReconciler` for focus reconciliation across rebuilds instead of ad-hoc
   node-id tracking enums.
+- For text composition/IME planning, see `docs/ime-composition-plan.md`.
 
 Example (`TextField` with app-owned state):
 

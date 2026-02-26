@@ -194,3 +194,8 @@ The HTML surface typically uses a single window root.
 
 ## Design Decisions
 Previously open architecture questions are resolved and tracked in `docs/design-decisions.md`.
+
+## IME/Composition Planning
+IME/composition API planning for text controls is tracked in `docs/ime-composition-plan.md`.
+That plan defines `TextField` lifecycle semantics for composition start/update/commit/cancel and
+stages the host/frame integration steps.
