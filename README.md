@@ -22,6 +22,10 @@ Build-type options:
 - `./scripts/compile.sh --relwithdebinfo`
 - `./scripts/compile.sh --minsizerel`
 
+Quality-gate options:
+- `./scripts/compile.sh --warnings-as-errors`
+- `./scripts/compile.sh --asan --ubsan --test` (sanitizer mode builds tests with examples disabled)
+
 ## Direct CMake (Optional)
 
 ```sh
@@ -39,6 +43,9 @@ Optional configuration:
 - `-DPRIMESTAGE_BUILD_EXAMPLES=ON/OFF` toggles example binaries.
 - `-DPRIMESTAGE_HEADLESS_ONLY=ON/OFF` skips PrimeManifest (no rendering). Defaults to `OFF`.
 - `-DPRIMESTAGE_ENABLE_PRIMEMANIFEST=ON/OFF` toggles PrimeManifest integration. Required unless headless mode is on.
+- `-DPRIMESTAGE_WARNINGS_AS_ERRORS=ON/OFF` enables warning gates on PrimeStage-owned targets.
+- `-DPRIMESTAGE_ENABLE_ASAN=ON/OFF` enables AddressSanitizer for test builds.
+- `-DPRIMESTAGE_ENABLE_UBSAN=ON/OFF` enables UndefinedBehaviorSanitizer for test builds.
 
 ## Tests
 

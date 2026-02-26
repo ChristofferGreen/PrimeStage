@@ -13,10 +13,10 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - **Macros:** avoid new ones; if unavoidable, use `PS_` prefix and ALL_CAPS.
 
 ## Build/test workflow
-- Preferred build: `scripts/compile.sh [--debug|--release|--relwithdebinfo|--minsizerel] [--test]` (uses clang, builds examples, tests built by default; `--test` also runs tests).
+- Preferred build: `scripts/compile.sh [--debug|--release|--relwithdebinfo|--minsizerel] [--test] [--warnings-as-errors] [--asan] [--ubsan]` (uses clang, builds examples by default, tests built by default; sanitizer mode disables examples and `--test` runs tests).
 - Debug: `cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug` then `cmake --build build-debug`.
 - Release: `cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release` then `cmake --build build-release`.
-- Options: `-DPRIMESTAGE_BUILD_TESTS=ON/OFF`, `-DPRIMESTAGE_BUILD_EXAMPLES=ON/OFF`.
+- Options: `-DPRIMESTAGE_BUILD_TESTS=ON/OFF`, `-DPRIMESTAGE_BUILD_EXAMPLES=ON/OFF`, `-DPRIMESTAGE_WARNINGS_AS_ERRORS=ON/OFF`, `-DPRIMESTAGE_ENABLE_ASAN=ON/OFF`, `-DPRIMESTAGE_ENABLE_UBSAN=ON/OFF`.
 - Tests: from a build dir, run `ctest --output-on-failure` or execute `./PrimeStage_tests` directly.
 
 ## Tests

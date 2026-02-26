@@ -109,10 +109,11 @@ Release Exit Criteria (for API-quality milestone):
   - fail fast on test regressions in the interaction/focus suites
   - delivered via `.github/workflows/presubmit.yml` (release/relwithdebinfo matrix + headless compatibility job) and workflow regression checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [32] Add toolchain quality gates.
+- ☑ [32] Add toolchain quality gates.
   - add sanitizer configuration (`ASan`/`UBSan`) for tests
   - add static checks for warnings in project-owned code paths
   - keep third-party warnings isolated (do not block local code quality gate)
+  - delivered via CMake quality-gate options in `CMakeLists.txt`, CLI wiring in `scripts/compile.sh`, presubmit `toolchain-quality` job in `.github/workflows/presubmit.yml`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [37] Add API validation and diagnostics for widget specs.
   - detect invalid/inconsistent spec inputs (negative sizes, impossible ranges, invalid selection indices)

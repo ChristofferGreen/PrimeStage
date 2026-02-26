@@ -11,9 +11,18 @@ set(PRIMEHOST_GIT_TAG "master" CACHE STRING "PrimeHost git tag or commit")
 
 option(PRIMESTAGE_HEADLESS_ONLY "Build PrimeStage without PrimeManifest (no rendering)" OFF)
 option(PRIMESTAGE_ENABLE_PRIMEMANIFEST "Enable PrimeManifest integration" ON)
+option(PRIMESTAGE_BUILD_TESTS "Build PrimeStage tests" ON)
+option(PRIMESTAGE_BUILD_EXAMPLES "Build PrimeStage example apps" OFF)
+option(PRIMESTAGE_WARNINGS_AS_ERRORS "Treat warnings as errors for PrimeStage-owned targets" OFF)
+option(PRIMESTAGE_ENABLE_ASAN "Enable AddressSanitizer for PrimeStage test builds" OFF)
+option(PRIMESTAGE_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for PrimeStage test builds" OFF)
 set(PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeManifest.git"
     CACHE STRING "PrimeManifest git repository")
 set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "master" CACHE STRING "PrimeManifest git tag or commit")
+
+if((PRIMESTAGE_ENABLE_ASAN OR PRIMESTAGE_ENABLE_UBSAN) AND NOT PRIMESTAGE_BUILD_TESTS)
+  message(FATAL_ERROR "Sanitizers are intended for test builds; configure with -DPRIMESTAGE_BUILD_TESTS=ON.")
+endif()
 
 if(PRIMESTAGE_FETCH_PRIMEFRAME)
   include(FetchContent)
@@ -55,6 +64,42 @@ function(ps_require_cxx23 target)
   endif()
 endfunction()
 
+function(ps_enable_project_warnings target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4)
+    if(PRIMESTAGE_WARNINGS_AS_ERRORS)
+      target_compile_options(${target} PRIVATE /WX)
+    endif()
+    return()
+  endif()
+
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  if(PRIMESTAGE_WARNINGS_AS_ERRORS)
+    target_compile_options(${target} PRIVATE -Werror)
+  endif()
+endfunction()
+
+function(ps_enable_sanitizers target)
+  if(NOT (PRIMESTAGE_ENABLE_ASAN OR PRIMESTAGE_ENABLE_UBSAN))
+    return()
+  endif()
+
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    message(FATAL_ERROR "PRIMESTAGE_ENABLE_ASAN/PRIMESTAGE_ENABLE_UBSAN requires Clang or GCC.")
+  endif()
+
+  set(sanitizer_flags)
+  if(PRIMESTAGE_ENABLE_ASAN)
+    list(APPEND sanitizer_flags -fsanitize=address -fno-omit-frame-pointer)
+  endif()
+  if(PRIMESTAGE_ENABLE_UBSAN)
+    list(APPEND sanitizer_flags -fsanitize=undefined -fno-sanitize-recover=undefined)
+  endif()
+
+  target_compile_options(${target} PRIVATE ${sanitizer_flags})
+  target_link_options(${target} PRIVATE ${sanitizer_flags})
+endfunction()
+
 set(PRIMESTAGE_SOURCES
   src/PrimeStage.cpp
   src/Render.cpp
@@ -71,6 +116,10 @@ target_include_directories(PrimeStage
 )
 
 ps_require_cxx23(PrimeStage)
+ps_enable_project_warnings(PrimeStage)
+if(PRIMESTAGE_BUILD_TESTS)
+  ps_enable_sanitizers(PrimeStage)
+endif()
 
 if(TARGET PrimeFrame)
   target_link_libraries(PrimeStage PUBLIC PrimeFrame)
@@ -97,7 +146,6 @@ if(TARGET PrimeManifest)
   target_compile_definitions(PrimeStage PUBLIC PRIMESTAGE_HAS_PRIMEMANIFEST=1)
 endif()
 
-option(PRIMESTAGE_BUILD_TESTS "Build PrimeStage tests" ON)
 if(PRIMESTAGE_BUILD_TESTS)
   enable_testing()
 
@@ -128,10 +176,10 @@ if(PRIMESTAGE_BUILD_TESTS)
   endif()
   target_include_directories(PrimeStage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   ps_require_cxx23(PrimeStage_tests)
+  ps_enable_sanitizers(PrimeStage_tests)
   add_test(NAME PrimeStage_tests COMMAND $<TARGET_FILE:PrimeStage_tests>)
 endif()
 
-option(PRIMESTAGE_BUILD_EXAMPLES "Build PrimeStage example apps" OFF)
 if(PRIMESTAGE_BUILD_EXAMPLES)
   if(PRIMESTAGE_HEADLESS_ONLY)
     message(FATAL_ERROR "PrimeStage examples require rendering; disable PRIMESTAGE_HEADLESS_ONLY.")

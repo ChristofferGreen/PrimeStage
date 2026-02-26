@@ -410,25 +410,6 @@ std::vector<PrimeFrame::PrimitiveId> add_focus_ring_primitives(
   return prims;
 }
 
-std::optional<FocusOverlay> add_focus_overlay_primitive(PrimeFrame::Frame& frame,
-                                                        PrimeFrame::NodeId nodeId,
-                                                        PrimeFrame::RectStyleToken token,
-                                                        PrimeFrame::RectStyleOverride const& overrideStyle,
-                                                        Rect const* bounds) {
-  if (token == 0) {
-    return std::nullopt;
-  }
-  FocusOverlay overlay;
-  overlay.focused = overrideStyle;
-  overlay.blurred = overrideStyle;
-  overlay.blurred.opacity = 0.0f;
-  overlay.primitives = add_focus_ring_primitives(frame, nodeId, token, overlay.blurred, bounds);
-  if (overlay.primitives.empty()) {
-    return std::nullopt;
-  }
-  return overlay;
-}
-
 std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
                                                    PrimeFrame::NodeId parent,
                                                    Rect const& rect,
@@ -560,65 +541,6 @@ float estimate_text_width(PrimeFrame::Frame& frame,
   }
   maxWidth = std::max(maxWidth, lineWidth);
   return maxWidth;
-}
-
-int estimate_wrapped_lines(PrimeFrame::Frame& frame,
-                           PrimeFrame::TextStyleToken token,
-                           std::string_view text,
-                           float maxWidth,
-                           PrimeFrame::WrapMode wrap) {
-  if (text.empty()) {
-    return 0;
-  }
-
-  if (maxWidth <= 0.0f || wrap == PrimeFrame::WrapMode::None) {
-    int lines = 1;
-    for (char ch : text) {
-      if (ch == '\n') {
-        ++lines;
-      }
-    }
-    return lines;
-  }
-
-  float spaceWidth = measureTextWidth(frame, token, " ");
-  float lineWidth = 0.0f;
-  int lines = 1;
-  std::string word;
-
-  auto flush_word = [&]() {
-    if (word.empty()) {
-      return;
-    }
-    float wordWidth = measureTextWidth(frame, token, word);
-    if (lineWidth > 0.0f && lineWidth + spaceWidth + wordWidth > maxWidth) {
-      ++lines;
-      lineWidth = wordWidth;
-    } else {
-      if (lineWidth > 0.0f) {
-        lineWidth += spaceWidth;
-      }
-      lineWidth += wordWidth;
-    }
-    word.clear();
-  };
-
-  for (char ch : text) {
-    if (ch == '\n') {
-      flush_word();
-      ++lines;
-      lineWidth = 0.0f;
-      continue;
-    }
-    if (std::isspace(static_cast<unsigned char>(ch))) {
-      flush_word();
-      continue;
-    }
-    word.push_back(ch);
-  }
-  flush_word();
-
-  return lines;
 }
 
 std::vector<std::string> wrap_text_lines(PrimeFrame::Frame& frame,
@@ -3680,8 +3602,6 @@ UiNode UiNode::createSlider(SliderSpec const& spec) {
     };
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
-                        vertical = spec.vertical,
-                        thumbSize = spec.thumbSize,
                         framePtr = &frame(),
                         state,
                         apply_geometry,
