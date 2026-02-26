@@ -348,6 +348,7 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(source.find("clamp_text_index") != std::string::npos);
   CHECK(source.find("PrimeStage validation:") != std::string::npos);
   CHECK(source.find("add_state_scrim_overlay") != std::string::npos);
+  CHECK(source.find("clamp_tab_index") != std::string::npos);
 
   std::ifstream uiInput(uiHeader);
   REQUIRE(uiInput.good());
@@ -356,6 +357,7 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   REQUIRE(!ui.empty());
   CHECK(ui.find("bool enabled = true;") != std::string::npos);
   CHECK(ui.find("bool readOnly = false;") != std::string::npos);
+  CHECK(ui.find("int tabIndex = -1;") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

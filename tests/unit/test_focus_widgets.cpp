@@ -125,6 +125,14 @@ bool hasVisualDifference(std::vector<PrimitiveVisualState> const& before,
   return false;
 }
 
+std::vector<PrimeFrame::NodeId> childNodes(PrimeFrame::Frame const& frame, PrimeFrame::NodeId nodeId) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return {};
+  }
+  return node->children;
+}
+
 void runFocusCase(FocusCase const& focusCase) {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
@@ -374,4 +382,147 @@ TEST_CASE("PrimeStage focus visuals have semantic defaults without style opt-in"
     INFO(focusCase.name);
     runFocusCase(focusCase);
   }
+}
+
+TEST_CASE("PrimeStage tabIndex controls deterministic mixed-widget tab order") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 8.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::TextFieldState textState;
+  textState.text = "focus-order";
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Button";
+  buttonSpec.tabIndex = 40;
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  PrimeStage::UiNode button = stack.createButton(buttonSpec);
+
+  PrimeStage::SliderSpec sliderSpec;
+  sliderSpec.tabIndex = 20;
+  sliderSpec.size.preferredWidth = 180.0f;
+  sliderSpec.size.preferredHeight = 20.0f;
+  sliderSpec.trackStyle = 101u;
+  sliderSpec.fillStyle = 102u;
+  sliderSpec.thumbStyle = 103u;
+  PrimeStage::UiNode slider = stack.createSlider(sliderSpec);
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.tabIndex = 30;
+  toggleSpec.size.preferredWidth = 56.0f;
+  toggleSpec.size.preferredHeight = 24.0f;
+  toggleSpec.trackStyle = 201u;
+  toggleSpec.knobStyle = 202u;
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.state = &textState;
+  fieldSpec.tabIndex = 10;
+  fieldSpec.size.preferredWidth = 180.0f;
+  fieldSpec.size.preferredHeight = 28.0f;
+  PrimeStage::UiNode field = stack.createTextField(fieldSpec);
+
+  PrimeStage::DropdownSpec dropdownSpec;
+  dropdownSpec.tabIndex = 50;
+  dropdownSpec.options = {"One", "Two", "Three"};
+  dropdownSpec.size.preferredWidth = 120.0f;
+  dropdownSpec.size.preferredHeight = 28.0f;
+  PrimeStage::UiNode dropdown = stack.createDropdown(dropdownSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::FocusManager focus;
+
+  std::vector<PrimeFrame::NodeId> expected{
+      field.nodeId(), slider.nodeId(), toggle.nodeId(), button.nodeId(), dropdown.nodeId()};
+  for (PrimeFrame::NodeId nodeId : expected) {
+    CHECK(focus.handleTab(frame, layout, true));
+    CHECK(focus.focusedNode() == nodeId);
+  }
+
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == expected.front());
+}
+
+TEST_CASE("PrimeStage tabs tabIndex seeds sequential tab focus order") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 8.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::TabsSpec tabsSpec;
+  tabsSpec.labels = {"Overview", "Assets", "Settings"};
+  tabsSpec.tabIndex = 5;
+  tabsSpec.size.preferredHeight = 28.0f;
+  tabsSpec.tabStyle = 301u;
+  tabsSpec.activeTabStyle = 302u;
+  PrimeStage::UiNode tabs = stack.createTabs(tabsSpec);
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Apply";
+  buttonSpec.tabIndex = 20;
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  PrimeStage::UiNode button = stack.createButton(buttonSpec);
+
+  std::vector<PrimeFrame::NodeId> tabsChildren = childNodes(frame, tabs.nodeId());
+  REQUIRE(tabsChildren.size() == 3u);
+  PrimeFrame::Node const* tab0 = frame.getNode(tabsChildren[0]);
+  PrimeFrame::Node const* tab1 = frame.getNode(tabsChildren[1]);
+  PrimeFrame::Node const* tab2 = frame.getNode(tabsChildren[2]);
+  REQUIRE(tab0 != nullptr);
+  REQUIRE(tab1 != nullptr);
+  REQUIRE(tab2 != nullptr);
+  CHECK(tab0->tabIndex == 5);
+  CHECK(tab1->tabIndex == 6);
+  CHECK(tab2->tabIndex == 7);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::FocusManager focus;
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == tabsChildren[0]);
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == tabsChildren[1]);
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == tabsChildren[2]);
+  CHECK(focus.handleTab(frame, layout, true));
+  CHECK(focus.focusedNode() == button.nodeId());
+}
+
+TEST_CASE("PrimeStage tabIndex values below -1 clamp to auto mode") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::TextFieldState textState;
+  textState.text = "clamp";
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Clamp";
+  buttonSpec.tabIndex = -9;
+  buttonSpec.size.preferredWidth = 100.0f;
+  buttonSpec.size.preferredHeight = 24.0f;
+  PrimeStage::UiNode button = root.createButton(buttonSpec);
+
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.state = &textState;
+  fieldSpec.tabIndex = -4;
+  fieldSpec.size.preferredWidth = 160.0f;
+  fieldSpec.size.preferredHeight = 24.0f;
+  PrimeStage::UiNode field = root.createTextField(fieldSpec);
+
+  PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
+  PrimeFrame::Node const* fieldNode = frame.getNode(field.nodeId());
+  REQUIRE(buttonNode != nullptr);
+  REQUIRE(fieldNode != nullptr);
+  CHECK(buttonNode->tabIndex == -1);
+  CHECK(fieldNode->tabIndex == -1);
 }

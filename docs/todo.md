@@ -126,9 +126,10 @@ Release Exit Criteria (for API-quality milestone):
   - ensure disabled controls are not focusable/clickable and have consistent visuals
   - delivered via widget-spec API updates in `include/PrimeStage/Ui.h`, disabled/read-only interaction + scrim semantics in `src/PrimeStage.cpp`, and regression coverage in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [28] Expose focus-order API at widget level.
+- ☑ [28] Expose focus-order API at widget level.
   - add user-facing `tabIndex`/focus-order controls without requiring direct `PrimeFrame` node access
   - include tests for deterministic tab order across mixed widget sets
+  - delivered via `tabIndex` fields in focusable specs in `include/PrimeStage/Ui.h`, focus-order/clamp wiring in `src/PrimeStage.cpp`, and mixed-widget tab-order regression coverage in `tests/unit/test_focus_widgets.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [29] Define controlled vs uncontrolled widget state model.
   - document when PrimeStage owns transient widget state vs when user code provides it

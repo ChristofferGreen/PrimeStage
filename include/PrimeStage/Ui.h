@@ -124,6 +124,7 @@ struct ButtonSpec {
   float hoverOpacity = 1.0f;
   float pressedOpacity = 1.0f;
   bool enabled = true;
+  int tabIndex = -1;
   ButtonCallbacks callbacks{};
   bool visible = true;
   SizeSpec size;
@@ -190,6 +191,7 @@ struct TextFieldSpec {
   bool handleClipboardShortcuts = true;
   bool setCursorToEndOnFocus = true;
   bool enabled = true;
+  int tabIndex = -1;
   bool readOnly = false;
   bool visible = true;
   SizeSpec size;
@@ -264,6 +266,7 @@ struct ToggleCallbacks {
 struct ToggleSpec {
   bool on = false;
   bool enabled = true;
+  int tabIndex = -1;
   ToggleCallbacks callbacks{};
   float knobInset = 2.0f;
   PrimeFrame::RectStyleToken trackStyle = 0;
@@ -284,6 +287,7 @@ struct CheckboxSpec {
   std::string_view label;
   bool checked = false;
   bool enabled = true;
+  int tabIndex = -1;
   CheckboxCallbacks callbacks{};
   float boxSize = 16.0f;
   float checkInset = 3.0f;
@@ -309,6 +313,7 @@ struct SliderCallbacks {
 struct SliderSpec {
   float value = 0.0f;
   bool enabled = true;
+  int tabIndex = -1;
   bool vertical = false;
   float trackThickness = 6.0f;
   float thumbSize = 14.0f;
@@ -339,6 +344,7 @@ struct TabsSpec {
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
   bool enabled = true;
+  int tabIndex = -1;
   TabsCallbacks callbacks{};
   float tabPaddingX = 12.0f;
   float tabPaddingY = 6.0f;
@@ -364,6 +370,7 @@ struct DropdownSpec {
   std::vector<std::string_view> options;
   int selectedIndex = 0;
   bool enabled = true;
+  int tabIndex = -1;
   DropdownCallbacks callbacks{};
   std::string_view label;
   std::string_view indicator = "v";
@@ -384,6 +391,7 @@ struct DropdownSpec {
 struct ProgressBarSpec {
   float value = 0.0f;
   float minFillWidth = 0.0f;
+  int tabIndex = -1;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken fillStyle = 0;
@@ -457,6 +465,7 @@ struct TableSpec {
   PrimeFrame::RectStyleOverride focusStyleOverride{};
   int selectedRow = -1;
   bool enabled = true;
+  int tabIndex = -1;
   bool showHeaderDividers = true;
   bool showColumnDividers = true;
   bool clipChildren = true;
@@ -514,6 +523,7 @@ struct TreeViewSpec {
   float selectionAccentWidth = 3.0f;
   float doubleClickMs = 350.0f;
   bool enabled = true;
+  int tabIndex = -1;
   bool keyboardNavigation = true;
   bool showHeaderDivider = false;
   float headerDividerY = 0.0f;

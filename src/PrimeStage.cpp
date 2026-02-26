@@ -249,6 +249,12 @@ int clamp_selected_row_or_none(int value, int count, char const* context, char c
   return value;
 }
 
+int clamp_tab_index(int value, char const* context, char const* field) {
+  int adjusted = std::max(value, -1);
+  report_validation_int(context, field, value, adjusted);
+  return adjusted;
+}
+
 uint32_t clamp_text_index(uint32_t value,
                           uint32_t maxValue,
                           char const* context,
@@ -2033,6 +2039,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   spec.baseOpacity = clamp_unit_interval(spec.baseOpacity, "ButtonSpec", "baseOpacity");
   spec.hoverOpacity = clamp_unit_interval(spec.hoverOpacity, "ButtonSpec", "hoverOpacity");
   spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ButtonSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
@@ -2252,6 +2259,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
     node->focusable = enabled;
     node->hitTestVisible = enabled;
+    node->tabIndex = enabled ? spec.tabIndex : -1;
   }
 
   if (focusOverlay.has_value()) {
@@ -2281,6 +2289,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                           0);
     spec.cursorBlinkInterval = std::chrono::milliseconds(0);
   }
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "TextFieldSpec", "tabIndex");
   bool enabled = spec.enabled;
   bool readOnly = spec.readOnly;
 
@@ -2911,6 +2920,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
     node->focusable = canFocus;
     node->hitTestVisible = enabled;
+    node->tabIndex = canFocus ? spec.tabIndex : -1;
   }
 
   if (focusOverlay.has_value()) {
@@ -3490,6 +3500,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   ToggleSpec spec = specInput;
   sanitize_size_spec(spec.size, "ToggleSpec.size");
   spec.knobInset = clamp_non_negative(spec.knobInset, "ToggleSpec", "knobInset");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ToggleSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
@@ -3605,6 +3616,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
     node->focusable = enabled;
     node->hitTestVisible = enabled;
+    node->tabIndex = enabled ? spec.tabIndex : -1;
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), toggle.nodeId(), *focusOverlay);
@@ -3627,6 +3639,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   spec.boxSize = clamp_non_negative(spec.boxSize, "CheckboxSpec", "boxSize");
   spec.checkInset = clamp_non_negative(spec.checkInset, "CheckboxSpec", "checkInset");
   spec.gap = clamp_non_negative(spec.gap, "CheckboxSpec", "gap");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "CheckboxSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
@@ -3763,6 +3776,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
     node->focusable = enabled;
     node->hitTestVisible = enabled;
+    node->tabIndex = enabled ? spec.tabIndex : -1;
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), row.nodeId(), *focusOverlay);
@@ -3797,6 +3811,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       clamp_optional_unit_interval(spec.thumbHoverOpacity, "SliderSpec", "thumbHoverOpacity");
   spec.thumbPressedOpacity =
       clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "SliderSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   Rect bounds = resolve_rect(spec.size);
@@ -3940,6 +3955,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
     node->focusable = enabled;
     node->hitTestVisible = enabled;
+    node->tabIndex = enabled ? spec.tabIndex : -1;
   }
 
   if (wantsInteraction) {
@@ -4149,6 +4165,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
   spec.tabPaddingX = clamp_non_negative(spec.tabPaddingX, "TabsSpec", "tabPaddingX");
   spec.tabPaddingY = clamp_non_negative(spec.tabPaddingY, "TabsSpec", "tabPaddingY");
   spec.gap = clamp_non_negative(spec.gap, "TabsSpec", "gap");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "TabsSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   int tabCount = static_cast<int>(spec.labels.size());
@@ -4232,6 +4249,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     }
     tabNode->focusable = spec.visible && enabled;
     tabNode->hitTestVisible = enabled;
+    tabNode->tabIndex = (enabled && spec.tabIndex >= 0) ? (spec.tabIndex + tabIndex) : -1;
     if (!spec.visible || !enabled) {
       continue;
     }
@@ -4345,6 +4363,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   sanitize_size_spec(spec.size, "DropdownSpec.size");
   spec.paddingX = clamp_non_negative(spec.paddingX, "DropdownSpec", "paddingX");
   spec.indicatorGap = clamp_non_negative(spec.indicatorGap, "DropdownSpec", "indicatorGap");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "DropdownSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   int optionCount = static_cast<int>(spec.options.size());
@@ -4429,6 +4448,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   if (dropdownNode) {
     dropdownNode->focusable = enabled;
     dropdownNode->hitTestVisible = enabled;
+    dropdownNode->tabIndex = enabled ? spec.tabIndex : -1;
   }
   if (dropdownNode && enabled) {
     struct DropdownState {
@@ -4536,6 +4556,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   sanitize_size_spec(spec.size, "ProgressBarSpec.size");
   spec.value = clamp_unit_interval(spec.value, "ProgressBarSpec", "value");
   spec.minFillWidth = clamp_non_negative(spec.minFillWidth, "ProgressBarSpec", "minFillWidth");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ProgressBarSpec", "tabIndex");
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -4565,6 +4586,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   }
   if (PrimeFrame::Node* node = frame().getNode(bar.nodeId())) {
     node->focusable = true;
+    node->tabIndex = spec.tabIndex;
   }
 
   float t = std::clamp(spec.value, 0.0f, 1.0f);
@@ -4620,6 +4642,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
                                                 static_cast<int>(spec.rows.size()),
                                                 "TableSpec",
                                                 "selectedRow");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "TableSpec", "tabIndex");
   bool enabled = spec.enabled;
 
   PrimeFrame::NodeId id_ = nodeId();
@@ -4681,6 +4704,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     if (PrimeFrame::Node* node = frame().getNode(tableRoot.nodeId())) {
       node->focusable = enabled;
       node->hitTestVisible = enabled;
+      node->tabIndex = enabled ? spec.tabIndex : -1;
     }
   }
 
@@ -5126,17 +5150,19 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
 
 
 UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
-  bool enabled = spec.enabled;
+  TreeViewSpec normalized = spec;
+  normalized.tabIndex = clamp_tab_index(normalized.tabIndex, "TreeViewSpec", "tabIndex");
+  bool enabled = normalized.enabled;
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
 
   std::vector<FlatTreeRow> rows;
   std::vector<int> depthStack;
   std::vector<uint32_t> pathStack;
-  flatten_tree(spec.nodes, 0, depthStack, pathStack, rows);
+  flatten_tree(normalized.nodes, 0, depthStack, pathStack, rows);
 
   float rowsHeight = rows.empty()
-                         ? spec.rowHeight
+                         ? normalized.rowHeight
                          : static_cast<float>(rows.size()) * spec.rowHeight +
                                static_cast<float>(rows.size() - 1) * spec.rowGap;
 
@@ -5152,14 +5178,15 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   }
 
-  Rect bounds = resolve_rect(spec.size);
+  Rect bounds = resolve_rect(normalized.size);
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     float maxLabelWidth = 0.0f;
     for (FlatTreeRow const& row : rows) {
-      PrimeFrame::TextStyleToken role = row.selected ? spec.selectedTextStyle : spec.textStyle;
+      PrimeFrame::TextStyleToken role = row.selected ? normalized.selectedTextStyle
+                                                     : normalized.textStyle;
       float textWidth = estimate_text_width(frame(), role, row.label);
       float indent = row.depth > 0 ? spec.indent * static_cast<float>(row.depth) : 0.0f;
-      float contentWidth = spec.rowWidthInset + 20.0f + indent + textWidth;
+      float contentWidth = normalized.rowWidthInset + 20.0f + indent + textWidth;
       if (contentWidth > maxLabelWidth) {
         maxLabelWidth = contentWidth;
       }
@@ -5168,7 +5195,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       bounds.width = maxLabelWidth;
     }
     if (bounds.height <= 0.0f) {
-      bounds.height = spec.rowStartY + rowsHeight;
+      bounds.height = normalized.rowStartY + rowsHeight;
     }
   }
 
@@ -5176,7 +5203,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     return UiNode(frame(), id_, allowAbsolute_);
   }
 
-  SizeSpec treeSize = spec.size;
+  SizeSpec treeSize = normalized.size;
   if (!treeSize.preferredWidth.has_value() && bounds.width > 0.0f && treeSize.stretchX <= 0.0f) {
     treeSize.preferredWidth = bounds.width;
   }
@@ -5187,34 +5214,34 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   StackSpec treeSpec;
   treeSpec.size = treeSize;
   treeSpec.gap = 0.0f;
-  treeSpec.clipChildren = spec.clipChildren;
+  treeSpec.clipChildren = normalized.clipChildren;
   treeSpec.padding.left = 0.0f;
-  treeSpec.padding.top = spec.rowStartY;
+  treeSpec.padding.top = normalized.rowStartY;
   treeSpec.padding.right = 0.0f;
-  treeSpec.visible = spec.visible;
+  treeSpec.visible = normalized.visible;
   UiNode parentNode(frame(), id_, allowAbsolute_);
   UiNode treeNode = parentNode.createOverlay(treeSpec);
 
   float rowWidth = std::max(0.0f, bounds.width);
-  float rowTextHeight = resolve_line_height(frame(), spec.textStyle);
-  float selectedTextHeight = resolve_line_height(frame(), spec.selectedTextStyle);
-  float caretBaseX = std::max(0.0f, spec.caretBaseX);
-  float viewportHeight = std::max(0.0f, bounds.height - spec.rowStartY);
+  float rowTextHeight = resolve_line_height(frame(), normalized.textStyle);
+  float selectedTextHeight = resolve_line_height(frame(), normalized.selectedTextStyle);
+  float caretBaseX = std::max(0.0f, normalized.caretBaseX);
+  float viewportHeight = std::max(0.0f, bounds.height - normalized.rowStartY);
 
   StackSpec rowsSpec;
   rowsSpec.size.stretchX = 1.0f;
-  rowsSpec.size.stretchY = spec.size.stretchY;
+  rowsSpec.size.stretchY = normalized.size.stretchY;
   rowsSpec.size.preferredWidth = rowWidth;
   rowsSpec.size.preferredHeight = viewportHeight;
   rowsSpec.gap = spec.rowGap;
-  rowsSpec.clipChildren = spec.clipChildren;
-  rowsSpec.visible = spec.visible;
+  rowsSpec.clipChildren = normalized.clipChildren;
+  rowsSpec.visible = normalized.visible;
 
-  if (spec.showHeaderDivider && spec.visible) {
-    float dividerY = spec.headerDividerY;
+  if (normalized.showHeaderDivider && normalized.visible) {
+    float dividerY = normalized.headerDividerY;
     add_divider_rect(frame(), treeNode.nodeId(),
-                     Rect{0.0f, dividerY, rowWidth, spec.connectorThickness},
-                     spec.connectorStyle);
+                     Rect{0.0f, dividerY, rowWidth, normalized.connectorThickness},
+                     normalized.connectorStyle);
   }
 
   struct TreeViewRowVisual {
@@ -5272,25 +5299,25 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
   auto interaction = std::make_shared<TreeViewInteractionState>();
   interaction->frame = &frame();
-  interaction->callbacks = spec.callbacks;
+  interaction->callbacks = normalized.callbacks;
   interaction->doubleClickThreshold =
-      std::chrono::duration<double, std::milli>(std::max(0.0f, spec.doubleClickMs));
+      std::chrono::duration<double, std::milli>(std::max(0.0f, normalized.doubleClickMs));
   interaction->rows.reserve(rows.size());
   interaction->viewportHeight = viewportHeight;
   interaction->contentHeight = rowsHeight;
   interaction->maxScroll = std::max(0.0f, rowsHeight - viewportHeight);
   interaction->scrollEnabled = interaction->maxScroll > 0.0f;
-  float initialProgress = std::clamp(spec.scrollBar.thumbProgress, 0.0f, 1.0f);
+  float initialProgress = std::clamp(normalized.scrollBar.thumbProgress, 0.0f, 1.0f);
   if (!interaction->scrollEnabled) {
     initialProgress = 0.0f;
   }
   interaction->scrollOffset = initialProgress * interaction->maxScroll;
-  interaction->scrollTrackBaseOverride = spec.scrollBar.trackStyleOverride;
-  interaction->scrollThumbBaseOverride = spec.scrollBar.thumbStyleOverride;
-  interaction->scrollTrackHoverOpacity = spec.scrollBar.trackHoverOpacity;
-  interaction->scrollTrackPressedOpacity = spec.scrollBar.trackPressedOpacity;
-  interaction->scrollThumbHoverOpacity = spec.scrollBar.thumbHoverOpacity;
-  interaction->scrollThumbPressedOpacity = spec.scrollBar.thumbPressedOpacity;
+  interaction->scrollTrackBaseOverride = normalized.scrollBar.trackStyleOverride;
+  interaction->scrollThumbBaseOverride = normalized.scrollBar.thumbStyleOverride;
+  interaction->scrollTrackHoverOpacity = normalized.scrollBar.trackHoverOpacity;
+  interaction->scrollTrackPressedOpacity = normalized.scrollBar.trackPressedOpacity;
+  interaction->scrollThumbHoverOpacity = normalized.scrollBar.thumbHoverOpacity;
+  interaction->scrollThumbPressedOpacity = normalized.scrollBar.thumbPressedOpacity;
 
   UiNode rowsNode = treeNode.createVerticalStack(rowsSpec);
   interaction->viewportNode = rowsNode.nodeId();
@@ -5420,7 +5447,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   };
 
-  auto ensureRowVisible = [interaction, applyScroll, rowHeight = spec.rowHeight, rowGap = spec.rowGap](int rowIndex) {
+  auto ensureRowVisible = [interaction,
+                           applyScroll,
+                           rowHeight = normalized.rowHeight,
+                           rowGap = normalized.rowGap](int rowIndex) {
     if (!interaction->scrollEnabled) {
       return;
     }
@@ -5513,17 +5543,18 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
   for (size_t i = 0; i < rows.size(); ++i) {
     FlatTreeRow const& row = rows[i];
-    PrimeFrame::RectStyleToken baseRole = (i % 2 == 0 ? spec.rowAltStyle : spec.rowStyle);
-    PrimeFrame::RectStyleToken rowRole = row.selected ? spec.selectionStyle : baseRole;
+    PrimeFrame::RectStyleToken baseRole =
+        (i % 2 == 0 ? normalized.rowAltStyle : normalized.rowStyle);
+    PrimeFrame::RectStyleToken rowRole = row.selected ? normalized.selectionStyle : baseRole;
 
     PanelSpec rowPanel;
     rowPanel.rectStyle = rowRole;
     rowPanel.layout = PrimeFrame::LayoutType::Overlay;
-    rowPanel.size.preferredHeight = spec.rowHeight;
+    rowPanel.size.preferredHeight = normalized.rowHeight;
     rowPanel.size.preferredWidth = rowWidth;
     rowPanel.size.stretchX = 1.0f;
     rowPanel.clipChildren = false;
-    rowPanel.visible = spec.visible;
+    rowPanel.visible = normalized.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
     PrimeFrame::NodeId rowId = rowNode.nodeId();
     PrimeFrame::PrimitiveId backgroundPrim = 0;
@@ -5533,11 +5564,11 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       }
     }
 
-    if (spec.showConnectors && row.depth > 0 && spec.visible) {
-      float halfThickness = spec.connectorThickness * 0.5f;
-      float rowCenterY = spec.rowHeight * 0.5f;
-      float rowTop = -spec.rowGap * 0.5f;
-      float rowBottom = spec.rowHeight + spec.rowGap * 0.5f;
+    if (normalized.showConnectors && row.depth > 0 && normalized.visible) {
+      float halfThickness = normalized.connectorThickness * 0.5f;
+      float rowCenterY = normalized.rowHeight * 0.5f;
+      float rowTop = -normalized.rowGap * 0.5f;
+      float rowBottom = normalized.rowHeight + normalized.rowGap * 0.5f;
 
       auto draw_trunk_segment = [&](size_t depthIndex, int ancestorIndex) {
         if (ancestorIndex < 0) {
@@ -5556,8 +5587,8 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
             (static_cast<int>(i) < first || static_cast<int>(i) > last)) {
           return;
         }
-        float trunkX = caretBaseX + static_cast<float>(depthIndex) * spec.indent +
-                       spec.caretSize * 0.5f;
+        float trunkX = caretBaseX + static_cast<float>(depthIndex) * normalized.indent +
+                       normalized.caretSize * 0.5f;
         float segmentTop = rowTop;
         float segmentBottom = rowBottom;
         if (static_cast<int>(i) == ancestorIndex) {
@@ -5568,10 +5599,11 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
         }
         if (segmentBottom > segmentTop + 0.5f) {
           add_divider_rect(frame(), rowNode.nodeId(),
-                           Rect{trunkX - halfThickness, segmentTop - halfThickness,
-                                  spec.connectorThickness,
-                                  (segmentBottom - segmentTop) + spec.connectorThickness},
-                           spec.connectorStyle);
+                           Rect{trunkX - halfThickness,
+                                segmentTop - halfThickness,
+                                normalized.connectorThickness,
+                                (segmentBottom - segmentTop) + normalized.connectorThickness},
+                           normalized.connectorStyle);
         }
       };
 
@@ -5584,40 +5616,42 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
       int parentIndex = row.parentIndex;
       if (parentIndex >= 0) {
-        float trunkX = caretBaseX + static_cast<float>(row.depth - 1) * spec.indent +
-                       spec.caretSize * 0.5f;
-        float childTrunkX = caretBaseX + static_cast<float>(row.depth) * spec.indent +
-                            spec.caretSize * 0.5f;
+        float trunkX = caretBaseX + static_cast<float>(row.depth - 1) * normalized.indent +
+                       normalized.caretSize * 0.5f;
+        float childTrunkX = caretBaseX + static_cast<float>(row.depth) * normalized.indent +
+                            normalized.caretSize * 0.5f;
         float linkStartX = trunkX - halfThickness;
         float linkEndX = childTrunkX + halfThickness;
         float linkW = linkEndX - linkStartX;
         if (linkW > 0.5f) {
           add_divider_rect(frame(), rowNode.nodeId(),
-                           Rect{linkStartX, rowCenterY - halfThickness,
-                                  linkW, spec.connectorThickness},
-                           spec.connectorStyle);
+                           Rect{linkStartX,
+                                rowCenterY - halfThickness,
+                                linkW,
+                                normalized.connectorThickness},
+                           normalized.connectorStyle);
         }
       }
     }
 
-    float indent = (row.depth > 0) ? spec.indent * static_cast<float>(row.depth) : 0.0f;
+    float indent = (row.depth > 0) ? normalized.indent * static_cast<float>(row.depth) : 0.0f;
     float glyphX = caretBaseX + indent;
-    float glyphY = (spec.rowHeight - spec.caretSize) * 0.5f;
+    float glyphY = (normalized.rowHeight - normalized.caretSize) * 0.5f;
 
     PrimeFrame::PrimitiveId maskPrim = 0;
     bool hasMask = false;
-    if (spec.showCaretMasks && row.depth > 0 && spec.visible) {
-      float maskPad = spec.caretMaskPad;
+    if (normalized.showCaretMasks && row.depth > 0 && normalized.visible) {
+      float maskPad = normalized.caretMaskPad;
       PrimeFrame::NodeId maskId = create_rect_node(frame(),
                                                    rowId,
                                                    Rect{glyphX - maskPad,
                                                         glyphY - maskPad,
-                                                        spec.caretSize + maskPad * 2.0f,
-                                                        spec.caretSize + maskPad * 2.0f},
+                                                        normalized.caretSize + maskPad * 2.0f,
+                                                        normalized.caretSize + maskPad * 2.0f},
                                                    rowRole,
                                                    {},
                                                    false,
-                                                   spec.visible);
+                                                   normalized.visible);
       if (PrimeFrame::Node* maskNode = frame().getNode(maskId)) {
         if (!maskNode->primitives.empty()) {
           maskPrim = maskNode->primitives.front();
@@ -5629,61 +5663,63 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     if (row.hasChildren) {
       create_rect_node(frame(),
                        rowId,
-                       Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
-                       spec.caretBackgroundStyle,
+                       Rect{glyphX, glyphY, normalized.caretSize, normalized.caretSize},
+                       normalized.caretBackgroundStyle,
                        {},
                        false,
-                       spec.visible);
+                       normalized.visible);
 
       create_rect_node(frame(),
                        rowId,
-                       Rect{glyphX + spec.caretInset,
-                            glyphY + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
-                            spec.caretSize - spec.caretInset * 2.0f,
-                            spec.caretThickness},
-                       spec.caretLineStyle,
+                       Rect{glyphX + normalized.caretInset,
+                            glyphY + normalized.caretSize * 0.5f - normalized.caretThickness * 0.5f,
+                            normalized.caretSize - normalized.caretInset * 2.0f,
+                            normalized.caretThickness},
+                       normalized.caretLineStyle,
                        {},
                        false,
-                       spec.visible);
+                       normalized.visible);
       if (!row.expanded) {
         create_rect_node(frame(),
                          rowId,
-                         Rect{glyphX + spec.caretSize * 0.5f - spec.caretThickness * 0.5f,
-                              glyphY + spec.caretInset,
-                              spec.caretThickness,
-                              spec.caretSize - spec.caretInset * 2.0f},
-                         spec.caretLineStyle,
+                         Rect{glyphX + normalized.caretSize * 0.5f -
+                                  normalized.caretThickness * 0.5f,
+                              glyphY + normalized.caretInset,
+                              normalized.caretThickness,
+                              normalized.caretSize - normalized.caretInset * 2.0f},
+                         normalized.caretLineStyle,
                          {},
                          false,
-                         spec.visible);
+                         normalized.visible);
       }
     } else {
       create_rect_node(frame(),
                        rowId,
-                       Rect{glyphX, glyphY, spec.caretSize, spec.caretSize},
-                       spec.caretBackgroundStyle,
+                       Rect{glyphX, glyphY, normalized.caretSize, normalized.caretSize},
+                       normalized.caretBackgroundStyle,
                        {},
                        false,
-                       spec.visible);
+                       normalized.visible);
 
-      float dot = std::max(2.0f, spec.caretThickness);
+      float dot = std::max(2.0f, normalized.caretThickness);
       create_rect_node(frame(),
                        rowId,
-                       Rect{glyphX + spec.caretSize * 0.5f - dot * 0.5f,
-                            glyphY + spec.caretSize * 0.5f - dot * 0.5f,
+                       Rect{glyphX + normalized.caretSize * 0.5f - dot * 0.5f,
+                            glyphY + normalized.caretSize * 0.5f - dot * 0.5f,
                             dot,
                             dot},
-                       spec.caretLineStyle,
+                       normalized.caretLineStyle,
                        {},
                        false,
-                       spec.visible);
+                       normalized.visible);
     }
 
-    float textX = spec.rowStartX + 20.0f + indent;
-    PrimeFrame::TextStyleToken textRole = row.selected ? spec.selectedTextStyle : spec.textStyle;
+    float textX = normalized.rowStartX + 20.0f + indent;
+    PrimeFrame::TextStyleToken textRole =
+        row.selected ? normalized.selectedTextStyle : normalized.textStyle;
     float lineHeight = row.selected ? selectedTextHeight : rowTextHeight;
-    float textY = (spec.rowHeight - lineHeight) * 0.5f;
-    float labelWidth = std::max(0.0f, rowWidth - spec.rowWidthInset - textX);
+    float textY = (normalized.rowHeight - lineHeight) * 0.5f;
+    float labelWidth = std::max(0.0f, rowWidth - normalized.rowWidthInset - textX);
     PrimeFrame::NodeId labelId = create_text_node(frame(),
                                                   rowId,
                                                   Rect{textX, textY, labelWidth, lineHeight},
@@ -5693,7 +5729,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                                                   PrimeFrame::TextAlign::Start,
                                                   PrimeFrame::WrapMode::None,
                                                   labelWidth,
-                                                  spec.visible);
+                                                  normalized.visible);
     PrimeFrame::PrimitiveId labelPrim = 0;
     if (PrimeFrame::Node* labelNode = frame().getNode(labelId)) {
       if (!labelNode->primitives.empty()) {
@@ -5703,18 +5739,23 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
     PrimeFrame::PrimitiveId accentPrim = 0;
     bool hasAccent = false;
-    if (spec.selectionAccentWidth > 0.0f && spec.selectionAccentStyle != 0 && spec.visible) {
+    if (normalized.selectionAccentWidth > 0.0f &&
+        normalized.selectionAccentStyle != 0 &&
+        normalized.visible) {
       PrimeFrame::RectStyleOverride accentOverride;
       if (!row.selected) {
         accentOverride.opacity = 0.0f;
       }
       PrimeFrame::NodeId accentId = create_rect_node(frame(),
                                                      rowId,
-                                                     Rect{0.0f, 0.0f, spec.selectionAccentWidth, spec.rowHeight},
-                                                     spec.selectionAccentStyle,
+                                                     Rect{0.0f,
+                                                          0.0f,
+                                                          normalized.selectionAccentWidth,
+                                                          normalized.rowHeight},
+                                                     normalized.selectionAccentStyle,
                                                      accentOverride,
                                                      false,
-                                                     spec.visible);
+                                                     normalized.visible);
       if (PrimeFrame::Node* accentNode = frame().getNode(accentId)) {
         if (!accentNode->primitives.empty()) {
           accentPrim = accentNode->primitives.front();
@@ -5729,10 +5770,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     visual.mask = maskPrim;
     visual.label = labelPrim;
     visual.baseStyle = baseRole;
-    visual.hoverStyle = spec.hoverStyle;
-    visual.selectionStyle = spec.selectionStyle;
-    visual.textStyle = spec.textStyle;
-    visual.selectedTextStyle = spec.selectedTextStyle;
+    visual.hoverStyle = normalized.hoverStyle;
+    visual.selectionStyle = normalized.selectionStyle;
+    visual.textStyle = normalized.textStyle;
+    visual.selectedTextStyle = normalized.selectedTextStyle;
     visual.hasAccent = hasAccent;
     visual.hasMask = hasMask;
     visual.hasChildren = row.hasChildren;
@@ -5753,7 +5794,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                              rowIndex,
                              glyphX,
                              glyphY,
-                             caretSize = spec.caretSize,
+                             caretSize = normalized.caretSize,
                              updateRowVisual,
                              setHovered,
                              setSelected,
@@ -5819,15 +5860,16 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   }
 
-  bool wantsKeyboard = enabled && spec.keyboardNavigation && !interaction->rows.empty();
+  bool wantsKeyboard = enabled && normalized.keyboardNavigation && !interaction->rows.empty();
   bool wantsPointerScroll = enabled && interaction->scrollEnabled;
-  bool wantsScrollBar = wantsPointerScroll && spec.scrollBar.enabled;
+  bool wantsScrollBar = wantsPointerScroll && normalized.scrollBar.enabled;
   bool treeFocusable = enabled && (!interaction->rows.empty() || wantsKeyboard);
-  if (spec.visible) {
+  if (normalized.visible) {
     PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId());
     if (treeNodePtr) {
       treeNodePtr->focusable = treeFocusable;
       treeNodePtr->hitTestVisible = enabled;
+      treeNodePtr->tabIndex = treeFocusable ? normalized.tabIndex : -1;
       if (wantsKeyboard || wantsPointerScroll) {
         PrimeFrame::Callback keyCallback;
         keyCallback.onEvent = [interaction,
@@ -5836,8 +5878,8 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                                makeRowInfo,
                                scrollBy,
                                lastChild,
-                               rowHeight = spec.rowHeight,
-                               rowGap = spec.rowGap,
+                               rowHeight = normalized.rowHeight,
+                               rowGap = normalized.rowGap,
                                wantsKeyboard,
                                wantsPointerScroll](PrimeFrame::Event const& event) {
         if (wantsPointerScroll && event.type == PrimeFrame::EventType::PointerScroll) {
@@ -5949,18 +5991,18 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
   }
 
-  if (spec.showScrollBar && wantsScrollBar && spec.visible) {
-    float trackX = bounds.width - spec.scrollBar.inset;
-    float trackY = spec.scrollBar.padding;
-    float trackH = std::max(0.0f, bounds.height - spec.scrollBar.padding * 2.0f);
-    float trackW = spec.scrollBar.width;
+  if (normalized.showScrollBar && wantsScrollBar && normalized.visible) {
+    float trackX = bounds.width - normalized.scrollBar.inset;
+    float trackY = normalized.scrollBar.padding;
+    float trackH = std::max(0.0f, bounds.height - normalized.scrollBar.padding * 2.0f);
+    float trackW = normalized.scrollBar.width;
     PrimeFrame::NodeId trackId = create_rect_node(frame(),
                                                   treeNode.nodeId(),
                                                   Rect{trackX, trackY, trackW, trackH},
-                                                  spec.scrollBar.trackStyle,
-                                                  spec.scrollBar.trackStyleOverride,
+                                                  normalized.scrollBar.trackStyle,
+                                                  normalized.scrollBar.trackStyleOverride,
                                                   false,
-                                                  spec.visible);
+                                                  normalized.visible);
     if (PrimeFrame::Node* trackNode = frame().getNode(trackId)) {
       trackNode->hitTestVisible = true;
       if (!trackNode->primitives.empty()) {
@@ -5968,8 +6010,8 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       }
     }
 
-    float thumbFraction = spec.scrollBar.thumbFraction;
-    if (spec.scrollBar.autoThumb) {
+    float thumbFraction = normalized.scrollBar.thumbFraction;
+    if (normalized.scrollBar.autoThumb) {
       if (interaction->contentHeight > 0.0f && viewportHeight > 0.0f) {
         thumbFraction = std::clamp(viewportHeight / interaction->contentHeight, 0.0f, 1.0f);
       } else {
@@ -5978,7 +6020,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     }
 
     float thumbH = trackH * thumbFraction;
-    thumbH = std::max(thumbH, spec.scrollBar.minThumbHeight);
+    thumbH = std::max(thumbH, normalized.scrollBar.minThumbHeight);
     if (thumbH > trackH) {
       thumbH = trackH;
     }
@@ -5990,10 +6032,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     PrimeFrame::NodeId thumbId = create_rect_node(frame(),
                                                   treeNode.nodeId(),
                                                   Rect{trackX, thumbY, trackW, thumbH},
-                                                  spec.scrollBar.thumbStyle,
-                                                  spec.scrollBar.thumbStyleOverride,
+                                                  normalized.scrollBar.thumbStyle,
+                                                  normalized.scrollBar.thumbStyleOverride,
                                                   false,
-                                                  spec.visible);
+                                                  normalized.visible);
     if (PrimeFrame::Node* thumbNode = frame().getNode(thumbId)) {
       thumbNode->hitTestVisible = true;
       if (!thumbNode->primitives.empty()) {
@@ -6100,21 +6142,26 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   }
 
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible && treeFocusable) {
+  if (normalized.visible && treeFocusable) {
     ResolvedFocusStyle focusStyle = resolve_focus_style(
         frame(),
-        spec.focusStyle,
-        spec.focusStyleOverride,
-        {spec.selectionAccentStyle, spec.selectionStyle, spec.hoverStyle, spec.rowStyle, spec.rowAltStyle});
+        normalized.focusStyle,
+        normalized.focusStyleOverride,
+        {normalized.selectionAccentStyle,
+         normalized.selectionStyle,
+         normalized.hoverStyle,
+         normalized.rowStyle,
+         normalized.rowAltStyle});
     Rect overlayRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           treeNode.nodeId(),
                                           overlayRect,
                                           focusStyle.token,
                                           focusStyle.overrideStyle,
-                                          spec.visible);
+                                          normalized.visible);
     if (PrimeFrame::Node* treeNodePtr = frame().getNode(treeNode.nodeId())) {
       treeNodePtr->focusable = true;
+      treeNodePtr->tabIndex = normalized.tabIndex;
     }
   }
   if (focusOverlay.has_value()) {
@@ -6126,7 +6173,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
                             treeNode.nodeId(),
                             Rect{0.0f, 0.0f, bounds.width, bounds.height},
                             DisabledScrimOpacity,
-                            spec.visible);
+                            normalized.visible);
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);
