@@ -506,7 +506,7 @@ void rebuildUi(DemoApp& app) {
   tabsSpec.size.stretchX = 1.0f;
   tabsSpec.size.preferredHeight = 28.0f;
   tabsSpec.visible = true;
-  tabsSpec.onChanged = [&app](int nextIndex) {
+  tabsSpec.callbacks.onTabChanged = [&app](int nextIndex) {
     app.state.tabIndex = nextIndex;
     app.needsRebuild = true;
     app.needsFrame = true;
@@ -847,7 +847,10 @@ void rebuildUi(DemoApp& app) {
       dropdownSpec.focusStyle = RectFieldFocus;
       dropdownSpec.size.preferredWidth = 200.0f;
       dropdownSpec.size.preferredHeight = 28.0f;
-      dropdownSpec.callbacks.onChanged = [&app](int nextIndex) {
+      dropdownSpec.callbacks.onOpened = [&app]() {
+        app.needsFrame = true;
+      };
+      dropdownSpec.callbacks.onSelected = [&app](int nextIndex) {
         app.state.dropdownIndex = nextIndex;
         app.needsRebuild = true;
         app.needsFrame = true;

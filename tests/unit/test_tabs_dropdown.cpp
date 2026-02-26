@@ -180,7 +180,7 @@ TEST_CASE("PrimeStage dropdown with empty label inserts spacer") {
   CHECK(indicatorCount == 1);
 }
 
-TEST_CASE("PrimeStage tabs onChanged supports pointer and keyboard activation") {
+TEST_CASE("PrimeStage tabs onTabChanged supports pointer and keyboard activation") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 280.0f, 100.0f);
 
@@ -195,7 +195,7 @@ TEST_CASE("PrimeStage tabs onChanged supports pointer and keyboard activation") 
   spec.activeTextStyle = 72u;
 
   std::vector<int> selections;
-  spec.onChanged = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode tabs = root.createTabs(spec);
   PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
@@ -237,7 +237,7 @@ TEST_CASE("PrimeStage tabs onChanged supports pointer and keyboard activation") 
   CHECK(selections.back() == 2);
 }
 
-TEST_CASE("PrimeStage dropdown onChanged cycles options with pointer and keyboard") {
+TEST_CASE("PrimeStage dropdown onOpened and onSelected support pointer and keyboard") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 260.0f, 100.0f);
 
@@ -252,8 +252,10 @@ TEST_CASE("PrimeStage dropdown onChanged cycles options with pointer and keyboar
   spec.size.preferredWidth = 180.0f;
   spec.size.preferredHeight = 24.0f;
 
+  int openedCount = 0;
   std::vector<int> selections;
-  spec.callbacks.onChanged = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onOpened = [&]() { openedCount += 1; };
+  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 100.0f);
@@ -273,6 +275,7 @@ TEST_CASE("PrimeStage dropdown onChanged cycles options with pointer and keyboar
                   frame,
                   layout,
                   &focus);
+  CHECK(openedCount == 1);
   REQUIRE(!selections.empty());
   CHECK(selections.back() == 1);
 
@@ -280,11 +283,12 @@ TEST_CASE("PrimeStage dropdown onChanged cycles options with pointer and keyboar
   keySpace.type = PrimeFrame::EventType::KeyDown;
   keySpace.key = 0x2C; // Space
   router.dispatch(keySpace, frame, layout, &focus);
+  CHECK(openedCount == 2);
   REQUIRE(selections.size() >= 2);
   CHECK(selections.back() == 2);
 }
 
-TEST_CASE("PrimeStage dropdown with no options does not emit onChanged") {
+TEST_CASE("PrimeStage dropdown with no options emits onOpened but not onSelected") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 220.0f, 80.0f);
 
@@ -298,8 +302,10 @@ TEST_CASE("PrimeStage dropdown with no options does not emit onChanged") {
   spec.size.preferredWidth = 140.0f;
   spec.size.preferredHeight = 22.0f;
 
-  int changeCount = 0;
-  spec.callbacks.onChanged = [&](int) { changeCount += 1; };
+  int openedCount = 0;
+  int selectedCount = 0;
+  spec.callbacks.onOpened = [&]() { openedCount += 1; };
+  spec.callbacks.onSelected = [&](int) { selectedCount += 1; };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 220.0f, 80.0f);
@@ -324,5 +330,6 @@ TEST_CASE("PrimeStage dropdown with no options does not emit onChanged") {
   keyEnter.key = 0x28; // Enter
   router.dispatch(keyEnter, frame, layout, &focus);
 
-  CHECK(changeCount == 0);
+  CHECK(openedCount == 2);
+  CHECK(selectedCount == 0);
 }

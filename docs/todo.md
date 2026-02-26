@@ -31,9 +31,10 @@ Release Exit Criteria (for API-quality milestone):
   - acceptance: demo widgets no longer manually mutate app state from raw `PrimeFrame::Event` handlers
   - delivered by widget callback/state API updates in `include/PrimeStage/Ui.h`, built-in interaction handling in `src/PrimeStage.cpp`, and demo migration in `examples/primestage_widgets.cpp`
 
-- ☐ [18] Make tabs and dropdown first-class interactive widgets.
+- ☑ [18] Make tabs and dropdown first-class interactive widgets.
   - add explicit callbacks (`onTabChanged`, `onOpened`, `onSelected`) and keyboard behavior
   - avoid attaching external pointer handlers to tab/dropdown child nodes
+  - delivered by explicit callback APIs in `include/PrimeStage/Ui.h`, built-in interaction in `src/PrimeStage.cpp`, and demo/test migrations in `examples/primestage_widgets.cpp` and `tests/unit/test_tabs_dropdown.cpp`
 
 - ☐ [12] Remove `PrimeFrame` callback plumbing from app-level widget usage.
   - provide PrimeStage-level event binding APIs so user code does not mutate node callbacks directly

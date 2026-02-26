@@ -3661,7 +3661,7 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
     };
     auto state = std::make_shared<TabState>();
     PrimeFrame::Callback callback;
-    callback.onEvent = [onChanged = spec.onChanged,
+    callback.onEvent = [callbacks = spec.callbacks,
                         tabIndex,
                         tabCount,
                         state,
@@ -3674,8 +3674,8 @@ UiNode UiNode::createTabs(TabsSpec const& spec) {
           return;
         }
         *sharedSelected = next;
-        if (onChanged) {
-          onChanged(next);
+        if (callbacks.onTabChanged) {
+          callbacks.onTabChanged(next);
         }
       };
       switch (event.type) {
@@ -3843,22 +3843,22 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
     callback.onEvent = [callbacks = spec.callbacks,
                         optionCount,
                         state](PrimeFrame::Event const& event) mutable -> bool {
-      auto select_next = [&]() {
+      auto select_with_step = [&](int step) {
+        if (callbacks.onOpened) {
+          callbacks.onOpened();
+        }
         if (optionCount <= 0) {
           return;
         }
-        state->currentIndex = (state->currentIndex + 1) % optionCount;
-        if (callbacks.onChanged) {
-          callbacks.onChanged(state->currentIndex);
+        int span = optionCount;
+        int index = state->currentIndex + step;
+        index %= span;
+        if (index < 0) {
+          index += span;
         }
-      };
-      auto select_previous = [&]() {
-        if (optionCount <= 0) {
-          return;
-        }
-        state->currentIndex = (state->currentIndex + optionCount - 1) % optionCount;
-        if (callbacks.onChanged) {
-          callbacks.onChanged(state->currentIndex);
+        state->currentIndex = index;
+        if (callbacks.onSelected) {
+          callbacks.onSelected(state->currentIndex);
         }
       };
       switch (event.type) {
@@ -3876,7 +3876,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
           bool fire = state->pressed && is_pointer_inside(event);
           state->pressed = false;
           if (fire) {
-            select_next();
+            select_with_step(1);
           }
           return true;
         }
@@ -3886,11 +3886,11 @@ UiNode UiNode::createDropdown(DropdownSpec const& spec) {
           return true;
         case PrimeFrame::EventType::KeyDown:
           if (is_activation_key(event.key) || event.key == KeyDown) {
-            select_next();
+            select_with_step(1);
             return true;
           }
           if (event.key == KeyUp) {
-            select_previous();
+            select_with_step(-1);
             return true;
           }
           break;

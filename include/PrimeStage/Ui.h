@@ -318,10 +318,14 @@ struct SliderSpec {
   SizeSpec size;
 };
 
+struct TabsCallbacks {
+  std::function<void(int)> onTabChanged;
+};
+
 struct TabsSpec {
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
-  std::function<void(int)> onChanged;
+  TabsCallbacks callbacks{};
   float tabPaddingX = 12.0f;
   float tabPaddingY = 6.0f;
   float gap = 4.0f;
@@ -338,7 +342,8 @@ struct TabsSpec {
 };
 
 struct DropdownCallbacks {
-  std::function<void(int)> onChanged;
+  std::function<void()> onOpened;
+  std::function<void(int)> onSelected;
 };
 
 struct DropdownSpec {
