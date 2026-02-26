@@ -24,6 +24,12 @@ namespace {
 
 constexpr uint32_t KeyEscape = 0x29u;
 constexpr float ScrollLinePixels = 32.0f;
+constexpr std::string_view WidgetIdTextField = "settings.textField";
+constexpr std::string_view WidgetIdTreeView = "assets.treeView";
+constexpr std::string_view WidgetIdToggle = "overview.toggle";
+constexpr std::string_view WidgetIdCheckbox = "overview.checkbox";
+constexpr std::string_view WidgetIdSlider = "settings.slider";
+constexpr std::string_view WidgetIdProgress = "settings.progress";
 
 PrimeFrame::Color makeColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255u) {
   auto toFloat = [](uint8_t value) -> float {
@@ -110,16 +116,6 @@ struct DemoState {
   std::vector<std::string> tabLabels;
 };
 
-enum class RestoreFocusTarget : uint8_t {
-  None,
-  TextField,
-  TreeView,
-  Toggle,
-  Checkbox,
-  Slider,
-  Progress,
-};
-
 struct DemoApp {
   PrimeHost::Host* host = nullptr;
   PrimeHost::SurfaceId surfaceId{};
@@ -132,7 +128,7 @@ struct DemoApp {
   bool needsRebuild = true;
   bool needsLayout = true;
   bool needsFrame = true;
-  RestoreFocusTarget restoreFocusTarget = RestoreFocusTarget::None;
+  PrimeStage::WidgetIdentityReconciler widgetIdentity;
   uint32_t surfaceWidth = 1280u;
   uint32_t surfaceHeight = 720u;
   float surfaceScale = 1.0f;
@@ -142,13 +138,6 @@ struct DemoApp {
   PrimeStage::RenderOptions renderOptions{};
   float lastPointerX = 0.0f;
   float lastPointerY = 0.0f;
-  PrimeFrame::NodeId textFieldNode{};
-  PrimeFrame::NodeId selectableTextNode{};
-  PrimeFrame::NodeId treeViewNode{};
-  PrimeFrame::NodeId toggleNode{};
-  PrimeFrame::NodeId checkboxNode{};
-  PrimeFrame::NodeId sliderNode{};
-  PrimeFrame::NodeId progressNode{};
 };
 
 void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderOptions) {
@@ -386,32 +375,11 @@ void initializeState(DemoState& state) {
 }
 
 void rebuildUi(DemoApp& app) {
-  PrimeFrame::NodeId focusedNode = app.focus.focusedNode();
-  app.restoreFocusTarget = RestoreFocusTarget::None;
-  if (focusedNode == app.textFieldNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::TextField;
-  } else if (focusedNode == app.treeViewNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::TreeView;
-  } else if (focusedNode == app.toggleNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::Toggle;
-  } else if (focusedNode == app.checkboxNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::Checkbox;
-  } else if (focusedNode == app.sliderNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::Slider;
-  } else if (focusedNode == app.progressNode) {
-    app.restoreFocusTarget = RestoreFocusTarget::Progress;
-  }
+  app.widgetIdentity.beginRebuild(app.focus.focusedNode());
 
   app.frame = PrimeFrame::Frame();
   app.router.clearAllCaptures();
   applyDemoTheme(app.frame, app.renderOptions);
-  app.textFieldNode = PrimeFrame::NodeId{};
-  app.selectableTextNode = PrimeFrame::NodeId{};
-  app.treeViewNode = PrimeFrame::NodeId{};
-  app.toggleNode = PrimeFrame::NodeId{};
-  app.checkboxNode = PrimeFrame::NodeId{};
-  app.sliderNode = PrimeFrame::NodeId{};
-  app.progressNode = PrimeFrame::NodeId{};
 
   PrimeFrame::NodeId rootId = app.frame.createNode();
   app.frame.addRoot(rootId);
@@ -649,7 +617,7 @@ void rebuildUi(DemoApp& app) {
         app.needsFrame = true;
       };
       PrimeStage::UiNode toggleNode = toggleRow.createToggle(toggleSpec);
-      app.toggleNode = toggleNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdToggle, toggleNode.nodeId());
 
       PrimeStage::CheckboxSpec checkboxSpec;
       checkboxSpec.label = "Enable notifications";
@@ -664,7 +632,7 @@ void rebuildUi(DemoApp& app) {
         app.needsFrame = true;
       };
       PrimeStage::UiNode checkboxNode = toggleRow.createCheckbox(checkboxSpec);
-      app.checkboxNode = checkboxNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdCheckbox, checkboxNode.nodeId());
       break;
     }
     case 1: {
@@ -735,7 +703,7 @@ void rebuildUi(DemoApp& app) {
         app.needsFrame = true;
       };
       PrimeStage::UiNode treeNode = treeSection.createTreeView(treeSpec);
-      app.treeViewNode = treeNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdTreeView, treeNode.nodeId());
       break;
     }
     case 2: {
@@ -794,7 +762,7 @@ void rebuildUi(DemoApp& app) {
         app.needsFrame = true;
       };
       PrimeStage::UiNode fieldNode = textInputs.createTextField(fieldSpec);
-      app.textFieldNode = fieldNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdTextField, fieldNode.nodeId());
 
       PrimeStage::SelectableTextClipboard selectableClipboard;
       selectableClipboard.setText = [&app](std::string_view text) {
@@ -822,8 +790,7 @@ void rebuildUi(DemoApp& app) {
           app.host->setCursorShape(app.surfaceId, cursorShapeForHint(hint));
         }
       };
-      PrimeStage::UiNode selectableNode = textInputs.createSelectableText(selectableSpec);
-      app.selectableTextNode = selectableNode.nodeId();
+      textInputs.createSelectableText(selectableSpec);
 
       PrimeStage::UiNode navigation = createSection(pageBody, "Dropdown");
 
@@ -873,7 +840,7 @@ void rebuildUi(DemoApp& app) {
         app.needsFrame = true;
       };
       PrimeStage::UiNode sliderNode = ranges.createSlider(sliderSpec);
-      app.sliderNode = sliderNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdSlider, sliderNode.nodeId());
 
       PrimeStage::ProgressBarSpec progressSpec;
       progressSpec.value = app.state.progressValue;
@@ -883,7 +850,7 @@ void rebuildUi(DemoApp& app) {
       progressSpec.size.preferredWidth = 260.0f;
       progressSpec.size.preferredHeight = 12.0f;
       PrimeStage::UiNode progressNode = ranges.createProgressBar(progressSpec);
-      app.progressNode = progressNode.nodeId();
+      app.widgetIdentity.registerNode(WidgetIdProgress, progressNode.nodeId());
       break;
     }
     default: {
@@ -914,36 +881,13 @@ void updateLayoutIfNeeded(DemoApp& app) {
   app.layoutEngine.layout(app.frame, app.layout, options);
   app.focus.updateAfterRebuild(app.frame, app.layout);
 
-  PrimeFrame::NodeId restoreNode{};
-  switch (app.restoreFocusTarget) {
-    case RestoreFocusTarget::TextField:
-      restoreNode = app.textFieldNode;
-      break;
-    case RestoreFocusTarget::TreeView:
-      restoreNode = app.treeViewNode;
-      break;
-    case RestoreFocusTarget::Toggle:
-      restoreNode = app.toggleNode;
-      break;
-    case RestoreFocusTarget::Checkbox:
-      restoreNode = app.checkboxNode;
-      break;
-    case RestoreFocusTarget::Slider:
-      restoreNode = app.sliderNode;
-      break;
-    case RestoreFocusTarget::Progress:
-      restoreNode = app.progressNode;
-      break;
-    case RestoreFocusTarget::None:
-      break;
+  bool restoredFocus = app.widgetIdentity.restoreFocus(app.focus, app.frame, app.layout);
+  if (!restoredFocus && app.state.tabIndex == 1) {
+    PrimeFrame::NodeId treeNode = app.widgetIdentity.findNode(WidgetIdTreeView);
+    if (treeNode.isValid()) {
+      app.focus.setFocus(app.frame, app.layout, treeNode);
+    }
   }
-
-  if (restoreNode.isValid()) {
-    app.focus.setFocus(app.frame, app.layout, restoreNode);
-  } else if (app.state.tabIndex == 1 && app.treeViewNode.isValid()) {
-    app.focus.setFocus(app.frame, app.layout, app.treeViewNode);
-  }
-  app.restoreFocusTarget = RestoreFocusTarget::None;
   app.needsLayout = false;
 }
 

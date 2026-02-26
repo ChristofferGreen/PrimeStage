@@ -28,6 +28,8 @@ What app code should avoid:
 - Pass stable state pointers to stateful widgets (for example `TextFieldState*`).
 - Treat non-stateful widget specs as declarative input for one build pass.
 - Rebuild safely at any time; state must survive scene disposal.
+- Use `WidgetIdentityReconciler` for focus reconciliation across rebuilds instead of ad-hoc
+  node-id tracking enums.
 
 Example (`TextField` with app-owned state):
 
@@ -47,6 +49,26 @@ void buildUi(PrimeStage::UiNode root, AppState& state) {
     state.status = std::string(text);
   };
   root.createTextField(field);
+}
+```
+
+Example (`WidgetIdentityReconciler` around rebuilds):
+
+```cpp
+PrimeStage::WidgetIdentityReconciler widgetIdentity;
+
+void rebuild(App& app) {
+  widgetIdentity.beginRebuild(app.focus.focusedNode());
+  app.frame = PrimeFrame::Frame();
+
+  PrimeStage::UiNode root(app.frame, app.frame.createNode(), true);
+  PrimeStage::UiNode field = root.createTextField(fieldSpec);
+  widgetIdentity.registerNode("settings.field", field.nodeId());
+}
+
+void afterLayout(App& app) {
+  app.focus.updateAfterRebuild(app.frame, app.layout);
+  widgetIdentity.restoreFocus(app.focus, app.frame, app.layout);
 }
 ```
 

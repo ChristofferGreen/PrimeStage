@@ -1,6 +1,7 @@
 #include "PrimeStage/PrimeStage.h"
 #include "PrimeStage/TextSelection.h"
 #include "PrimeFrame/Events.h"
+#include "PrimeFrame/Focus.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1244,6 +1245,58 @@ bool appendNodeOnBlur(PrimeFrame::Frame& frame,
     }
   };
   return true;
+}
+
+void WidgetIdentityReconciler::beginRebuild(PrimeFrame::NodeId focusedNode) {
+  pendingFocusedIdentity_.reset();
+  if (focusedNode.isValid()) {
+    for (Entry const& entry : currentEntries_) {
+      if (entry.nodeId == focusedNode) {
+        pendingFocusedIdentity_ = entry.identity;
+        break;
+      }
+    }
+  }
+  currentEntries_.clear();
+}
+
+void WidgetIdentityReconciler::registerNode(std::string_view identity, PrimeFrame::NodeId nodeId) {
+  if (!nodeId.isValid() || identity.empty()) {
+    return;
+  }
+  for (Entry& entry : currentEntries_) {
+    if (entry.identity == identity) {
+      entry.nodeId = nodeId;
+      return;
+    }
+  }
+  Entry entry;
+  entry.identity = std::string(identity);
+  entry.nodeId = nodeId;
+  currentEntries_.push_back(std::move(entry));
+}
+
+PrimeFrame::NodeId WidgetIdentityReconciler::findNode(std::string_view identity) const {
+  for (Entry const& entry : currentEntries_) {
+    if (entry.identity == identity) {
+      return entry.nodeId;
+    }
+  }
+  return PrimeFrame::NodeId{};
+}
+
+bool WidgetIdentityReconciler::restoreFocus(PrimeFrame::FocusManager& focus,
+                                            PrimeFrame::Frame const& frame,
+                                            PrimeFrame::LayoutOutput const& layout) {
+  if (!pendingFocusedIdentity_.has_value()) {
+    return false;
+  }
+  PrimeFrame::NodeId nodeId = findNode(*pendingFocusedIdentity_);
+  pendingFocusedIdentity_.reset();
+  if (!nodeId.isValid()) {
+    return false;
+  }
+  return focus.setFocus(frame, layout, nodeId);
 }
 
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)

@@ -7,8 +7,14 @@
 #include <functional>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
+
+namespace PrimeFrame {
+class FocusManager;
+struct LayoutOutput;
+} // namespace PrimeFrame
 
 namespace PrimeStage {
 
@@ -563,6 +569,25 @@ bool appendNodeOnFocus(PrimeFrame::Frame& frame,
 bool appendNodeOnBlur(PrimeFrame::Frame& frame,
                       PrimeFrame::NodeId nodeId,
                       std::function<void()> onBlur);
+
+class WidgetIdentityReconciler {
+public:
+  void beginRebuild(PrimeFrame::NodeId focusedNode);
+  void registerNode(std::string_view identity, PrimeFrame::NodeId nodeId);
+  PrimeFrame::NodeId findNode(std::string_view identity) const;
+  bool restoreFocus(PrimeFrame::FocusManager& focus,
+                    PrimeFrame::Frame const& frame,
+                    PrimeFrame::LayoutOutput const& layout);
+
+private:
+  struct Entry {
+    std::string identity;
+    PrimeFrame::NodeId nodeId{};
+  };
+
+  std::vector<Entry> currentEntries_;
+  std::optional<std::string> pendingFocusedIdentity_;
+};
 
 struct ScrollView;
 

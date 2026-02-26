@@ -46,9 +46,10 @@ Release Exit Criteria (for API-quality milestone):
   - avoid ad-hoc callback composition in app code
   - delivered via `appendNodeOnEvent`, `appendNodeOnFocus`, and `appendNodeOnBlur` in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp` with regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [13] Add stable widget identity and reconciliation support.
+- ☑ [13] Add stable widget identity and reconciliation support.
   - preserve focus/selection/caret across rebuilds without manual restore bookkeeping
   - acceptance: remove manual focus-target restore state from `examples/primestage_widgets.cpp`
+  - delivered via `WidgetIdentityReconciler` in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp`, demo migration in `examples/primestage_widgets.cpp`, and regression coverage in `tests/unit/test_widget_identity.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [17] Guarantee focus-ring compositing order.
   - ensure focus visuals render last/on top of selection/highlight primitives for all widgets
