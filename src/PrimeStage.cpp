@@ -35,7 +35,6 @@ struct Rect {
 
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
-constexpr float DefaultParagraphWrapWidth = 360.0f;
 constexpr float DefaultSelectableTextWrapWidth = 360.0f;
 constexpr float DefaultScrollViewWidth = 320.0f;
 constexpr float DefaultScrollViewHeight = 180.0f;
@@ -1080,82 +1079,6 @@ float estimate_text_width(PrimeFrame::Frame& frame,
   return maxWidth;
 }
 
-std::vector<std::string> wrap_text_lines(PrimeFrame::Frame& frame,
-                                         PrimeFrame::TextStyleToken token,
-                                         std::string_view text,
-                                         float maxWidth,
-                                         PrimeFrame::WrapMode wrap) {
-  std::vector<std::string> lines;
-  if (text.empty()) {
-    return lines;
-  }
-
-  if (maxWidth <= 0.0f || wrap == PrimeFrame::WrapMode::None) {
-    std::string current;
-    for (char ch : text) {
-      if (ch == '\n') {
-        lines.push_back(current);
-        current.clear();
-        continue;
-      }
-      current.push_back(ch);
-    }
-    if (!current.empty() || (!text.empty() && text.back() == '\n')) {
-      lines.push_back(current);
-    }
-    return lines;
-  }
-
-  float spaceWidth = estimate_text_width(frame, token, " ");
-  float lineWidth = 0.0f;
-  std::string current;
-  std::string word;
-  bool wrapByChar = wrap == PrimeFrame::WrapMode::Character;
-
-  auto flush_word = [&]() {
-    if (word.empty()) {
-      return;
-    }
-    float wordWidth = estimate_text_width(frame, token, word);
-    if (!current.empty() && lineWidth + spaceWidth + wordWidth > maxWidth) {
-      lines.push_back(current);
-      current.clear();
-      lineWidth = 0.0f;
-    }
-    if (!current.empty()) {
-      current.push_back(' ');
-      lineWidth += spaceWidth;
-    }
-    current += word;
-    lineWidth += wordWidth;
-    word.clear();
-  };
-
-  for (char ch : text) {
-    if (ch == '\n') {
-      flush_word();
-      lines.push_back(current);
-      current.clear();
-      lineWidth = 0.0f;
-      continue;
-    }
-    if (std::isspace(static_cast<unsigned char>(ch))) {
-      flush_word();
-      continue;
-    }
-    word.push_back(ch);
-    if (wrapByChar) {
-      flush_word();
-    }
-  }
-  flush_word();
-  if (!current.empty()) {
-    lines.push_back(current);
-  }
-
-  return lines;
-}
-
 } // namespace
 
 namespace Internal {
@@ -1386,6 +1309,14 @@ LabelSpec normalizeLabelSpec(LabelSpec const& specInput) {
   LabelSpec spec = specInput;
   sanitize_size_spec(spec.size, "LabelSpec.size");
   spec.maxWidth = clamp_non_negative(spec.maxWidth, "LabelSpec", "maxWidth");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
+  return spec;
+}
+
+ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput) {
+  ParagraphSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ParagraphSpec.size");
+  spec.maxWidth = clamp_non_negative(spec.maxWidth, "ParagraphSpec", "maxWidth");
   apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
   return spec;
 }
@@ -2438,99 +2369,6 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
   return createPanel(spec);
 }
 
-
-UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
-  ParagraphSpec spec = specInput;
-  sanitize_size_spec(spec.size, "ParagraphSpec.size");
-  spec.maxWidth = clamp_non_negative(spec.maxWidth, "ParagraphSpec", "maxWidth");
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
-
-  Rect bounds = resolve_rect(spec.size);
-  PrimeFrame::TextStyleToken token = spec.textStyle;
-  float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
-  if (maxWidth <= 0.0f && spec.size.maxWidth.has_value()) {
-    maxWidth = std::max(0.0f, *spec.size.maxWidth);
-  }
-  if (maxWidth <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !spec.text.empty()) {
-    maxWidth = DefaultParagraphWrapWidth;
-  }
-  if (bounds.width <= 0.0f &&
-      maxWidth > 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    bounds.width = maxWidth;
-  }
-  std::vector<std::string> lines = wrap_text_lines(frame(), token, spec.text, maxWidth, spec.wrap);
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !lines.empty()) {
-    float inferredWidth = 0.0f;
-    for (auto const& line : lines) {
-      inferredWidth = std::max(inferredWidth, measureTextWidth(frame(), token, line));
-    }
-    if (maxWidth > 0.0f) {
-      inferredWidth = std::min(inferredWidth, maxWidth);
-    }
-    bounds.width = inferredWidth;
-  }
-  if (maxWidth <= 0.0f && bounds.width > 0.0f) {
-    maxWidth = bounds.width;
-  }
-
-  float lineHeight = resolve_line_height(frame(), token);
-  if (spec.autoHeight &&
-      bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    bounds.height = std::max(0.0f, lineHeight * static_cast<float>(lines.size()));
-  }
-
-  PrimeFrame::NodeId paragraphId = create_node(frame(), id_, bounds,
-                                               &spec.size,
-                                               PrimeFrame::LayoutType::None,
-                                               PrimeFrame::Insets{},
-                                               0.0f,
-                                               false,
-                                               spec.visible);
-  PrimeFrame::Node* node = frame().getNode(paragraphId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-
-  for (size_t i = 0; i < lines.size(); ++i) {
-    Rect lineRect;
-    lineRect.x = 0.0f;
-    lineRect.y = spec.textOffsetY + static_cast<float>(i) * lineHeight;
-    lineRect.width = maxWidth > 0.0f ? maxWidth : bounds.width;
-    lineRect.height = lineHeight;
-    create_text_node(frame(),
-                     paragraphId,
-                     lineRect,
-                     lines[i],
-                     token,
-                     spec.textStyleOverride,
-                     spec.align,
-                     PrimeFrame::WrapMode::None,
-                     maxWidth,
-                     spec.visible);
-  }
-
-  return UiNode(frame(), paragraphId, allowAbsolute_);
-}
-
-UiNode UiNode::createParagraph(std::string_view text,
-                               PrimeFrame::TextStyleToken textStyle,
-                               SizeSpec const& size) {
-  ParagraphSpec spec;
-  spec.text = text;
-  spec.textStyle = textStyle;
-  spec.size = size;
-  return createParagraph(spec);
-}
 
 UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) {
   Rect bounds = resolve_rect(spec.size);

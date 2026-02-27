@@ -3144,6 +3144,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelCppPath = repoRoot / "src" / "PrimeStageLabel.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
+  std::filesystem::path paragraphCppPath = repoRoot / "src" / "PrimeStageParagraph.cpp";
   std::filesystem::path tabsCppPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path textLineCppPath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
@@ -3158,6 +3159,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(labelCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
+  REQUIRE(std::filesystem::exists(paragraphCppPath));
   REQUIRE(std::filesystem::exists(tabsCppPath));
   REQUIRE(std::filesystem::exists(textLineCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
@@ -3228,6 +3230,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string progressCpp((std::istreambuf_iterator<char>(progressInput)),
                           std::istreambuf_iterator<char>());
   REQUIRE(!progressCpp.empty());
+  std::ifstream paragraphInput(paragraphCppPath);
+  REQUIRE(paragraphInput.good());
+  std::string paragraphCpp((std::istreambuf_iterator<char>(paragraphInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!paragraphCpp.empty());
   std::ifstream dropdownInput(dropdownCppPath);
   REQUIRE(dropdownInput.good());
   std::string dropdownCpp((std::istreambuf_iterator<char>(dropdownInput)),
@@ -3250,7 +3257,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(!textLineCpp.empty());
   std::string combinedSource =
       sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp +
-      textLineCpp + labelCpp;
+      textLineCpp + labelCpp + paragraphCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3488,6 +3495,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelPath = repoRoot / "src" / "PrimeStageLabel.cpp";
+  std::filesystem::path paragraphPath = repoRoot / "src" / "PrimeStageParagraph.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
@@ -3502,6 +3510,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(collectionsPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(labelPath));
+  REQUIRE(std::filesystem::exists(paragraphPath));
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(textLinePath));
@@ -3547,6 +3556,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createTextLine(std::string_view text,") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createLabel(LabelSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createLabel(std::string_view text,") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createParagraph(ParagraphSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createParagraph(std::string_view text,") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3572,6 +3583,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("LabelSpec normalizeLabelSpec(LabelSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3624,6 +3637,17 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(labelSource.find("UiNode UiNode::createLabel(std::string_view text,") !=
         std::string::npos);
   CHECK(labelSource.find("Internal::normalizeLabelSpec(specInput)") != std::string::npos);
+
+  std::ifstream paragraphInput(paragraphPath);
+  REQUIRE(paragraphInput.good());
+  std::string paragraphSource((std::istreambuf_iterator<char>(paragraphInput)),
+                              std::istreambuf_iterator<char>());
+  REQUIRE(!paragraphSource.empty());
+  CHECK(paragraphSource.find("UiNode UiNode::createParagraph(ParagraphSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(paragraphSource.find("UiNode UiNode::createParagraph(std::string_view text,") !=
+        std::string::npos);
+  CHECK(paragraphSource.find("Internal::normalizeParagraphSpec(specInput)") != std::string::npos);
 
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
@@ -3733,6 +3757,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("LabelSpec normalizeLabelSpec(LabelSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
@@ -3745,6 +3771,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageLayoutPrimitives.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextLine.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageLabel.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

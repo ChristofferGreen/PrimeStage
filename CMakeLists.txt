@@ -112,6 +112,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageDropdown.cpp
   src/PrimeStageLabel.cpp
   src/PrimeStageLayoutPrimitives.cpp
+  src/PrimeStageParagraph.cpp
   src/PrimeStageProgress.cpp
   src/PrimeStageSlider.cpp
   src/PrimeStageTabs.cpp

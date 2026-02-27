@@ -69,6 +69,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createLabel(LabelSpec)` runtime into
     `src/PrimeStageLabel.cpp`, with shared label normalization routed via
     `PrimeStage::Internal`
+  - vertical slice shipped: moved `createParagraph(ParagraphSpec)` runtime into
+    `src/PrimeStageParagraph.cpp`, with shared paragraph normalization routed
+    via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
