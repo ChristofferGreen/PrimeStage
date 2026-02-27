@@ -61,6 +61,9 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   `docs/advanced-escape-hatches.md` for low-level paths whenever tier guidance changes.
 - Keep canonical API-surface linting current in `scripts/lint_canonical_api_surface.sh` and run it
   when changing canonical examples/docs snippets or low-level API naming.
+- Keep architecture hotspot size guardrails current in
+  `scripts/lint_architecture_size.sh`; when thresholds intentionally change,
+  update `docs/architecture-size-guardrails.md` and enforcing tests in the same change.
 - Keep `docs/widget-spec-defaults-audit.md` synchronized with `include/PrimeStage/Ui.h` whenever
   spec fields are added/renamed/reclassified.
 - For canonical example composition, prefer intrinsic widget defaults plus `size.maxWidth` container/text constraints over repeated per-widget `preferredWidth` micromanagement.

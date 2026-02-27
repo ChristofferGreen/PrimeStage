@@ -2321,6 +2321,67 @@ TEST_CASE("PrimeStage canonical API surface lint script is wired and documented"
   CHECK(agents.find("scripts/lint_canonical_api_surface.sh") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage architecture size guardrails are wired and documented") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path lintScriptPath = repoRoot / "scripts" / "lint_architecture_size.sh";
+  std::filesystem::path workflowPath = repoRoot / ".github" / "workflows" / "presubmit.yml";
+  std::filesystem::path docsPath = repoRoot / "docs" / "architecture-size-guardrails.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(lintScriptPath));
+  REQUIRE(std::filesystem::exists(workflowPath));
+  REQUIRE(std::filesystem::exists(docsPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream lintInput(lintScriptPath);
+  REQUIRE(lintInput.good());
+  std::string lint((std::istreambuf_iterator<char>(lintInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!lint.empty());
+  CHECK(lint.find("check_file_limit \"src/PrimeStageTreeView.cpp\" 1400") != std::string::npos);
+  CHECK(lint.find("check_file_limit \"src/PrimeStageTextField.cpp\" 1000") != std::string::npos);
+  CHECK(lint.find("check_function_limit \"src/PrimeStageTreeView.cpp\" \"UiNode UiNode::createTreeView(TreeViewSpec const& spec)\" 1100") !=
+        std::string::npos);
+  CHECK(lint.find("check_function_limit \"src/PrimeStageTextField.cpp\" \"UiNode UiNode::createTextField(TextFieldSpec const& specInput)\" 900") !=
+        std::string::npos);
+  CHECK(lint.find("architecture size guardrails failed with") != std::string::npos);
+
+  std::ifstream workflowInput(workflowPath);
+  REQUIRE(workflowInput.good());
+  std::string workflow((std::istreambuf_iterator<char>(workflowInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!workflow.empty());
+  CHECK(workflow.find("architecture-size-guardrails") != std::string::npos);
+  CHECK(workflow.find("Architecture Size Guardrails") != std::string::npos);
+  CHECK(workflow.find("./scripts/lint_architecture_size.sh") != std::string::npos);
+
+  std::ifstream docsInput(docsPath);
+  REQUIRE(docsInput.good());
+  std::string docs((std::istreambuf_iterator<char>(docsInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!docs.empty());
+  CHECK(docs.find("File-Size Thresholds") != std::string::npos);
+  CHECK(docs.find("Function-Size Thresholds") != std::string::npos);
+  CHECK(docs.find("Exception Policy") != std::string::npos);
+  CHECK(docs.find("Prefer refactoring/splitting before increasing limits.") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("scripts/lint_architecture_size.sh") != std::string::npos);
+  CHECK(agents.find("docs/architecture-size-guardrails.md") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("☑ [113] Add CI architecture-size guardrails for implementation hotspots.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage end-to-end ergonomics suite is wired and guarded") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

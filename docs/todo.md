@@ -173,9 +173,17 @@ Release Exit Criteria (for API-quality milestone):
     `tests/unit/test_api_ergonomics.cpp` enforce context-seam usage and
     prevent reintroduction of frame-scoped focus/scrim helper calls
 
-- ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
+- ☑ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size
   - document thresholds and exception policy to keep refactors incremental and explicit
+  - delivered `scripts/lint_architecture_size.sh` to enforce hotspot file/function
+    thresholds (`TreeView`, `TextField`, `SelectableText`, `Table`, and
+    `PrimeStage.cpp`)
+  - wired presubmit CI gate in `.github/workflows/presubmit.yml` via the
+    `Architecture Size Guardrails` job
+  - documented thresholds and exception policy in
+    `docs/architecture-size-guardrails.md` and aligned contributor guidance in
+    `AGENTS.md`
 
 - ☐ [114] Add accessibility semantics snapshot/export regression coverage.
   - generate deterministic role/state snapshots for core widgets and verify expected semantics mappings
