@@ -53,6 +53,8 @@ struct DemoState {
 };
 
 struct DemoApp {
+  // Advanced PrimeFrame integration (documented exception): advanced runtime ownership stitches
+  // PrimeHost surface handles into PrimeStage::App lifecycle wiring.
   PrimeHost::Host* host = nullptr;
   PrimeHost::SurfaceId surfaceId{};
   PrimeStage::App ui;
@@ -391,6 +393,8 @@ int main(int argc, char** argv) {
 
   std::cout << "PrimeStage widgets demo" << std::endl;
 
+  // Advanced PrimeFrame integration (documented exception): this section demonstrates direct
+  // PrimeHost host/surface/bootstrap APIs for the advanced sample host loop.
   auto hostResult = PrimeHost::createHost();
   if (!hostResult) {
     std::cerr << "PrimeHost unavailable (" << static_cast<int>(hostResult.error().code) << ")\n";
@@ -404,6 +408,8 @@ int main(int argc, char** argv) {
   app.ui.inputBridge().scrollLinePixels = ScrollLinePixels;
   app.ui.inputBridge().scrollDirectionSign = 1.0f;
 
+  // Advanced PrimeFrame integration (documented exception): this advanced sample configures and
+  // manages PrimeHost surface metadata directly.
   PrimeHost::SurfaceConfig config{};
   config.width = 1280u;
   config.height = 720u;
@@ -427,6 +433,8 @@ int main(int argc, char** argv) {
     app.ui.setSurfaceMetrics(size->width, size->height, scale);
   }
 
+  // Advanced PrimeFrame integration (documented exception): this advanced sample receives
+  // PrimeHost callback timing/diagnostic payloads and submits frame buffers directly.
   PrimeHost::Callbacks callbacks;
   callbacks.onFrame = [&app](PrimeHost::SurfaceId target,
                              PrimeHost::FrameTiming const&,
@@ -467,6 +475,8 @@ int main(int argc, char** argv) {
   app.ui.lifecycle().requestFrame();
   app.host->requestFrame(app.surfaceId, true);
 
+  // Advanced PrimeFrame integration (documented exception): event pump and bridge wiring below use
+  // PrimeHost event payload types directly.
   std::array<PrimeHost::Event, 256> events{};
   std::array<char, 8192> textBytes{};
   PrimeHost::EventBuffer buffer{
@@ -479,6 +489,8 @@ int main(int argc, char** argv) {
   while (running) {
     app.host->waitEvents();
 
+    // Advanced PrimeFrame integration (documented exception): this advanced sample consumes raw
+    // PrimeHost event payload variants for input/resize/lifecycle dispatch.
     auto batchResult = app.host->pollEvents(buffer);
     if (!batchResult) {
       std::cerr << "pollEvents failed (" << static_cast<int>(batchResult.error().code) << ")\n";
@@ -502,6 +514,8 @@ int main(int argc, char** argv) {
       } else if (auto* resize = std::get_if<PrimeHost::ResizeEvent>(&event.payload)) {
         app.ui.setSurfaceMetrics(resize->width, resize->height, resize->scale);
         bypassCap = true;
+        // Advanced PrimeFrame integration (documented exception): lifecycle teardown handling
+        // observes raw PrimeHost lifecycle phases in the advanced host loop.
       } else if (auto* lifecycle = std::get_if<PrimeHost::LifecycleEvent>(&event.payload)) {
         if (lifecycle->phase == PrimeHost::LifecyclePhase::Destroyed) {
           running = false;

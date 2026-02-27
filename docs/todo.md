@@ -138,6 +138,16 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [88] Enforce proximity of advanced PrimeHost runtime exception tags.
+  - tightened `tests/unit/test_api_ergonomics.cpp` so advanced `PrimeHost::`
+    runtime markers (not just includes) require a nearby inline exception tag
+    `Advanced PrimeFrame integration (documented exception):`
+  - added a positive guard proving PrimeHost runtime-marker coverage is
+    exercised by advanced example sources
+  - added local inline exception tags across PrimeHost runtime integration
+    clusters in `examples/advanced/primestage_widgets.cpp` (surface bootstrap,
+    callback wiring, event polling, and host-handle ownership)
+
 - ☑ [87] Enforce proximity of advanced PrimeHost include exception tags.
   - tightened `tests/unit/test_api_ergonomics.cpp` to require advanced
     `#include "PrimeHost/..."` markers to have a nearby inline exception tag

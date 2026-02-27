@@ -876,6 +876,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   constexpr size_t PrimeFrameTagLookbackLines = 24u;
   constexpr std::string_view PrimeFrameIncludeMarker = "#include \"PrimeFrame/";
   constexpr std::string_view PrimeHostIncludeMarker = "#include \"PrimeHost/";
+  constexpr std::string_view PrimeHostRuntimeMarker = "PrimeHost::";
   constexpr std::string_view LifecycleOrchestrationTag =
       "Advanced lifecycle orchestration (documented exception):";
   constexpr size_t LifecycleTagLookbackLines = 24u;
@@ -910,6 +911,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   bool foundPrimeFrameIntegrationExample = false;
   bool foundPrimeFrameIncludeMarker = false;
   bool foundPrimeHostIncludeMarker = false;
+  bool foundPrimeHostRuntimeMarker = false;
   for (std::filesystem::path const& advancedSourcePath : advancedSources) {
     std::ifstream advancedInput(advancedSourcePath);
     REQUIRE(advancedInput.good());
@@ -959,6 +961,14 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
                              PrimeFrameIntegrationTag,
                              PrimeFrameTagLookbackLines));
         }
+        if (advancedSourceLines[lineIndex].find(PrimeHostRuntimeMarker) != std::string::npos) {
+          foundPrimeHostRuntimeMarker = true;
+          INFO("advanced PrimeHost runtime marker line: " << (lineIndex + 1u));
+          CHECK(hasNearbyTag(advancedSourceLines,
+                             lineIndex,
+                             PrimeFrameIntegrationTag,
+                             PrimeFrameTagLookbackLines));
+        }
         if (advancedSourceLines[lineIndex].find("PrimeFrame::") == std::string::npos) {
           continue;
         }
@@ -971,6 +981,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(foundPrimeFrameIntegrationExample);
   CHECK(foundPrimeFrameIncludeMarker);
   CHECK(foundPrimeHostIncludeMarker);
+  CHECK(foundPrimeHostRuntimeMarker);
 
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;
