@@ -3196,9 +3196,11 @@ TEST_CASE("PrimeStage accessibility roadmap defines semantics model and behavior
   std::filesystem::path uiHeader = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path roadmapPath = repoRoot / "docs" / "accessibility-semantics-roadmap.md";
   std::filesystem::path interactionTests = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  std::filesystem::path specValidationTests = repoRoot / "tests" / "unit" / "test_spec_validation.cpp";
   REQUIRE(std::filesystem::exists(uiHeader));
   REQUIRE(std::filesystem::exists(roadmapPath));
   REQUIRE(std::filesystem::exists(interactionTests));
+  REQUIRE(std::filesystem::exists(specValidationTests));
 
   std::ifstream uiInput(uiHeader);
   REQUIRE(uiInput.good());
@@ -3219,6 +3221,8 @@ TEST_CASE("PrimeStage accessibility roadmap defines semantics model and behavior
   CHECK(roadmap.find("Focus Order Contract") != std::string::npos);
   CHECK(roadmap.find("Activation Contract") != std::string::npos);
   CHECK(roadmap.find("AccessibilityRole") != std::string::npos);
+  CHECK(roadmap.find("deterministic semantics snapshot/export coverage") != std::string::npos);
+  CHECK(roadmap.find("default, focused, disabled, and selected scenarios") != std::string::npos);
 
   std::ifstream interactionInput(interactionTests);
   REQUIRE(interactionInput.good());
@@ -3226,6 +3230,16 @@ TEST_CASE("PrimeStage accessibility roadmap defines semantics model and behavior
                           std::istreambuf_iterator<char>());
   REQUIRE(!interaction.empty());
   CHECK(interaction.find("accessibility keyboard focus and activation contract") !=
+        std::string::npos);
+
+  std::ifstream specValidationInput(specValidationTests);
+  REQUIRE(specValidationInput.good());
+  std::string specValidation((std::istreambuf_iterator<char>(specValidationInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!specValidation.empty());
+  CHECK(specValidation.find("accessibility semantics export snapshot covers default disabled and selected contracts") !=
+        std::string::npos);
+  CHECK(specValidation.find("accessibility semantics focus snapshot covers focused and disabled navigation states") !=
         std::string::npos);
 }
 
@@ -4200,6 +4214,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(todo.find("☑ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.") !=
         std::string::npos);
   CHECK(todo.find("☑ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [114] Add accessibility semantics snapshot/export regression coverage.") !=
         std::string::npos);
   CHECK(todo.find("[119] Continue collection widget extraction from `src/PrimeStage.cpp`.") !=
         std::string::npos);

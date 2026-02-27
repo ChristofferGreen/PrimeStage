@@ -185,9 +185,18 @@ Release Exit Criteria (for API-quality milestone):
     `docs/architecture-size-guardrails.md` and aligned contributor guidance in
     `AGENTS.md`
 
-- ☐ [114] Add accessibility semantics snapshot/export regression coverage.
+- ☑ [114] Add accessibility semantics snapshot/export regression coverage.
   - generate deterministic role/state snapshots for core widgets and verify expected semantics mappings
   - include contract coverage for default, focused, disabled, and selected states
+  - delivered deterministic semantics snapshot/export regression tests in
+    `tests/unit/test_spec_validation.cpp` covering normalized role/state
+    mappings for core widgets across default, disabled, and selected scenarios
+  - delivered focused-state snapshot coverage in
+    `tests/unit/test_spec_validation.cpp` validating focus traversal contracts
+    alongside semantic role/disabled metadata exports
+  - documented snapshot/export coverage in
+    `docs/accessibility-semantics-roadmap.md` and aligned contributor guidance
+    in `AGENTS.md`
 
 - ☐ [115] Add migration notes/tests for semantic callback naming adoption.
   - document migration from legacy aliases (`onClick`, `onChanged`, etc.) to semantic callbacks

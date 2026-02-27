@@ -63,3 +63,6 @@ Current coverage gates this roadmap by ensuring:
 - public metadata types exist in `Ui.h`
 - docs record focus-order and activation contracts
 - keyboard focus/activation behavior remains regression-tested in interaction and focus suites
+- deterministic semantics snapshot/export coverage in
+  `tests/unit/test_spec_validation.cpp` verifies role/state mappings for core
+  widgets across default, focused, disabled, and selected scenarios

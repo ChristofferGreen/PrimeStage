@@ -1,4 +1,5 @@
 #include "PrimeStage/Ui.h"
+#include "src/PrimeStageCollectionInternals.h"
 
 #include "PrimeFrame/Events.h"
 #include "PrimeFrame/Focus.h"
@@ -7,6 +8,8 @@
 
 #include "third_party/doctest.h"
 
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -154,6 +157,97 @@ size_t countTextValue(PrimeFrame::Frame const& frame,
     count += countTextValue(frame, childId, text);
   }
   return count;
+}
+
+std::string boolString(bool value) {
+  return value ? "true" : "false";
+}
+
+std::string optionalBoolString(std::optional<bool> const& value) {
+  if (!value.has_value()) {
+    return "-";
+  }
+  return value.value() ? "true" : "false";
+}
+
+std::string optionalIntString(std::optional<int> const& value) {
+  if (!value.has_value()) {
+    return "-";
+  }
+  return std::to_string(value.value());
+}
+
+std::string optionalFloatString(std::optional<float> const& value) {
+  if (!value.has_value()) {
+    return "-";
+  }
+  std::ostringstream out;
+  out << std::fixed << std::setprecision(2) << value.value();
+  return out.str();
+}
+
+std::string roleString(PrimeStage::AccessibilityRole role) {
+  switch (role) {
+    case PrimeStage::AccessibilityRole::Unspecified:
+      return "unspecified";
+    case PrimeStage::AccessibilityRole::Group:
+      return "group";
+    case PrimeStage::AccessibilityRole::StaticText:
+      return "static_text";
+    case PrimeStage::AccessibilityRole::Button:
+      return "button";
+    case PrimeStage::AccessibilityRole::TextField:
+      return "text_field";
+    case PrimeStage::AccessibilityRole::Toggle:
+      return "toggle";
+    case PrimeStage::AccessibilityRole::Checkbox:
+      return "checkbox";
+    case PrimeStage::AccessibilityRole::Slider:
+      return "slider";
+    case PrimeStage::AccessibilityRole::TabList:
+      return "tab_list";
+    case PrimeStage::AccessibilityRole::Tab:
+      return "tab";
+    case PrimeStage::AccessibilityRole::ComboBox:
+      return "combo_box";
+    case PrimeStage::AccessibilityRole::ProgressBar:
+      return "progress_bar";
+    case PrimeStage::AccessibilityRole::Table:
+      return "table";
+    case PrimeStage::AccessibilityRole::Tree:
+      return "tree";
+    case PrimeStage::AccessibilityRole::TreeItem:
+      return "tree_item";
+  }
+  return "unknown";
+}
+
+std::string exportSemanticsRow(std::string_view name,
+                               PrimeStage::AccessibilitySemantics const& semantics) {
+  std::ostringstream out;
+  out << name;
+  out << " role=" << roleString(semantics.role);
+  out << " disabled=" << boolString(semantics.state.disabled);
+  out << " checked=" << optionalBoolString(semantics.state.checked);
+  out << " selected=" << optionalBoolString(semantics.state.selected);
+  out << " expanded=" << optionalBoolString(semantics.state.expanded);
+  out << " valueNow=" << optionalFloatString(semantics.state.valueNow);
+  out << " valueMin=" << optionalFloatString(semantics.state.valueMin);
+  out << " valueMax=" << optionalFloatString(semantics.state.valueMax);
+  out << " position=" << optionalIntString(semantics.state.positionInSet);
+  out << " setSize=" << optionalIntString(semantics.state.setSize);
+  return out.str();
+}
+
+std::string exportFocusRow(std::string_view name,
+                           PrimeStage::AccessibilitySemantics const& semantics,
+                           bool focused) {
+  std::ostringstream out;
+  out << name;
+  out << " role=" << roleString(semantics.role);
+  out << " focused=" << boolString(focused);
+  out << " disabled=" << boolString(semantics.state.disabled);
+  return out.str();
 }
 
 } // namespace
@@ -482,4 +576,174 @@ TEST_CASE("PrimeStage table clamps invalid selected row to none") {
 
   PrimeStage::UiNode table = root.createTable(spec);
   CHECK(countRectToken(frame, table.nodeId(), spec.selectionStyle) == 0u);
+}
+
+TEST_CASE("PrimeStage accessibility semantics export snapshot covers default disabled and selected contracts") {
+  PrimeStage::ButtonSpec buttonDefault;
+  PrimeStage::ButtonSpec buttonDisabled;
+  buttonDisabled.enabled = false;
+  PrimeStage::ButtonSpec buttonSelected;
+  buttonSelected.accessibility.state.selected = true;
+
+  PrimeStage::ToggleSpec toggleChecked;
+  toggleChecked.on = true;
+  PrimeStage::ToggleSpec toggleDisabled;
+  toggleDisabled.on = true;
+  toggleDisabled.enabled = false;
+
+  PrimeStage::DropdownSpec dropdownSelected;
+  dropdownSelected.options = {"Red", "Green", "Blue"};
+  dropdownSelected.selectedIndex = 1;
+
+  PrimeStage::TabsSpec tabsSelected;
+  tabsSelected.labels = {"A", "B", "C"};
+  tabsSelected.selectedIndex = 2;
+
+  PrimeStage::SliderSpec sliderDefault;
+  sliderDefault.value = 0.75f;
+
+  PrimeStage::ProgressBarSpec progressDefault;
+  progressDefault.value = 0.25f;
+
+  PrimeStage::TableSpec tableDefault;
+  tableDefault.columns = {{"Name", 0.0f, 0u, 0u}};
+  tableDefault.rows = {{"Row"}};
+
+  PrimeStage::TreeViewSpec treeDefault;
+  treeDefault.nodes = {PrimeStage::TreeNode{"Root", {}, true, false}};
+
+  PrimeStage::TextFieldSpec fieldDefault;
+  PrimeStage::LabelSpec labelDefault;
+  PrimeStage::ListSpec listDefault;
+  listDefault.items = {"One", "Two"};
+  listDefault.selectedIndex = 1;
+
+  std::string snapshot;
+  snapshot += exportSemanticsRow("button.default",
+                                 PrimeStage::Internal::normalizeButtonSpec(buttonDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("button.disabled",
+                                 PrimeStage::Internal::normalizeButtonSpec(buttonDisabled).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("button.selected_override",
+                                 PrimeStage::Internal::normalizeButtonSpec(buttonSelected).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("toggle.checked",
+                                 PrimeStage::Internal::normalizeToggleSpec(toggleChecked).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("toggle.disabled_checked",
+                                 PrimeStage::Internal::normalizeToggleSpec(toggleDisabled).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("dropdown.selected_index",
+                                 PrimeStage::Internal::normalizeDropdownSpec(dropdownSelected).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("tabs.selected_index",
+                                 PrimeStage::Internal::normalizeTabsSpec(tabsSelected).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("slider.default",
+                                 PrimeStage::Internal::normalizeSliderSpec(sliderDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("progress.default",
+                                 PrimeStage::Internal::normalizeProgressBarSpec(progressDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("table.default",
+                                 PrimeStage::Internal::normalizeTableSpec(tableDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("tree.default",
+                                 PrimeStage::Internal::normalizeTreeViewSpec(treeDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("text_field.default",
+                                 PrimeStage::Internal::normalizeTextFieldSpec(fieldDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("label.default",
+                                 PrimeStage::Internal::normalizeLabelSpec(labelDefault).accessibility) +
+              "\n";
+  snapshot += exportSemanticsRow("list.default",
+                                 PrimeStage::Internal::normalizeListSpec(listDefault).accessibility);
+
+  CHECK(snapshot == R"(button.default role=button disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+button.disabled role=button disabled=true checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+button.selected_override role=button disabled=false checked=- selected=true expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+toggle.checked role=toggle disabled=false checked=true selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+toggle.disabled_checked role=toggle disabled=true checked=true selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+dropdown.selected_index role=combo_box disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=2 setSize=3
+tabs.selected_index role=tab_list disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=3 setSize=3
+slider.default role=slider disabled=false checked=- selected=- expanded=- valueNow=0.75 valueMin=0.00 valueMax=1.00 position=- setSize=-
+progress.default role=progress_bar disabled=false checked=- selected=- expanded=- valueNow=0.25 valueMin=0.00 valueMax=1.00 position=- setSize=-
+table.default role=table disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+tree.default role=tree disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+text_field.default role=text_field disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+label.default role=static_text disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-
+list.default role=table disabled=false checked=- selected=- expanded=- valueNow=- valueMin=- valueMax=- position=- setSize=-)");
+}
+
+TEST_CASE("PrimeStage accessibility semantics focus snapshot covers focused and disabled navigation states") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Run";
+  buttonSpec.size.preferredWidth = 140.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::ButtonSpec disabledButtonSpec;
+  disabledButtonSpec.label = "Disabled";
+  disabledButtonSpec.enabled = false;
+  disabledButtonSpec.size.preferredWidth = 140.0f;
+  disabledButtonSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.text = "Prime";
+  fieldSpec.size.preferredWidth = 180.0f;
+  fieldSpec.size.preferredHeight = 24.0f;
+
+  PrimeStage::UiNode button = root.createButton(buttonSpec);
+  PrimeStage::UiNode disabledButton = root.createButton(disabledButtonSpec);
+  PrimeStage::UiNode field = root.createTextField(fieldSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::FocusManager focus;
+  REQUIRE(focus.setActiveRoot(frame, layout, root.nodeId()));
+
+  PrimeStage::AccessibilitySemantics buttonSemantics =
+      PrimeStage::Internal::normalizeButtonSpec(buttonSpec).accessibility;
+  PrimeStage::AccessibilitySemantics disabledButtonSemantics =
+      PrimeStage::Internal::normalizeButtonSpec(disabledButtonSpec).accessibility;
+  PrimeStage::AccessibilitySemantics fieldSemantics =
+      PrimeStage::Internal::normalizeTextFieldSpec(fieldSpec).accessibility;
+
+  std::string snapshot;
+  snapshot += exportFocusRow("focus.first.button",
+                             buttonSemantics,
+                             focus.focusedNode() == button.nodeId()) +
+              "\n";
+  snapshot += exportFocusRow("focus.first.disabled_button",
+                             disabledButtonSemantics,
+                             focus.focusedNode() == disabledButton.nodeId()) +
+              "\n";
+  snapshot += exportFocusRow("focus.first.text_field",
+                             fieldSemantics,
+                             focus.focusedNode() == field.nodeId()) +
+              "\n";
+
+  REQUIRE(focus.handleTab(frame, layout, true));
+
+  snapshot += exportFocusRow("focus.after_tab.button",
+                             buttonSemantics,
+                             focus.focusedNode() == button.nodeId()) +
+              "\n";
+  snapshot += exportFocusRow("focus.after_tab.disabled_button",
+                             disabledButtonSemantics,
+                             focus.focusedNode() == disabledButton.nodeId()) +
+              "\n";
+  snapshot += exportFocusRow("focus.after_tab.text_field",
+                             fieldSemantics,
+                             focus.focusedNode() == field.nodeId());
+
+  CHECK(snapshot == R"(focus.first.button role=button focused=true disabled=false
+focus.first.disabled_button role=button focused=false disabled=true
+focus.first.text_field role=text_field focused=false disabled=false
+focus.after_tab.button role=button focused=false disabled=false
+focus.after_tab.disabled_button role=button focused=false disabled=true
+focus.after_tab.text_field role=text_field focused=true disabled=false)");
 }
