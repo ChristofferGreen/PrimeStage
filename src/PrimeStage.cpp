@@ -3802,13 +3802,38 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   float knobX = on ? maxX - inset : inset;
   knobX = std::clamp(knobX, 0.0f, maxX);
   Rect knobRect{knobX, inset, knobSize, knobSize};
-  create_rect_node(frame(),
-                   toggle.nodeId(),
-                   knobRect,
-                   spec.knobStyle,
-                   spec.knobStyleOverride,
-                   false,
-                   spec.visible);
+  PrimeFrame::NodeId knobNodeId = create_rect_node(frame(),
+                                                   toggle.nodeId(),
+                                                   knobRect,
+                                                   spec.knobStyle,
+                                                   spec.knobStyleOverride,
+                                                   false,
+                                                   spec.visible);
+  auto applyToggleVisual = [framePtr = &frame(),
+                            knobNodeId,
+                            width = bounds.width,
+                            height = bounds.height,
+                            inset](bool value) {
+    float knobSizeInner = std::max(0.0f, height - inset * 2.0f);
+    float maxXInner = std::max(0.0f, width - knobSizeInner);
+    float knobXInner = value ? (maxXInner - inset) : inset;
+    knobXInner = std::clamp(knobXInner, 0.0f, maxXInner);
+    if (PrimeFrame::Node* knobNode = framePtr->getNode(knobNodeId)) {
+      knobNode->localX = knobXInner;
+      knobNode->localY = inset;
+      knobNode->sizeHint.width.preferred = knobSizeInner;
+      knobNode->sizeHint.height.preferred = knobSizeInner;
+      knobNode->visible = knobSizeInner > 0.0f;
+    }
+    if (PrimeFrame::Node* knobNode = framePtr->getNode(knobNodeId);
+        knobNode && !knobNode->primitives.empty()) {
+      if (PrimeFrame::Primitive* knobPrim = framePtr->getPrimitive(knobNode->primitives.front())) {
+        knobPrim->width = knobSizeInner;
+        knobPrim->height = knobSizeInner;
+      }
+    }
+  };
+  applyToggleVisual(on);
 
   ResolvedFocusStyle focusStyle = resolve_focus_style(
       frame(),
@@ -3836,12 +3861,14 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
                           toggleState = spec.state,
-                          state](PrimeFrame::Event const& event) mutable -> bool {
+                          state,
+                          applyToggleVisual](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->value = !state->value;
           if (toggleState) {
             toggleState->on = state->value;
           }
+          applyToggleVisual(state->value);
           if (callbacks.onChanged) {
             callbacks.onChanged(state->value);
           }
@@ -3950,17 +3977,42 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   box.rectStyleOverride = spec.boxStyleOverride;
   box.visible = spec.visible;
   UiNode boxNode = row.createPanel(box);
-  if (checked && spec.visible) {
-    float inset = std::max(0.0f, spec.checkInset);
-    float checkSize = std::max(0.0f, spec.boxSize - inset * 2.0f);
-    Rect checkRect{inset, inset, checkSize, checkSize};
-    create_rect_node(frame(),
-                     boxNode.nodeId(),
-                     checkRect,
-                     spec.checkStyle,
-                     spec.checkStyleOverride,
-                     false,
-                     spec.visible);
+  float inset = std::max(0.0f, spec.checkInset);
+  float checkSize = std::max(0.0f, spec.boxSize - inset * 2.0f);
+  Rect checkRect{inset, inset, checkSize, checkSize};
+  PrimeFrame::NodeId checkNodeId = create_rect_node(frame(),
+                                                    boxNode.nodeId(),
+                                                    checkRect,
+                                                    spec.checkStyle,
+                                                    spec.checkStyleOverride,
+                                                    false,
+                                                    spec.visible);
+  auto applyCheckboxVisual = [framePtr = &frame(),
+                              checkNodeId,
+                              inset,
+                              boxSize = spec.boxSize](bool value) {
+    float checkSizeInner = std::max(0.0f, boxSize - inset * 2.0f);
+    if (PrimeFrame::Node* checkNode = framePtr->getNode(checkNodeId)) {
+      checkNode->localX = inset;
+      checkNode->localY = inset;
+      checkNode->sizeHint.width.preferred = checkSizeInner;
+      checkNode->sizeHint.height.preferred = checkSizeInner;
+      checkNode->visible = value && checkSizeInner > 0.0f;
+    }
+    if (PrimeFrame::Node* checkNode = framePtr->getNode(checkNodeId);
+        checkNode && !checkNode->primitives.empty()) {
+      if (PrimeFrame::Primitive* checkPrim = framePtr->getPrimitive(checkNode->primitives.front())) {
+        checkPrim->width = checkSizeInner;
+        checkPrim->height = checkSizeInner;
+      }
+    }
+  };
+  applyCheckboxVisual(checked);
+
+  if (!spec.visible) {
+    if (PrimeFrame::Node* checkNode = frame().getNode(checkNodeId)) {
+      checkNode->visible = false;
+    }
   }
 
   if (!spec.label.empty()) {
@@ -4001,12 +4053,14 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
                           checkboxState = spec.state,
-                          state](PrimeFrame::Event const& event) mutable -> bool {
+                          state,
+                          applyCheckboxVisual](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->checked = !state->checked;
           if (checkboxState) {
             checkboxState->checked = state->checked;
           }
+          applyCheckboxVisual(state->checked);
           if (callbacks.onChanged) {
             callbacks.onChanged(state->checked);
           }
@@ -4854,6 +4908,11 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   spec.value = clamp_unit_interval(spec.value, "ProgressBarSpec", "value");
   spec.minFillWidth = clamp_non_negative(spec.minFillWidth, "ProgressBarSpec", "minFillWidth");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ProgressBarSpec", "tabIndex");
+  bool enabled = spec.enabled;
+  if (spec.state) {
+    spec.state->value = clamp_unit_interval(spec.state->value, "ProgressBarState", "value");
+    spec.value = spec.state->value;
+  }
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -4882,25 +4941,135 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
     return UiNode(frame(), bar.nodeId(), allowAbsolute_);
   }
   if (PrimeFrame::Node* node = frame().getNode(bar.nodeId())) {
-    node->focusable = true;
-    node->tabIndex = spec.tabIndex;
+    node->focusable = enabled;
+    node->hitTestVisible = enabled;
+    node->tabIndex = enabled ? spec.tabIndex : -1;
   }
 
-  float t = std::clamp(spec.value, 0.0f, 1.0f);
-  float fillW = bounds.width * t;
-  if (spec.minFillWidth > 0.0f) {
-    fillW = std::max(fillW, spec.minFillWidth);
-  }
-  fillW = std::min(fillW, bounds.width);
-  if (fillW > 0.0f) {
+  auto computeFillWidth = [boundsW = bounds.width, minFillW = spec.minFillWidth](float value) {
+    float clamped = std::clamp(value, 0.0f, 1.0f);
+    float fillW = boundsW * clamped;
+    if (minFillW > 0.0f) {
+      fillW = std::max(fillW, minFillW);
+    }
+    return std::min(fillW, boundsW);
+  };
+  float value = std::clamp(spec.value, 0.0f, 1.0f);
+  float fillW = computeFillWidth(value);
+  bool needsPatchState = spec.state != nullptr || static_cast<bool>(spec.callbacks.onValueChanged);
+
+  PrimeFrame::NodeId fillNodeId{};
+  if (fillW > 0.0f || needsPatchState) {
     Rect fillRect{0.0f, 0.0f, fillW, bounds.height};
-    create_rect_node(frame(),
-                     bar.nodeId(),
-                     fillRect,
-                     spec.fillStyle,
-                     spec.fillStyleOverride,
-                     false,
-                     spec.visible);
+    fillNodeId = create_rect_node(frame(),
+                                  bar.nodeId(),
+                                  fillRect,
+                                  spec.fillStyle,
+                                  spec.fillStyleOverride,
+                                  false,
+                                  spec.visible);
+  }
+  auto applyProgressVisual = [framePtr = &frame(),
+                              fillNodeId,
+                              boundsH = bounds.height,
+                              fillBaseOverride = spec.fillStyleOverride,
+                              computeFillWidth](float nextValue) {
+    if (!fillNodeId.isValid()) {
+      return;
+    }
+    float fillWInner = computeFillWidth(nextValue);
+    if (PrimeFrame::Node* fillNode = framePtr->getNode(fillNodeId)) {
+      fillNode->localX = 0.0f;
+      fillNode->localY = 0.0f;
+      fillNode->sizeHint.width.preferred = fillWInner;
+      fillNode->sizeHint.height.preferred = boundsH;
+      fillNode->visible = fillWInner > 0.0f && boundsH > 0.0f;
+    }
+    if (PrimeFrame::Node* fillNode = framePtr->getNode(fillNodeId);
+        fillNode && !fillNode->primitives.empty()) {
+      if (PrimeFrame::Primitive* fillPrim = framePtr->getPrimitive(fillNode->primitives.front())) {
+        fillPrim->rect.overrideStyle = fillBaseOverride;
+        fillPrim->width = fillWInner;
+        fillPrim->height = boundsH;
+        if (fillWInner <= 0.0f || boundsH <= 0.0f) {
+          fillPrim->rect.overrideStyle.opacity = 0.0f;
+        }
+      }
+    }
+  };
+  applyProgressVisual(value);
+
+  if (enabled && needsPatchState) {
+    struct ProgressBarInteractionState {
+      bool pressed = false;
+      float value = 0.0f;
+    };
+    auto state = std::make_shared<ProgressBarInteractionState>();
+    state->value = value;
+    auto setValue = [state,
+                     progressState = spec.state,
+                     onChanged = spec.callbacks.onValueChanged,
+                     applyProgressVisual](float nextValue) {
+      float clamped = std::clamp(nextValue, 0.0f, 1.0f);
+      state->value = clamped;
+      if (progressState) {
+        progressState->value = clamped;
+      }
+      applyProgressVisual(clamped);
+      if (onChanged) {
+        onChanged(clamped);
+      }
+    };
+    PrimeFrame::Callback callback;
+    callback.onEvent = [state, setValue](PrimeFrame::Event const& event) mutable -> bool {
+      switch (event.type) {
+        case PrimeFrame::EventType::PointerDown:
+          state->pressed = true;
+          setValue(slider_value_from_event(event, false, 0.0f));
+          return true;
+        case PrimeFrame::EventType::PointerDrag:
+        case PrimeFrame::EventType::PointerMove:
+          if (state->pressed) {
+            setValue(slider_value_from_event(event, false, 0.0f));
+            return true;
+          }
+          break;
+        case PrimeFrame::EventType::PointerUp:
+          if (state->pressed) {
+            setValue(slider_value_from_event(event, false, 0.0f));
+          }
+          state->pressed = false;
+          return true;
+        case PrimeFrame::EventType::PointerCancel:
+        case PrimeFrame::EventType::PointerLeave:
+          state->pressed = false;
+          return true;
+        case PrimeFrame::EventType::KeyDown:
+          if (event.key == KeyLeft || event.key == KeyDown) {
+            setValue(state->value - 0.05f);
+            return true;
+          }
+          if (event.key == KeyRight || event.key == KeyUp) {
+            setValue(state->value + 0.05f);
+            return true;
+          }
+          if (event.key == KeyHome) {
+            setValue(0.0f);
+            return true;
+          }
+          if (event.key == KeyEnd) {
+            setValue(1.0f);
+            return true;
+          }
+          break;
+        default:
+          break;
+      }
+      return false;
+    };
+    if (PrimeFrame::Node* node = frame().getNode(bar.nodeId())) {
+      node->callbacks = frame().addCallback(std::move(callback));
+    }
   }
 
   ResolvedFocusStyle focusStyle = resolve_focus_style(
@@ -4910,7 +5079,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
       {spec.trackStyle, spec.fillStyle},
       spec.trackStyleOverride);
   std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible) {
+  if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
                                           bar.nodeId(),
@@ -4921,6 +5090,14 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), bar.nodeId(), *focusOverlay);
+  }
+
+  if (!enabled) {
+    add_state_scrim_overlay(frame(),
+                            bar.nodeId(),
+                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
+                            DisabledScrimOpacity,
+                            spec.visible);
   }
 
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);

@@ -68,6 +68,28 @@ static PrimeFrame::Primitive const* findRectPrimitiveByTokenInSubtree(PrimeFrame
   return nullptr;
 }
 
+static PrimeFrame::NodeId findFirstNodeWithRectTokenInSubtree(PrimeFrame::Frame const& frame,
+                                                               PrimeFrame::NodeId nodeId,
+                                                               PrimeFrame::RectStyleToken token) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return PrimeFrame::NodeId{};
+  }
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive const* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == PrimeFrame::PrimitiveType::Rect && prim->rect.token == token) {
+      return nodeId;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    PrimeFrame::NodeId child = findFirstNodeWithRectTokenInSubtree(frame, childId, token);
+    if (child.isValid()) {
+      return child;
+    }
+  }
+  return PrimeFrame::NodeId{};
+}
+
 static PrimeFrame::NodeId findFirstNodeWithOnEventInSubtree(PrimeFrame::Frame const& frame,
                                                              PrimeFrame::NodeId nodeId) {
   PrimeFrame::Node const* node = frame.getNode(nodeId);
@@ -724,6 +746,107 @@ TEST_CASE("PrimeStage toggle and checkbox support state-backed uncontrolled mode
   CHECK(checkboxValues.back() == false);
 }
 
+TEST_CASE("PrimeStage toggle and checkbox patch visuals in place without rebuild") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 280.0f, 180.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 12.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::ToggleState toggleState;
+  toggleState.on = false;
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.state = &toggleState;
+  toggleSpec.trackStyle = 241u;
+  toggleSpec.knobStyle = 242u;
+  toggleSpec.focusStyle = 243u;
+  toggleSpec.size.preferredWidth = 64.0f;
+  toggleSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::CheckboxState checkboxState;
+  checkboxState.checked = false;
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.state = &checkboxState;
+  checkboxSpec.label = "Patch";
+  checkboxSpec.boxStyle = 251u;
+  checkboxSpec.checkStyle = 252u;
+  checkboxSpec.focusStyle = 253u;
+  checkboxSpec.textStyle = 254u;
+
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 280.0f, 180.0f);
+  PrimeFrame::LayoutOut const* toggleOut = layout.get(toggle.nodeId());
+  PrimeFrame::LayoutOut const* checkboxOut = layout.get(checkbox.nodeId());
+  REQUIRE(toggleOut != nullptr);
+  REQUIRE(checkboxOut != nullptr);
+
+  PrimeFrame::NodeId knobNodeId =
+      findFirstNodeWithRectTokenInSubtree(frame, toggle.nodeId(), toggleSpec.knobStyle);
+  PrimeFrame::NodeId checkNodeId =
+      findFirstNodeWithRectTokenInSubtree(frame, checkbox.nodeId(), checkboxSpec.checkStyle);
+  REQUIRE(knobNodeId.isValid());
+  REQUIRE(checkNodeId.isValid());
+  PrimeFrame::Node const* knobBefore = frame.getNode(knobNodeId);
+  PrimeFrame::Node const* checkBefore = frame.getNode(checkNodeId);
+  REQUIRE(knobBefore != nullptr);
+  REQUIRE(checkBefore != nullptr);
+  float knobBeforeX = knobBefore->localX;
+  CHECK_FALSE(checkBefore->visible);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float toggleX = toggleOut->absX + toggleOut->absW * 0.5f;
+  float toggleY = toggleOut->absY + toggleOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(toggleState.on);
+  PrimeFrame::Node const* knobAfterPointer = frame.getNode(knobNodeId);
+  REQUIRE(knobAfterPointer != nullptr);
+  float knobAfterPointerX = knobAfterPointer->localX;
+  CHECK(knobAfterPointerX > knobBeforeX);
+
+  focus.setFocus(frame, layout, toggle.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Space), frame, layout, &focus);
+  CHECK_FALSE(toggleState.on);
+  PrimeFrame::Node const* knobAfterKey = frame.getNode(knobNodeId);
+  REQUIRE(knobAfterKey != nullptr);
+  CHECK(knobAfterKey->localX < knobAfterPointerX);
+
+  float checkboxX = checkboxOut->absX + checkboxOut->absW * 0.5f;
+  float checkboxY = checkboxOut->absY + checkboxOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(checkboxState.checked);
+  PrimeFrame::Node const* checkAfterPointer = frame.getNode(checkNodeId);
+  REQUIRE(checkAfterPointer != nullptr);
+  CHECK(checkAfterPointer->visible);
+
+  focus.setFocus(frame, layout, checkbox.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK_FALSE(checkboxState.checked);
+  PrimeFrame::Node const* checkAfterKey = frame.getNode(checkNodeId);
+  REQUIRE(checkAfterKey != nullptr);
+  CHECK_FALSE(checkAfterKey->visible);
+}
+
 TEST_CASE("PrimeStage accessibility keyboard focus and activation contract is consistent") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 320.0f, 180.0f);
@@ -1224,6 +1347,109 @@ TEST_CASE("PrimeStage vertical slider maps top to 1 and bottom to 0") {
   router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, centerX, bottomY), frame, layout);
   REQUIRE(values.size() >= 2);
   CHECK(values.back() <= 0.02f);
+}
+
+TEST_CASE("PrimeStage progress bar state-backed interactions patch fill in place") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 120.0f);
+
+  PrimeStage::ProgressBarState progressState;
+  progressState.value = 0.20f;
+  std::vector<float> values;
+
+  PrimeStage::ProgressBarSpec spec;
+  spec.state = &progressState;
+  spec.value = 0.85f;
+  spec.trackStyle = 321u;
+  spec.fillStyle = 322u;
+  spec.focusStyle = 323u;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 14.0f;
+  spec.callbacks.onValueChanged = [&](float value) { values.push_back(value); };
+
+  PrimeStage::UiNode progress = root.createProgressBar(spec);
+
+  PrimeFrame::NodeId fillNodeId =
+      findFirstNodeWithRectTokenInSubtree(frame, progress.nodeId(), spec.fillStyle);
+  REQUIRE(fillNodeId.isValid());
+  PrimeFrame::Node const* fillBefore = frame.getNode(fillNodeId);
+  REQUIRE(fillBefore != nullptr);
+  REQUIRE(fillBefore->sizeHint.width.preferred.has_value());
+  float widthBefore = fillBefore->sizeHint.width.preferred.value();
+  CHECK(widthBefore == doctest::Approx(40.0f));
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 120.0f);
+  PrimeFrame::LayoutOut const* progressOut = layout.get(progress.nodeId());
+  REQUIRE(progressOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float clickX = progressOut->absX + progressOut->absW * 0.80f;
+  float clickY = progressOut->absY + progressOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, clickX, clickY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, clickX, clickY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(progressState.value > 0.70f);
+  REQUIRE(!values.empty());
+
+  PrimeFrame::Node const* fillAfterPointer = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterPointer != nullptr);
+  REQUIRE(fillAfterPointer->sizeHint.width.preferred.has_value());
+  CHECK(fillAfterPointer->sizeHint.width.preferred.value() > widthBefore);
+
+  focus.setFocus(frame, layout, progress.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Home), frame, layout, &focus);
+  CHECK(progressState.value == doctest::Approx(0.0f));
+  PrimeFrame::Node const* fillAfterHome = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterHome != nullptr);
+  CHECK_FALSE(fillAfterHome->visible);
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::End), frame, layout, &focus);
+  CHECK(progressState.value == doctest::Approx(1.0f));
+  PrimeFrame::Node const* fillAfterEnd = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterEnd != nullptr);
+  CHECK(fillAfterEnd->visible);
+  REQUIRE(fillAfterEnd->sizeHint.width.preferred.has_value());
+  CHECK(fillAfterEnd->sizeHint.width.preferred.value() == doctest::Approx(200.0f));
+}
+
+TEST_CASE("PrimeStage disabled progress bar ignores interaction callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 100.0f);
+
+  PrimeStage::ProgressBarState state;
+  state.value = 0.45f;
+  int changed = 0;
+
+  PrimeStage::ProgressBarSpec spec;
+  spec.state = &state;
+  spec.enabled = false;
+  spec.trackStyle = 331u;
+  spec.fillStyle = 332u;
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 12.0f;
+  spec.callbacks.onValueChanged = [&](float) { changed += 1; };
+
+  PrimeStage::UiNode progress = root.createProgressBar(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 100.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(progress.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float x = out->absX + out->absW * 0.9f;
+  float y = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x, y), frame, layout, &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x, y), frame, layout, &focus);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::End), frame, layout, &focus);
+
+  CHECK(changed == 0);
+  CHECK(state.value == doctest::Approx(0.45f));
 }
 
 TEST_CASE("PrimeStage table callbacks keep row text alive for short-lived source buffers") {

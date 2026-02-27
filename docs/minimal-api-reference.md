@@ -83,11 +83,14 @@ Callback semantics:
 - move/resize callbacks report pointer deltas, not persisted geometry.
 - app/runtime code owns durable window position/size state and decides rebuild/layout scheduling.
 
-## Patch-First TextField Path
+## Patch-First Widget Interaction Paths
 
 - State-backed `createTextField(...)` edits (text input, caret movement, selection updates) patch
   existing field visuals in place.
-- Typical runtime wiring for those high-frequency callbacks uses `FrameLifecycle::requestFrame()`
+- `createToggle(...)`, `createCheckbox(...)`, and `createSlider(...)` interactions patch their
+  value visuals in place.
+- State-backed `createProgressBar(...)` value changes patch fill geometry in place.
+- Typical runtime wiring for these high-frequency updates uses `FrameLifecycle::requestFrame()`
   instead of full rebuild requests when no structural widgets change.
 
 ## Focus And Identity Helpers

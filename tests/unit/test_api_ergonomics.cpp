@@ -358,7 +358,7 @@ TEST_CASE("PrimeStage window builder API is stateless and callback-driven") {
   CHECK(agents.find("createWindow(WindowSpec)") != std::string::npos);
 }
 
-TEST_CASE("PrimeStage text field edits support patch-first frame updates") {
+TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
@@ -380,6 +380,9 @@ TEST_CASE("PrimeStage text field edits support patch-first frame updates") {
   CHECK(source.find("patchTextFieldVisuals") != std::string::npos);
   CHECK(source.find("TextFieldPatchState") != std::string::npos);
   CHECK(source.find("notify_state = [&]()") != std::string::npos);
+  CHECK(source.find("applyToggleVisual") != std::string::npos);
+  CHECK(source.find("applyCheckboxVisual") != std::string::npos);
+  CHECK(source.find("applyProgressVisual") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -388,6 +391,7 @@ TEST_CASE("PrimeStage text field edits support patch-first frame updates") {
   REQUIRE(!design.empty());
   CHECK(design.find("TextField") != std::string::npos);
   CHECK(design.find("request frame-only updates") != std::string::npos);
+  CHECK(design.find("state-backed `ProgressBar`") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -397,13 +401,15 @@ TEST_CASE("PrimeStage text field edits support patch-first frame updates") {
   CHECK(guidelines.find("TextField") != std::string::npos);
   CHECK(guidelines.find("patch-first") != std::string::npos);
   CHECK(guidelines.find("request only a frame") != std::string::npos);
+  CHECK(guidelines.find("Toggle") != std::string::npos);
+  CHECK(guidelines.find("ProgressBar") != std::string::npos);
 
   std::ifstream apiRefInput(apiRefPath);
   REQUIRE(apiRefInput.good());
   std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!apiRef.empty());
-  CHECK(apiRef.find("Patch-First TextField Path") != std::string::npos);
+  CHECK(apiRef.find("Patch-First Widget Interaction Paths") != std::string::npos);
   CHECK(apiRef.find("requestFrame()") != std::string::npos);
 
   std::ifstream exampleInput(examplePath);
@@ -1301,6 +1307,8 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(ui.find("CheckboxState* state = nullptr;") != std::string::npos);
   CHECK(ui.find("TabsState* state = nullptr;") != std::string::npos);
   CHECK(ui.find("DropdownState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("ProgressBarState* state = nullptr;") != std::string::npos);
+  CHECK(ui.find("ProgressBarCallbacks callbacks{};") != std::string::npos);
   CHECK(ui.find("struct TextCompositionState") != std::string::npos);
   CHECK(ui.find("struct TextCompositionCallbacks") != std::string::npos);
   CHECK(ui.find("TextCompositionState* compositionState = nullptr;") != std::string::npos);

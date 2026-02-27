@@ -32,7 +32,7 @@ What app code should avoid:
   - use this when your app already has canonical domain state.
 - State-backed mode (uncontrolled convenience for common controls):
   - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `TabsState*`, `DropdownState*`,
-    `TextFieldState*`, `SelectableTextState*`).
+    `ProgressBarState*`, `TextFieldState*`, `SelectableTextState*`).
   - PrimeStage reads/writes those state objects directly during interaction; callbacks are optional.
   - use this to reduce callback-driven bookkeeping when the widget value does not need separate
     app-level mirroring.
@@ -175,8 +175,9 @@ if (result.requestFrame) {
 - Use `requestRebuild()` when widget callbacks change scene structure or state that requires UI rebuild.
 - Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
 - Use `requestFrame()` for patch-only updates that do not require rebuild/layout.
-- `TextField` state-backed edits (typing, caret moves, selection updates) are patch-first in the
-  built scene, so high-frequency callbacks can request only a frame in typical app loops.
+- `TextField` state-backed edits (typing, caret moves, selection updates) and value-widget
+  interactions (`Toggle`, `Checkbox`, `Slider`, and state-backed `ProgressBar`) are patch-first in
+  the built scene, so high-frequency callbacks can request only a frame in typical app loops.
 - In frame loops, consume work with `runRebuildIfNeeded(...)` and `runLayoutIfNeeded(...)`, then call
   `markFramePresented()` after presenting.
 

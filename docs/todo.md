@@ -230,8 +230,9 @@ Release Exit Criteria (for API-quality milestone):
   - avoid full-scene rebuild on every text/caret update where structural changes are not required
   - delivered via in-place `TextField` visual patching in `src/PrimeStage.cpp` (`TextFieldPatchState` + callback-driven primitive updates), no-rebuild regression coverage in `tests/unit/test_text_field.cpp`, docs/runtime guidance alignment in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, `docs/minimal-api-reference.md`, `AGENTS.md`, and patch-first usage checks in `tests/unit/test_api_ergonomics.cpp` + `examples/primestage_widgets.cpp`
 
-- ☐ [30] Expand patch-first updates beyond text fields.
+- ☑ [30] Expand patch-first updates beyond text fields.
   - support non-structural interaction updates (toggle/checkbox/slider/progress visual state) without full rebuilds
+  - delivered via in-place toggle/checkbox visual patching and state-backed progress-bar patch callbacks in `src/PrimeStage.cpp`, regression coverage in `tests/unit/test_interaction.cpp`, and patch-first guidance updates in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, `docs/minimal-api-reference.md`, `tests/unit/test_api_ergonomics.cpp`, and `AGENTS.md`
 
 - ☐ [34] Keep generated/build artifacts out of source control workflows.
   - document expected ignored paths for build outputs and snapshots

@@ -502,10 +502,21 @@ struct DropdownSpec {
   SizeSpec size;
 };
 
+struct ProgressBarCallbacks {
+  std::function<void(float)> onValueChanged;
+};
+
+struct ProgressBarState {
+  float value = 0.0f;
+};
+
 struct ProgressBarSpec {
+  ProgressBarState* state = nullptr;
+  ProgressBarCallbacks callbacks{};
   AccessibilitySemantics accessibility{};
   float value = 0.0f;
   float minFillWidth = 0.0f;
+  bool enabled = true;
   int tabIndex = -1;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleOverride trackStyleOverride{};

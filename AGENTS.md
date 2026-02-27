@@ -41,4 +41,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep examples as canonical PrimeStage API consumers; direct PrimeFrame integrations must be explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and aligned with `docs/example-app-consumer-checklist.md`.
 - For `createWindow(WindowSpec)` usage, keep window geometry in app-owned durable state and treat move/resize callbacks as stateless deltas that drive runtime rebuild/layout requests.
 - Keep `docs/minimal-api-reference.md` aligned with shipped public headers (`PrimeStage.h`, `Ui.h`, `AppRuntime.h`, `InputBridge.h`, `Render.h`) whenever API symbols change.
-- Prefer patch-first frame updates for high-frequency `TextField` state edits (typing/caret/selection) and reserve full rebuild requests for structural UI changes.
+- Prefer patch-first frame updates for high-frequency `TextField` edits plus non-structural `Toggle`/`Checkbox`/`Slider`/state-backed `ProgressBar` interaction visuals, and reserve full rebuild requests for structural UI changes.
