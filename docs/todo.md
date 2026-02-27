@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [106] Link advanced onboarding docs to full checklist review policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with explicit
+    checklist-review phrasing requiring full review of
+    `docs/example-app-consumer-checklist.md` before adding new escape hatches
+    (not only exception-tag checks)
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require the full
+    checklist-review phrasing in advanced onboarding docs, preventing
+    regression to checklist coverage limited to exception tags
+
 - ☑ [105] Link advanced onboarding docs to ergonomics scorecard policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/api-ergonomics-scorecard.md` so advanced-path expansions

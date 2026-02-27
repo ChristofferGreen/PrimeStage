@@ -1260,6 +1260,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/example-app-consumer-checklist.md") != std::string::npos);
   CHECK(advancedEscape.find("Review exception-tag policy details in `docs/example-app-consumer-checklist.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("Review the full advanced integration checklist in") !=
+        std::string::npos);
   CHECK(advancedEscape.find("docs/api-ergonomics-guidelines.md") != std::string::npos);
   CHECK(advancedEscape.find("Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md`") !=
         std::string::npos);
@@ -1745,6 +1747,8 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/minimal-api-reference.md") != std::string::npos);
   CHECK(advanced.find("Review high-level symbol contracts in `docs/minimal-api-reference.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("Review the full advanced integration checklist in") !=
         std::string::npos);
   CHECK(advanced.find("docs/api-evolution-policy.md") != std::string::npos);
   CHECK(advanced.find("Review API compatibility and deprecation rules in `docs/api-evolution-policy.md`") !=
