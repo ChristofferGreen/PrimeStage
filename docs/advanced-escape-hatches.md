@@ -65,6 +65,8 @@ Use only for explicit interop, not canonical app flow.
 - When manually orchestrating lifecycle scheduling (`requestRebuild`, `requestLayout`,
   `requestFrame`) in advanced sample code, tag the local site inline with:
   `Advanced lifecycle orchestration (documented exception):`
+- Review exception-tag policy details in `docs/example-app-consumer-checklist.md` before adding
+  or changing advanced integrations.
 - When adding a new escape hatch, update:
   - `docs/example-app-consumer-checklist.md`
   - `docs/api-ergonomics-guidelines.md`

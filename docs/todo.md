@@ -138,6 +138,13 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [93] Link advanced onboarding docs to exception-policy checklist.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    exception-policy handoff to `docs/example-app-consumer-checklist.md`
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require that advanced
+    onboarding guidance keeps both the checklist link and explicit policy-review
+    phrasing, preventing drift between advanced docs and exception-tag policy
+
 - ☑ [92] Keep advanced onboarding docs canonical-first (not default-path).
   - expanded `tests/unit/test_api_ergonomics.cpp` checks for
     `docs/advanced-escape-hatches.md` to enforce canonical-first framing:
