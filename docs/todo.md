@@ -26,12 +26,43 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-_No open items._
+- ☐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.
+  - extract per-widget build/interaction paths (`TextField`, `TreeView`, `Table`, `List`, etc.)
+    into dedicated translation units to reduce blast radius and review complexity
+  - preserve existing public API surface and behavior contracts while improving internal module boundaries
+
+- ☐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
+  - centralize shared patch/focus/callback helper state used across widget implementations
+  - reduce duplicated runtime wiring and make interaction behavior easier to reason about/test
+
+- ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
+  - fail CI when agreed max thresholds are exceeded for single-file or single-function size
+  - document thresholds and exception policy to keep refactors incremental and explicit
+
+- ☐ [114] Add accessibility semantics snapshot/export regression coverage.
+  - generate deterministic role/state snapshots for core widgets and verify expected semantics mappings
+  - include contract coverage for default, focused, disabled, and selected states
+
+- ☐ [115] Add migration notes/tests for semantic callback naming adoption.
+  - document migration from legacy aliases (`onClick`, `onChanged`, etc.) to semantic callbacks
+    (`onActivate`, `onChange`, etc.) with before/after examples
+  - add regression tests ensuring both compatibility aliases and preferred callback paths remain correct
 
 
 ## P2 (Foundational Cleanup / Backlog)
 
-_No open items._
+- ☐ [116] Add deterministic host-input replay tests from recorded traces.
+  - support replay fixtures for triaging interaction regressions with reproducible event streams
+  - keep replay harness deterministic and versioned with repository test inputs
+
+- ☐ [117] Expand property/fuzz coverage for widget-spec sanitization paths.
+  - add randomized invalid-size/range/index inputs across widget specs and assert clamp invariants
+  - keep seeds/corpus deterministic and include focused regression corpus for known failures
+
+- ☐ [118] Add an internal extension seam for custom widget primitives.
+  - provide a typed internal extension path for advanced composition without requiring direct
+    `LowLevel` callback composition in standard integrations
+  - document constraints so canonical API usage remains high-level and stable
 
 ## Archive (Completed)
 
