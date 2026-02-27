@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [65] Add standardized command/action routing.
-  - provide app-level action registry and keyboard shortcut binding independent of widget-local event code
-  - unify command invocation across menu/button/shortcut entrypoints
-  - acceptance: example shortcuts use action routing without raw key event plumbing
-
 - ☐ [66] Add built-in form API for common input workflows.
   - compose label+control+validation+help text via high-level form primitives
   - reduce repetitive stack/spacing boilerplate in app code
@@ -101,6 +96,22 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [65] Add standardized command/action routing.
+  - added app-level action APIs in `PrimeStage::App`:
+    `registerAction`, `unregisterAction`, `bindShortcut`, `unbindShortcut`, `invokeAction`,
+    and `makeActionCallback`, plus typed routing metadata
+    (`AppActionSource`, `AppShortcut`, `AppActionInvocation`)
+  - wired shortcut dispatch into `App::bridgeHostInputEvent(...)` so key chords route through
+    action ids before widget-level dispatch without per-widget raw key plumbing
+  - updated `examples/primestage_widgets.cpp` to register actions, bind shortcuts, and reuse the
+    same action ids from button callbacks (`makeActionCallback`) for unified command entrypoints
+  - expanded runtime and regression coverage in `tests/unit/test_app_runtime.cpp` and
+    `tests/unit/test_api_ergonomics.cpp` to validate action routing behavior, repeat-policy
+    diagnostics, canonical example usage, and docs/header API visibility
+  - updated docs (`docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`,
+    `docs/prime-stage-design.md`, `docs/example-app-consumer-checklist.md`) to document the
+    standardized command-routing flow
 
 - ☑ [64] Add ergonomic convenience overloads for common widgets.
   - added concise declarative `UiNode` helpers for common value widgets:

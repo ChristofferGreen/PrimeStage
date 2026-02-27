@@ -23,6 +23,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
     interactions in canonical examples; rely on `PrimeStage::App` default event-driven scheduling.
 12. Keep `examples/primestage_modern_api.cpp` as the strict default canonical example:
     no low-level PrimeFrame/PrimeHost internals and complexity constrained by CI thresholds.
+13. Route keyboard shortcuts through `PrimeStage::App` action APIs
+    (`registerAction`, `bindShortcut`, `invokeAction`) rather than raw key-switch plumbing.
 
 ## Advanced Exceptions
 

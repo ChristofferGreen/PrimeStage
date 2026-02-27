@@ -16,6 +16,10 @@
 namespace {
 
 constexpr float ScrollLinePixels = 32.0f;
+constexpr PrimeHost::KeyModifierMask ControlModifier =
+    static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Control);
+constexpr std::string_view ActionNextTab = "demo.next_tab";
+constexpr std::string_view ActionToggleCheckbox = "demo.toggle_checkbox";
 
 struct AssetRow {
   std::string name;
@@ -43,6 +47,8 @@ struct DemoState {
   std::vector<AssetTreeNode> tree;
   std::string selectableTextContent;
   std::vector<std::string> listItems;
+  int actionCount = 0;
+  std::string lastAction;
 };
 
 struct DemoApp {
@@ -74,6 +80,7 @@ void initializeState(DemoState& state) {
       "Selectable text supports drag selection, keyboard movement, and clipboard shortcuts.";
 
   state.listItems = {"Alpha", "Beta", "Gamma", "Delta"};
+  state.lastAction = "none";
   state.tableRows = {
       {"icons.png", "Texture", "512 KB"},
       {"theme.ogg", "Audio", "3.1 MB"},
@@ -105,6 +112,45 @@ void initializeState(DemoState& state) {
        false,
        false},
   };
+}
+
+int cycleIndex(int value, size_t itemCount, int delta) {
+  if (itemCount == 0u) {
+    return 0;
+  }
+  int span = static_cast<int>(itemCount);
+  int next = value + delta;
+  next %= span;
+  if (next < 0) {
+    next += span;
+  }
+  return next;
+}
+
+void registerActions(DemoApp& app) {
+  (void)app.ui.registerAction(ActionNextTab, [&app](PrimeStage::AppActionInvocation const&) {
+    app.state.tabs.value = cycleIndex(app.state.tabs.value, 3u, 1);
+    app.state.dropdown.value = cycleIndex(app.state.dropdown.value, 4u, 1);
+    app.state.actionCount += 1;
+    app.state.lastAction = std::string(ActionNextTab);
+    app.ui.lifecycle().requestRebuild();
+  });
+  (void)app.ui.registerAction(ActionToggleCheckbox, [&app](PrimeStage::AppActionInvocation const&) {
+    app.state.checkbox.value = !app.state.checkbox.value;
+    app.state.actionCount += 1;
+    app.state.lastAction = std::string(ActionToggleCheckbox);
+    app.ui.lifecycle().requestRebuild();
+  });
+
+  PrimeStage::AppShortcut nextTabShortcut;
+  nextTabShortcut.key = PrimeStage::HostKey::Enter;
+  nextTabShortcut.modifiers = ControlModifier;
+  (void)app.ui.bindShortcut(nextTabShortcut, ActionNextTab);
+
+  PrimeStage::AppShortcut toggleShortcut;
+  toggleShortcut.key = PrimeStage::HostKey::Space;
+  toggleShortcut.modifiers = ControlModifier;
+  (void)app.ui.bindShortcut(toggleShortcut, ActionToggleCheckbox);
 }
 
 void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
@@ -154,9 +200,12 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::StackSpec rowSpec;
     rowSpec.gap = 12.0f;
     PrimeStage::UiNode row = actions.row(rowSpec);
-    row.button("Button");
+    row.button("Next Tab", app.ui.makeActionCallback(std::string(ActionNextTab)));
+    row.button("Toggle Check", app.ui.makeActionCallback(std::string(ActionToggleCheckbox)));
     row.toggle(PrimeStage::bind(app.state.toggle));
     row.checkbox("Checkbox", PrimeStage::bind(app.state.checkbox));
+    actions.textLine("Shortcuts: Ctrl+Enter (next tab), Ctrl+Space (toggle check)");
+    actions.textLine(std::string("Last action: ") + app.state.lastAction);
   }
 
   PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
@@ -290,6 +339,7 @@ int main(int argc, char** argv) {
   if (snapshotPath.has_value()) {
     DemoApp app;
     initializeState(app.state);
+    registerActions(app);
     float resolvedScale = snapshotScale > 0.0f ? snapshotScale : 1.0f;
     app.ui.setSurfaceMetrics(snapshotWidth, snapshotHeight, resolvedScale);
     app.ui.setRenderMetrics(snapshotWidth, snapshotHeight, resolvedScale);
@@ -319,6 +369,7 @@ int main(int argc, char** argv) {
   DemoApp app;
   app.host = hostResult.value().get();
   initializeState(app.state);
+  registerActions(app);
   app.ui.inputBridge().scrollLinePixels = ScrollLinePixels;
   app.ui.inputBridge().scrollDirectionSign = 1.0f;
 

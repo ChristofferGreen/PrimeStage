@@ -116,6 +116,10 @@ void afterLayout(App& app) {
 - Legacy callback names are still accepted as compatibility aliases, but new code should use semantic names.
 - Keep callbacks side-effect-light: update state and mark the app for rebuild/layout.
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
+- Prefer app-level action routing for cross-widget commands and shortcuts:
+  `registerAction(...)`, `bindShortcut(...)`, and `invokeAction(...)`.
+- Reuse action ids across widget callbacks and shortcuts using `makeActionCallback(...)` instead of
+  duplicating command behavior in multiple callback sites.
 - For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
 - When installing temporary/replaced low-level node callbacks, prefer `NodeCallbackHandle` with `NodeCallbackTable` so previous callback wiring restores automatically on scope exit.
 - For window composition via `createWindow(WindowSpec)`, treat move/resize callbacks as stateless
@@ -183,6 +187,8 @@ root.createButton(apply);
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
   to `PrimeFrame::Event`.
+- In canonical host loops, register shortcut bindings on `PrimeStage::App` and let
+  `App::bridgeHostInputEvent(...)` dispatch them via action ids before widget-level routing.
 - Use `PrimeStage::KeyCode`/`PrimeStage::HostKey` values instead of raw numeric key constants in
   app code.
 - Normalize wheel/touchpad deltas in one place:

@@ -21,6 +21,12 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `setPlatformServices(...)`
   - `connectHostServices(...)`
   - `clearHostServices()`
+  - `registerAction(...)`
+  - `unregisterAction(...)`
+  - `bindShortcut(...)`
+  - `unbindShortcut(...)`
+  - `invokeAction(...)`
+  - `makeActionCallback(...)`
   - `applyPlatformServices(TextFieldSpec&)`
   - `applyPlatformServices(SelectableTextSpec&)`
   - `runRebuildIfNeeded(...)`
@@ -59,6 +65,15 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `bypassFrameCap`
   - `requestExit`
 - `PrimeStage::bridgeHostInputEvent(...)`
+
+## Action Routing
+
+- `PrimeStage::AppActionSource`
+- `PrimeStage::AppShortcut`
+- `PrimeStage::AppActionInvocation`
+- `PrimeStage::AppActionCallback`
+- app-level command routing links shortcut, widget callback, and programmatic invocation through
+  shared action ids.
 
 ## Platform Services
 

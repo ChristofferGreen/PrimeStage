@@ -38,6 +38,8 @@ PrimeHost handles OS integration and input delivery.
   `PrimeFrame::Event` semantics.
 - For canonical host loops, `PrimeStage::App::bridgeHostInputEvent(...)` wires this bridge to the
   app-owned frame/layout/router/focus pipeline.
+- `PrimeStage::App` also supports app-level command routing (`registerAction`, `bindShortcut`,
+  `invokeAction`) so shortcut handling does not require per-widget key plumbing.
 - `PrimeStage::App` automatically requests frame presentation when dispatched input/frame events are
   handled, reducing manual lifecycle scheduling in canonical interaction callbacks.
 - `PrimeStage::App::connectHostServices(...)` wires clipboard/cursor/IME host services once at the
@@ -101,6 +103,12 @@ For text controls, app/runtime platform services are applied through:
 - `AppPlatformServices` for clipboard, cursor-hint, and IME composition-rect callbacks.
 - `App::applyPlatformServices(TextFieldSpec&)`
 - `App::applyPlatformServices(SelectableTextSpec&)`
+
+For app-level commands:
+- register commands with `App::registerAction(...)`
+- bind keyboard shortcuts with `App::bindShortcut(...)`
+- invoke from widget callbacks via `App::makeActionCallback(...)` or `App::invokeAction(...)`
+- this unifies shortcut/button/programmatic entrypoints on one command id
 
 ## Controlled, Binding, and State-Backed Widgets
 PrimeStage supports three widget value models for interactive controls:

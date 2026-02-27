@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <span>
+#include <utility>
 
 namespace PrimeStage {
 
@@ -117,6 +118,134 @@ void App::clearHostServices() {
   platformServices_.onImeCompositionRectChanged = {};
 }
 
+App::ActionEntry* App::findAction(std::string_view actionId) {
+  auto it = std::find_if(actions_.begin(), actions_.end(), [actionId](ActionEntry const& entry) {
+    return entry.id == actionId;
+  });
+  return it == actions_.end() ? nullptr : &*it;
+}
+
+App::ActionEntry const* App::findAction(std::string_view actionId) const {
+  auto it = std::find_if(actions_.begin(), actions_.end(), [actionId](ActionEntry const& entry) {
+    return entry.id == actionId;
+  });
+  return it == actions_.end() ? nullptr : &*it;
+}
+
+bool App::registerAction(std::string_view actionId, AppActionCallback callback) {
+  if (actionId.empty() || !callback) {
+    return false;
+  }
+  if (ActionEntry* existing = findAction(actionId)) {
+    existing->callback = std::move(callback);
+    return true;
+  }
+  actions_.push_back(ActionEntry{std::string(actionId), std::move(callback)});
+  return true;
+}
+
+bool App::unregisterAction(std::string_view actionId) {
+  if (actionId.empty()) {
+    return false;
+  }
+  auto it = std::find_if(actions_.begin(), actions_.end(), [actionId](ActionEntry const& entry) {
+    return entry.id == actionId;
+  });
+  if (it == actions_.end()) {
+    return false;
+  }
+  actions_.erase(it);
+  shortcutBindings_.erase(
+      std::remove_if(shortcutBindings_.begin(),
+                     shortcutBindings_.end(),
+                     [actionId](ShortcutEntry const& entry) {
+                       return entry.actionId == actionId;
+                     }),
+      shortcutBindings_.end());
+  return true;
+}
+
+bool App::bindShortcut(AppShortcut const& shortcut, std::string_view actionId) {
+  if (actionId.empty() || !findAction(actionId)) {
+    return false;
+  }
+  auto it = std::find_if(shortcutBindings_.begin(),
+                         shortcutBindings_.end(),
+                         [&](ShortcutEntry const& entry) {
+                           return entry.shortcut == shortcut;
+                         });
+  if (it != shortcutBindings_.end()) {
+    it->actionId = std::string(actionId);
+    return true;
+  }
+  shortcutBindings_.push_back(ShortcutEntry{shortcut, std::string(actionId)});
+  return true;
+}
+
+bool App::unbindShortcut(AppShortcut const& shortcut) {
+  auto it = std::find_if(shortcutBindings_.begin(),
+                         shortcutBindings_.end(),
+                         [&](ShortcutEntry const& entry) {
+                           return entry.shortcut == shortcut;
+                         });
+  if (it == shortcutBindings_.end()) {
+    return false;
+  }
+  shortcutBindings_.erase(it);
+  return true;
+}
+
+bool App::invokeAction(std::string_view actionId,
+                       AppActionSource source,
+                       std::optional<AppShortcut> shortcut) {
+  ActionEntry* action = findAction(actionId);
+  if (!action) {
+    return false;
+  }
+  std::string actionIdCopy = action->id;
+  AppActionCallback callback = action->callback;
+  AppActionInvocation invocation;
+  invocation.actionId = actionIdCopy;
+  invocation.source = source;
+  invocation.shortcut = shortcut;
+  callback(invocation);
+  lifecycle_.requestFrame();
+  return true;
+}
+
+std::function<void()> App::makeActionCallback(std::string actionId) {
+  if (actionId.empty()) {
+    return {};
+  }
+  return [this, actionId = std::move(actionId)]() {
+    (void)invokeAction(actionId, AppActionSource::Widget);
+  };
+}
+
+bool App::dispatchShortcut(PrimeHost::KeyEvent const& event) {
+  if (!event.pressed) {
+    return false;
+  }
+  auto it = std::find_if(shortcutBindings_.begin(),
+                         shortcutBindings_.end(),
+                         [&](ShortcutEntry const& entry) {
+                           if (hostKeyCode(entry.shortcut.key) != event.keyCode) {
+                             return false;
+                           }
+                           if (entry.shortcut.modifiers != event.modifiers) {
+                             return false;
+                           }
+                           if (event.repeat && !entry.shortcut.allowRepeat) {
+                             return false;
+                           }
+                           return true;
+                         });
+  if (it == shortcutBindings_.end()) {
+    return false;
+  }
+  return invokeAction(it->actionId, AppActionSource::Shortcut, it->shortcut);
+}
+
 void App::setSurfaceMetrics(uint32_t width, uint32_t height, float scale) {
   uint32_t nextWidth = clamp_dimension(width);
   uint32_t nextHeight = clamp_dimension(height);
@@ -192,6 +321,19 @@ bool App::dispatchFrameEvent(PrimeFrame::Event const& event) {
 InputBridgeResult App::bridgeHostInputEvent(PrimeHost::InputEvent const& input,
                                             PrimeHost::EventBatch const& batch,
                                             HostKey exitKey) {
+  if (auto const* keyEvent = std::get_if<PrimeHost::KeyEvent>(&input)) {
+    if (isHostKeyPressed(*keyEvent, exitKey)) {
+      InputBridgeResult result;
+      result.requestExit = true;
+      return result;
+    }
+    if (dispatchShortcut(*keyEvent)) {
+      InputBridgeResult result;
+      result.requestFrame = true;
+      return result;
+    }
+  }
+
   InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
       input,
       batch,

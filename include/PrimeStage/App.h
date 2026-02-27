@@ -5,9 +5,12 @@
 #include "PrimeStage/Render.h"
 #include "PrimeStage/Ui.h"
 
+#include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace PrimeStage {
 
@@ -17,6 +20,32 @@ struct AppPlatformServices {
   std::function<void(CursorHint)> onCursorHintChanged;
   std::function<void(int32_t, int32_t, int32_t, int32_t)> onImeCompositionRectChanged;
 };
+
+enum class AppActionSource : uint8_t {
+  Programmatic,
+  Shortcut,
+  Widget,
+};
+
+struct AppShortcut {
+  HostKey key = HostKey::Enter;
+  PrimeHost::KeyModifierMask modifiers = 0u;
+  bool allowRepeat = false;
+};
+
+constexpr bool operator==(AppShortcut const& lhs, AppShortcut const& rhs) {
+  return lhs.key == rhs.key &&
+         lhs.modifiers == rhs.modifiers &&
+         lhs.allowRepeat == rhs.allowRepeat;
+}
+
+struct AppActionInvocation {
+  std::string_view actionId;
+  AppActionSource source = AppActionSource::Programmatic;
+  std::optional<AppShortcut> shortcut;
+};
+
+using AppActionCallback = std::function<void(AppActionInvocation const&)>;
 
 class App {
 public:
@@ -38,6 +67,14 @@ public:
   void applyPlatformServices(SelectableTextSpec& spec) const;
   void connectHostServices(PrimeHost::Host& host, PrimeHost::SurfaceId surfaceId);
   void clearHostServices();
+  bool registerAction(std::string_view actionId, AppActionCallback callback);
+  bool unregisterAction(std::string_view actionId);
+  bool bindShortcut(AppShortcut const& shortcut, std::string_view actionId);
+  bool unbindShortcut(AppShortcut const& shortcut);
+  bool invokeAction(std::string_view actionId,
+                    AppActionSource source = AppActionSource::Programmatic,
+                    std::optional<AppShortcut> shortcut = std::nullopt);
+  std::function<void()> makeActionCallback(std::string actionId);
 
   void setSurfaceMetrics(uint32_t width, uint32_t height, float scale = 1.0f);
   void setRenderMetrics(uint32_t width, uint32_t height, float scale = 1.0f);
@@ -72,6 +109,18 @@ public:
   [[nodiscard]] PrimeFrame::EventRouter const& router() const { return router_; }
 
 private:
+  struct ActionEntry {
+    std::string id;
+    AppActionCallback callback{};
+  };
+  struct ShortcutEntry {
+    AppShortcut shortcut{};
+    std::string actionId;
+  };
+
+  [[nodiscard]] ActionEntry* findAction(std::string_view actionId);
+  [[nodiscard]] ActionEntry const* findAction(std::string_view actionId) const;
+  [[nodiscard]] bool dispatchShortcut(PrimeHost::KeyEvent const& event);
   [[nodiscard]] float resolvedLayoutScale() const;
   [[nodiscard]] uint32_t resolvedLayoutWidth() const;
   [[nodiscard]] uint32_t resolvedLayoutHeight() const;
@@ -86,6 +135,8 @@ private:
   InputBridgeState inputBridge_{};
   RenderOptions renderOptions_{};
   AppPlatformServices platformServices_{};
+  std::vector<ActionEntry> actions_{};
+  std::vector<ShortcutEntry> shortcutBindings_{};
   uint32_t surfaceWidth_ = 1280u;
   uint32_t surfaceHeight_ = 720u;
   float surfaceScale_ = 1.0f;

@@ -194,6 +194,105 @@ TEST_CASE("App typed widget handles drive focus visibility and imperative action
   CHECK_FALSE(app.dispatchWidgetEvent(PrimeStage::WidgetActionHandle{}, event));
 }
 
+TEST_CASE("App action routing unifies widget and shortcut entrypoints") {
+  PrimeStage::App app;
+
+  int invocationCount = 0;
+  PrimeStage::AppActionInvocation lastInvocation{};
+  CHECK(app.registerAction("demo.next", [&](PrimeStage::AppActionInvocation const& invocation) {
+    invocationCount += 1;
+    lastInvocation = invocation;
+    app.lifecycle().requestRebuild();
+  }));
+
+  PrimeStage::AppShortcut shortcut;
+  shortcut.key = PrimeStage::HostKey::Enter;
+  shortcut.modifiers =
+      static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Control);
+  CHECK(app.bindShortcut(shortcut, "demo.next"));
+
+  PrimeStage::WidgetActionHandle actionHandle;
+  CHECK(app.runRebuildIfNeeded([&](PrimeStage::UiNode root) {
+    PrimeStage::ButtonSpec button;
+    button.label = "Next";
+    button.size.preferredWidth = 100.0f;
+    button.size.preferredHeight = 28.0f;
+    button.callbacks.onActivate = app.makeActionCallback("demo.next");
+    actionHandle = root.createButton(button).actionHandle();
+  }));
+  CHECK(app.runLayoutIfNeeded());
+
+  PrimeFrame::Event widgetKey;
+  widgetKey.type = PrimeFrame::EventType::KeyDown;
+  widgetKey.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter);
+  CHECK(app.dispatchWidgetEvent(actionHandle, widgetKey));
+  CHECK(invocationCount == 1);
+  CHECK(lastInvocation.actionId == "demo.next");
+  CHECK(lastInvocation.source == PrimeStage::AppActionSource::Widget);
+  CHECK_FALSE(lastInvocation.shortcut.has_value());
+
+  PrimeHost::KeyEvent shortcutKey;
+  shortcutKey.pressed = true;
+  shortcutKey.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Enter);
+  shortcutKey.modifiers = shortcut.modifiers;
+  PrimeHost::InputEvent input = shortcutKey;
+  PrimeHost::EventBatch batch{};
+
+  app.markFramePresented();
+  CHECK_FALSE(app.lifecycle().framePending());
+  PrimeStage::InputBridgeResult result = app.bridgeHostInputEvent(input, batch);
+  CHECK(result.requestFrame);
+  CHECK_FALSE(result.requestExit);
+  CHECK(invocationCount == 2);
+  CHECK(lastInvocation.actionId == "demo.next");
+  CHECK(lastInvocation.source == PrimeStage::AppActionSource::Shortcut);
+  REQUIRE(lastInvocation.shortcut.has_value());
+  CHECK(lastInvocation.shortcut->key == PrimeStage::HostKey::Enter);
+  CHECK(lastInvocation.shortcut->modifiers == shortcut.modifiers);
+  CHECK(app.lifecycle().framePending());
+}
+
+TEST_CASE("App action routing validates bindings and repeat policy") {
+  PrimeStage::App app;
+  CHECK_FALSE(app.registerAction("", [](PrimeStage::AppActionInvocation const&) {}));
+
+  PrimeStage::AppShortcut shortcut;
+  shortcut.key = PrimeStage::HostKey::Space;
+  shortcut.modifiers =
+      static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Control);
+  CHECK_FALSE(app.bindShortcut(shortcut, "missing"));
+
+  int invocationCount = 0;
+  CHECK(app.registerAction("demo.repeat", [&](PrimeStage::AppActionInvocation const&) {
+    invocationCount += 1;
+  }));
+  CHECK(app.bindShortcut(shortcut, "demo.repeat"));
+
+  PrimeHost::KeyEvent repeatKey;
+  repeatKey.pressed = true;
+  repeatKey.repeat = true;
+  repeatKey.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Space);
+  repeatKey.modifiers = shortcut.modifiers;
+  PrimeHost::InputEvent input = repeatKey;
+  PrimeHost::EventBatch batch{};
+
+  PrimeStage::InputBridgeResult result = app.bridgeHostInputEvent(input, batch);
+  CHECK_FALSE(result.requestFrame);
+  CHECK(invocationCount == 0);
+
+  shortcut.allowRepeat = true;
+  CHECK(app.bindShortcut(shortcut, "demo.repeat"));
+  result = app.bridgeHostInputEvent(input, batch);
+  CHECK(result.requestFrame);
+  CHECK(invocationCount == 1);
+
+  CHECK(app.unbindShortcut(shortcut));
+  CHECK_FALSE(app.unbindShortcut(shortcut));
+  CHECK(app.unregisterAction("demo.repeat"));
+  CHECK_FALSE(app.unregisterAction("demo.repeat"));
+  CHECK_FALSE(app.invokeAction("demo.repeat"));
+}
+
 TEST_CASE("App bridges host input events through the owned input bridge state") {
   PrimeStage::App app;
 

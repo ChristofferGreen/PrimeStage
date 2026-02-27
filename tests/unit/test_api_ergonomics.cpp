@@ -721,6 +721,14 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
         std::string::npos);
   CHECK(widgetsSource.find("choice.dropdown({\"Preview\", \"Edit\", \"Export\", \"Publish\"},") !=
         std::string::npos);
+  CHECK(widgetsSource.find("registerAction(ActionNextTab") != std::string::npos);
+  CHECK(widgetsSource.find("registerAction(ActionToggleCheckbox") != std::string::npos);
+  CHECK(widgetsSource.find("bindShortcut(nextTabShortcut, ActionNextTab);") != std::string::npos);
+  CHECK(widgetsSource.find("bindShortcut(toggleShortcut, ActionToggleCheckbox);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("makeActionCallback(std::string(ActionNextTab))") != std::string::npos);
+  CHECK(widgetsSource.find("makeActionCallback(std::string(ActionToggleCheckbox))") !=
+        std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::ToggleSpec toggle;") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::CheckboxSpec checkbox;") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::SliderSpec slider;") == std::string::npos);
@@ -803,6 +811,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("PrimeStage::App") != std::string::npos);
   CHECK(checklist.find("WidgetIdentityReconciler") != std::string::npos);
   CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
+  CHECK(checklist.find("registerAction") != std::string::npos);
+  CHECK(checklist.find("bindShortcut") != std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
 
@@ -825,9 +835,13 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path inputBridgePath = repoRoot / "include" / "PrimeStage" / "InputBridge.h";
+  std::filesystem::path appPath = repoRoot / "include" / "PrimeStage" / "App.h";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   REQUIRE(std::filesystem::exists(inputBridgePath));
+  REQUIRE(std::filesystem::exists(appPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
 
   std::ifstream inputBridgeInput(inputBridgePath);
   REQUIRE(inputBridgeInput.good());
@@ -839,6 +853,24 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(inputBridge.find("scrollDirectionSign") != std::string::npos);
   CHECK(inputBridge.find("scroll->deltaY * deltaScale * directionSign") != std::string::npos);
 
+  std::ifstream appInput(appPath);
+  REQUIRE(appInput.good());
+  std::string appHeader((std::istreambuf_iterator<char>(appInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!appHeader.empty());
+  CHECK(appHeader.find("enum class AppActionSource") != std::string::npos);
+  CHECK(appHeader.find("struct AppShortcut") != std::string::npos);
+  CHECK(appHeader.find("struct AppActionInvocation") != std::string::npos);
+  CHECK(appHeader.find("using AppActionCallback = std::function<void(AppActionInvocation const&)>;") !=
+        std::string::npos);
+  CHECK(appHeader.find("bool registerAction(std::string_view actionId, AppActionCallback callback);") !=
+        std::string::npos);
+  CHECK(appHeader.find("bool bindShortcut(AppShortcut const& shortcut, std::string_view actionId);") !=
+        std::string::npos);
+  CHECK(appHeader.find("bool invokeAction(std::string_view actionId,") != std::string::npos);
+  CHECK(appHeader.find("std::function<void()> makeActionCallback(std::string actionId);") !=
+        std::string::npos);
+
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
   std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
@@ -847,6 +879,17 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(guidelines.find("KeyCode") != std::string::npos);
   CHECK(guidelines.find("scrollLinePixels") != std::string::npos);
   CHECK(guidelines.find("scrollDirectionSign") != std::string::npos);
+  CHECK(guidelines.find("registerAction(...)") != std::string::npos);
+  CHECK(guidelines.find("bindShortcut(...)") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("registerAction(...)") != std::string::npos);
+  CHECK(apiRef.find("bindShortcut(...)") != std::string::npos);
+  CHECK(apiRef.find("makeActionCallback(...)") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
