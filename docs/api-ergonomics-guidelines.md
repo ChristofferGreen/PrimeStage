@@ -164,6 +164,15 @@ root.createButton(apply);
 - Use `window(spec, fn)` in declarative code paths to compose title/content slots without manual
   `createWindow` ceremony.
 
+## Sizing And Responsive Width Policy
+- Rely on intrinsic widget sizing defaults before adding per-widget `preferredWidth`/`preferredHeight`.
+- For responsive text/layout composition, prefer `size.maxWidth` on text-bearing specs and
+  container specs instead of hard-coding many child preferred widths.
+- Canonical examples should keep explicit size hints to occasional demo-driven cases (for example,
+  oversized scroll content), not baseline widget visibility.
+- `ScrollView`, empty `Table`/`List`/`TreeView`, and text widgets without explicit width now provide
+  built-in fallback sizing so default usage remains visible.
+
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
   to `PrimeFrame::Event`.

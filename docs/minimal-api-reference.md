@@ -147,6 +147,15 @@ Collection/windowing:
 - `createScrollView(size, showVertical, showHorizontal)`
 - `createWindow(...)`
 
+## Intrinsic Sizing Defaults
+
+- Most interactive widgets derive visible default sizes without explicit `preferredWidth` /
+  `preferredHeight`.
+- `ScrollView` provides default viewport sizing when no explicit size is supplied.
+- Empty `Table`/`List`/`TreeView` still render with default fallback dimensions.
+- `Paragraph` and `SelectableText` honor `size.maxWidth` as a responsive wrap constraint when
+  widget-specific `maxWidth` is not set.
+
 ## Semantic Callback Surface
 
 Preferred widget callback names:

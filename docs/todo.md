@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [59] Reduce mandatory manual sizing and layout micromanagement.
-  - improve intrinsic sizing defaults and layout heuristics so widgets compose without explicit width/height in common flows
-  - provide max-width and responsive container policies to avoid per-widget preferred width tuning
-  - acceptance: canonical examples require only occasional size hints for explicit demos, not baseline visibility
-
 - ☐ [60] Introduce typed widget handles and remove `NodeId` from app-facing APIs.
   - expose stable typed handles for focus, visibility, and imperative actions
   - keep raw `NodeId` internal or explicitly low-level
@@ -131,6 +126,18 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [59] Reduce mandatory manual sizing and layout micromanagement.
+  - added intrinsic fallback sizing for unsized `ScrollView` and empty collection widgets
+    (`Table`/`List`/`TreeView`) in `src/PrimeStage.cpp`
+  - added responsive width policy wiring so `Paragraph` and `SelectableText` consume
+    `size.maxWidth` when widget `maxWidth` is not set
+  - simplified `examples/primestage_widgets.cpp` to rely on intrinsic defaults with only occasional
+    explicit size hints
+  - expanded regression coverage in `tests/unit/test_widgets.cpp` and tightened canonical-example
+    size-hint guardrails in `tests/unit/test_api_ergonomics.cpp`
+  - documented sizing policy updates in `docs/api-ergonomics-guidelines.md`,
+    `docs/minimal-api-reference.md`, and `AGENTS.md`
 
 - ☑ [58] Add readable semantic-default styling contract.
   - defined contract minimums (`4.5:1` text contrast, `3.0:1` focus contrast) in

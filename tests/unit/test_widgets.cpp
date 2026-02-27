@@ -82,3 +82,57 @@ TEST_CASE("PrimeStage progress bar with zero value and no min fill creates no fi
   PrimeFrame::Node const* fillNode = findChildWithRectToken(frame, bar.nodeId(), spec.fillStyle);
   CHECK(fillNode == nullptr);
 }
+
+TEST_CASE("PrimeStage intrinsic defaults keep unsized widgets visible") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 800.0f, 600.0f);
+
+  PrimeStage::ScrollView scrollView = root.createScrollView(PrimeStage::ScrollViewSpec{});
+  PrimeFrame::Node const* scrollNode = frame.getNode(scrollView.root.nodeId());
+  REQUIRE(scrollNode != nullptr);
+  REQUIRE(scrollNode->sizeHint.width.preferred.has_value());
+  REQUIRE(scrollNode->sizeHint.height.preferred.has_value());
+  CHECK(scrollNode->sizeHint.width.preferred.value() == doctest::Approx(320.0f));
+  CHECK(scrollNode->sizeHint.height.preferred.value() == doctest::Approx(180.0f));
+
+  PrimeStage::TableSpec tableSpec;
+  PrimeStage::UiNode table = root.createTable(tableSpec);
+  PrimeFrame::Node const* tableNode = frame.getNode(table.nodeId());
+  REQUIRE(tableNode != nullptr);
+  REQUIRE(tableNode->sizeHint.width.preferred.has_value());
+  REQUIRE(tableNode->sizeHint.height.preferred.has_value());
+  CHECK(tableNode->sizeHint.width.preferred.value() == doctest::Approx(280.0f));
+  CHECK(tableNode->sizeHint.height.preferred.value() > 0.0f);
+
+  PrimeStage::TreeViewSpec treeSpec;
+  PrimeStage::UiNode tree = root.createTreeView(treeSpec);
+  PrimeFrame::Node const* treeNode = frame.getNode(tree.nodeId());
+  REQUIRE(treeNode != nullptr);
+  REQUIRE(treeNode->sizeHint.width.preferred.has_value());
+  REQUIRE(treeNode->sizeHint.height.preferred.has_value());
+  CHECK(treeNode->sizeHint.width.preferred.value() == doctest::Approx(280.0f));
+  CHECK(treeNode->sizeHint.height.preferred.value() > 0.0f);
+}
+
+TEST_CASE("PrimeStage text widgets use size.maxWidth as responsive wrap policy") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 800.0f, 600.0f);
+
+  PrimeStage::ParagraphSpec paragraph;
+  paragraph.text = "Paragraph text should wrap without explicit widget maxWidth.";
+  paragraph.size.maxWidth = 180.0f;
+  PrimeStage::UiNode paragraphNode = root.createParagraph(paragraph);
+  PrimeFrame::Node const* paragraphRaw = frame.getNode(paragraphNode.nodeId());
+  REQUIRE(paragraphRaw != nullptr);
+  REQUIRE(paragraphRaw->sizeHint.width.preferred.has_value());
+  CHECK(paragraphRaw->sizeHint.width.preferred.value() <= doctest::Approx(180.0f));
+
+  PrimeStage::SelectableTextSpec selectable;
+  selectable.text = "Selectable text follows size.maxWidth for default wrapping.";
+  selectable.size.maxWidth = 200.0f;
+  PrimeStage::UiNode selectableNode = root.createSelectableText(selectable);
+  PrimeFrame::Node const* selectableRaw = frame.getNode(selectableNode.nodeId());
+  REQUIRE(selectableRaw != nullptr);
+  REQUIRE(selectableRaw->sizeHint.width.preferred.has_value());
+  CHECK(selectableRaw->sizeHint.width.preferred.value() <= doctest::Approx(200.0f));
+}

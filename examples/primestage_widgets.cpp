@@ -137,6 +137,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
   PrimeStage::StackSpec columnSpec;
   columnSpec.size.stretchX = 1.0f;
+  columnSpec.size.maxWidth = 460.0f;
   columnSpec.gap = 10.0f;
   PrimeStage::UiNode leftColumn = columns.column(columnSpec);
   PrimeStage::UiNode rightColumn = columns.column(columnSpec);
@@ -146,12 +147,9 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     basic.textLine("TextLine");
     basic.label("Label widget");
     basic.paragraph(
-        "Paragraph widget wraps text naturally based on width constraints provided by layout.",
-        360.0f);
+        "Paragraph widget wraps text naturally based on width constraints provided by layout.");
 
     PrimeStage::PanelSpec panel;
-    panel.size.preferredWidth = 220.0f;
-    panel.size.preferredHeight = 36.0f;
     panel.layout = PrimeFrame::LayoutType::VerticalStack;
     panel.padding.left = 6.0f;
     panel.padding.top = 6.0f;
@@ -188,7 +186,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::TextFieldSpec field;
     field.state = &app.state.textField;
     field.placeholder = "Type here";
-    field.size.preferredWidth = 320.0f;
     field.callbacks.onStateChanged = [&app]() {
       app.ui.lifecycle().requestFrame();
     };
@@ -198,8 +195,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::SelectableTextSpec selectable;
     selectable.state = &app.state.selectableText;
     selectable.text = app.state.selectableTextContent;
-    selectable.maxWidth = 320.0f;
-    selectable.size.preferredWidth = 320.0f;
     selectable.callbacks.onStateChanged = [&app]() {
       app.ui.lifecycle().requestFrame();
     };
@@ -211,12 +206,10 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   {
     PrimeStage::SliderSpec slider;
     slider.binding = PrimeStage::bind(app.state.sliderValue);
-    slider.size.preferredWidth = 280.0f;
     range.createSlider(slider);
 
     PrimeStage::ProgressBarSpec progress;
     progress.binding = PrimeStage::bind(app.state.progressValue);
-    progress.size.preferredWidth = 280.0f;
     range.createProgressBar(progress);
   }
 
@@ -253,8 +246,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::ListSpec list;
     list.items = listViews;
     list.selectedIndex = app.state.listSelectedIndex;
-    list.size.preferredWidth = 280.0f;
-    list.size.preferredHeight = 116.0f;
     list.callbacks.onSelect = [&app](PrimeStage::ListRowInfo const& info) {
       app.state.listSelectedIndex = info.rowIndex;
       app.ui.lifecycle().requestRebuild();
@@ -266,8 +257,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   {
     PrimeStage::TableSpec table;
     table.selectedRow = app.state.tableSelectedRow;
-    table.size.preferredWidth = 360.0f;
-    table.size.preferredHeight = 116.0f;
     table.columns = {
         {"Asset"},
         {"Type"},
@@ -286,8 +275,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
     PrimeStage::TreeViewSpec tree;
     tree.nodes = app.state.tree;
-    tree.size.preferredWidth = 360.0f;
-    tree.size.preferredHeight = 120.0f;
     tree.callbacks.onSelect = [&app](PrimeStage::TreeViewRowInfo const& info) {
       clearTreeSelection(app.state.tree);
       if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
@@ -307,8 +294,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   PrimeStage::UiNode containers = createSection(rightColumn, "Scroll View + Window");
   {
     PrimeStage::ScrollViewSpec scrollSpec;
-    scrollSpec.size.preferredWidth = 360.0f;
-    scrollSpec.size.preferredHeight = 92.0f;
     PrimeStage::ScrollView scrollView = containers.createScrollView(scrollSpec);
 
     PrimeStage::PanelSpec contentPanel;

@@ -42,6 +42,12 @@ constexpr int KeyHome = keyCodeInt(KeyCode::Home);
 constexpr int KeyEnd = keyCodeInt(KeyCode::End);
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
+constexpr float DefaultParagraphWrapWidth = 360.0f;
+constexpr float DefaultSelectableTextWrapWidth = 360.0f;
+constexpr float DefaultScrollViewWidth = 320.0f;
+constexpr float DefaultScrollViewHeight = 180.0f;
+constexpr float DefaultCollectionWidth = 280.0f;
+constexpr float DefaultCollectionHeight = 120.0f;
 constexpr float MinDefaultTextContrastRatio = 4.5f;
 constexpr float MinDefaultFocusContrastRatio = 3.0f;
 
@@ -2146,12 +2152,25 @@ UiNode UiNode::createLabel(std::string_view text,
 }
 
 
-UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
+UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
+  ParagraphSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ParagraphSpec.size");
+  spec.maxWidth = clamp_non_negative(spec.maxWidth, "ParagraphSpec", "maxWidth");
+
   Rect bounds = resolve_rect(spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float maxWidth = spec.maxWidth > 0.0f ? spec.maxWidth : bounds.width;
+  if (maxWidth <= 0.0f && spec.size.maxWidth.has_value()) {
+    maxWidth = std::max(0.0f, *spec.size.maxWidth);
+  }
+  if (maxWidth <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !spec.text.empty()) {
+    maxWidth = DefaultParagraphWrapWidth;
+  }
   if (bounds.width <= 0.0f &&
-      spec.maxWidth > 0.0f &&
+      maxWidth > 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f) {
     bounds.width = maxWidth;
@@ -2164,6 +2183,9 @@ UiNode UiNode::createParagraph(ParagraphSpec const& spec) {
     float inferredWidth = 0.0f;
     for (auto const& line : lines) {
       inferredWidth = std::max(inferredWidth, measureTextWidth(frame(), token, line));
+    }
+    if (maxWidth > 0.0f) {
+      inferredWidth = std::min(inferredWidth, maxWidth);
     }
     bounds.width = inferredWidth;
   }
@@ -3637,9 +3659,18 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   Rect bounds = resolve_rect(spec.size);
   std::string_view text = spec.text;
   float maxWidth = spec.maxWidth;
+  if (maxWidth <= 0.0f && spec.size.maxWidth.has_value()) {
+    maxWidth = std::max(0.0f, *spec.size.maxWidth - spec.paddingX * 2.0f);
+  }
   if (maxWidth <= 0.0f && bounds.width > 0.0f) {
     float available = bounds.width - spec.paddingX * 2.0f;
     maxWidth = std::max(0.0f, available);
+  }
+  if (maxWidth <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f &&
+      !text.empty()) {
+    maxWidth = DefaultSelectableTextWrapWidth;
   }
 
   TextSelectionLayout layout =
@@ -3658,6 +3689,12 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f) {
+    bounds.width = desiredWidth;
+  }
+  if (bounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX > 0.0f &&
+      maxWidth > 0.0f) {
     bounds.width = desiredWidth;
   }
   if (bounds.height <= 0.0f &&
@@ -5733,6 +5770,16 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     }
     tableBounds.width = inferredWidth;
   }
+  if (tableBounds.width <= 0.0f &&
+      !spec.size.preferredWidth.has_value() &&
+      spec.size.stretchX <= 0.0f) {
+    tableBounds.width = DefaultCollectionWidth;
+  }
+  if (tableBounds.height <= 0.0f &&
+      !spec.size.preferredHeight.has_value() &&
+      spec.size.stretchY <= 0.0f) {
+    tableBounds.height = DefaultCollectionHeight;
+  }
 
   SizeSpec tableSize = spec.size;
   if (!tableSize.preferredWidth.has_value() && tableBounds.width > 0.0f) {
@@ -6198,6 +6245,12 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
       clamp_non_negative(spec.horizontal.thumbOffset, "ScrollViewSpec.horizontal", "thumbOffset");
 
   Rect bounds = resolve_rect(spec.size);
+  if (bounds.width <= 0.0f && !spec.size.preferredWidth.has_value()) {
+    bounds.width = DefaultScrollViewWidth;
+  }
+  if (bounds.height <= 0.0f && !spec.size.preferredHeight.has_value()) {
+    bounds.height = DefaultScrollViewHeight;
+  }
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
     return ScrollView{UiNode(frame(), id_, allowAbsolute_),
                       UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute_)};
@@ -6626,6 +6679,16 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
     if (bounds.height <= 0.0f) {
       bounds.height = normalized.rowStartY + rowsHeight;
     }
+  }
+  if (bounds.width <= 0.0f &&
+      !normalized.size.preferredWidth.has_value() &&
+      normalized.size.stretchX <= 0.0f) {
+    bounds.width = DefaultCollectionWidth;
+  }
+  if (bounds.height <= 0.0f &&
+      !normalized.size.preferredHeight.has_value() &&
+      normalized.size.stretchY <= 0.0f) {
+    bounds.height = DefaultCollectionHeight;
   }
 
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {

@@ -112,7 +112,7 @@ TEST_CASE("PrimeStage builder API supports nested fluent composition") {
   CHECK_FALSE(buttonNode->hitTestVisible);
 }
 
-TEST_CASE("PrimeStage builder API handles non-materialized defaults") {
+TEST_CASE("PrimeStage builder API materializes default widget fallbacks") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
 
@@ -128,8 +128,10 @@ TEST_CASE("PrimeStage builder API handles non-materialized defaults") {
 
   PrimeStage::ScrollViewSpec scrollSpec;
   PrimeStage::ScrollView scrollView = root.createScrollView(scrollSpec);
-  CHECK(scrollView.root.nodeId() == root.nodeId());
-  CHECK_FALSE(scrollView.content.nodeId().isValid());
+  CHECK(scrollView.root.nodeId() != root.nodeId());
+  CHECK(scrollView.content.nodeId().isValid());
+  CHECK(frame.getNode(scrollView.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(scrollView.content.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage declarative helpers support nested composition ergonomics") {

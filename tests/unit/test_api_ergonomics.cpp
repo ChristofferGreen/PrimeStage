@@ -460,6 +460,16 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                             std::istreambuf_iterator<char>());
   REQUIRE(!widgetsSource.empty());
 
+  auto countOccurrences = [&](std::string_view needle) {
+    size_t count = 0u;
+    size_t pos = widgetsSource.find(needle);
+    while (pos != std::string::npos) {
+      ++count;
+      pos = widgetsSource.find(needle, pos + needle.size());
+    }
+    return count;
+  };
+
   CHECK(widgetsSource.find("tabs.callbacks.onSelect") == std::string::npos);
   CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") == std::string::npos);
   CHECK(widgetsSource.find("dropdown.callbacks.onSelect") == std::string::npos);
@@ -474,6 +484,9 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("columns.column(") != std::string::npos);
   CHECK(widgetsSource.find("actions.row(") != std::string::npos);
   CHECK(widgetsSource.find("root.window(") != std::string::npos);
+  CHECK(widgetsSource.find("size.maxWidth") != std::string::npos);
+  CHECK(countOccurrences("size.preferredWidth") <= 3u);
+  CHECK(countOccurrences("size.preferredHeight") <= 3u);
   CHECK(widgetsSource.find("PrimeStage::LabelSpec") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::TextLineSpec") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.runRebuildIfNeeded") != std::string::npos);
