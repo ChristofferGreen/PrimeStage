@@ -13,7 +13,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - **Macros:** avoid new ones; if unavoidable, use `PS_` prefix and ALL_CAPS.
 
 ## Build/test workflow
-- Preferred build: `scripts/compile.sh [--debug|--release|--relwithdebinfo|--minsizerel] [--test] [--warnings-as-errors] [--asan] [--ubsan] [--perf|--perf-budget]` (uses clang, builds examples by default, tests/benchmarks built by default; sanitizer mode disables examples and `--test` runs tests).
+- Preferred build: `scripts/compile.sh [--debug|--release|--relwithdebinfo|--minsizerel] [--test] [--coverage] [--warnings-as-errors] [--asan] [--ubsan] [--perf|--perf-budget]` (uses clang, builds examples by default, tests/benchmarks built by default; sanitizer mode disables examples and `--test` runs tests).
+- Coverage: `scripts/compile.sh --coverage` builds with clang coverage flags, runs tests, and writes reports to `build-debug/coverage/coverage.txt` plus `build-debug/coverage/html/`.
 - Local artifact cleanup: use `scripts/clean.sh` (`--dry-run` to preview, `--all` to also remove `.cache/` and `compile_commands.json`).
 - Debug: `cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug` then `cmake --build build-debug`.
 - Release: `cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release` then `cmake --build build-release`.

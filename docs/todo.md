@@ -138,6 +138,18 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [110] Port compile-script coverage workflow from PrimeStruct.
+  - added `--coverage` support to `scripts/compile.sh`:
+    - configures clang coverage flags (`-fprofile-instr-generate -fcoverage-mapping`)
+    - runs tests under `LLVM_PROFILE_FILE`, merges with `llvm-profdata`
+    - emits text + HTML reports at
+      `build-debug/coverage/coverage.txt` and `build-debug/coverage/html/`
+  - added coverage regression checks in
+    `tests/unit/test_api_ergonomics.cpp` to enforce compile-script flags/tooling
+    wiring and AGENTS coverage documentation links
+  - updated `AGENTS.md` build/test workflow with explicit `--coverage`
+    usage and report output locations
+
 - ☑ [109] Require canonical-first fallback text in checklist section.
   - updated `docs/advanced-escape-hatches.md` guardrails with explicit
     checklist-section phrasing that keeps canonical-first fallback visible

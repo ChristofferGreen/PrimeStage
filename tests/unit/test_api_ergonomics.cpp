@@ -2794,6 +2794,40 @@ TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks"
   CHECK(workflow.find("./scripts/compile.sh --debug --asan --ubsan --test") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage compile script coverage mode is wired and documented") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path scriptPath = repoRoot / "scripts" / "compile.sh";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(scriptPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream scriptInput(scriptPath);
+  REQUIRE(scriptInput.good());
+  std::string script((std::istreambuf_iterator<char>(scriptInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!script.empty());
+  CHECK(script.find("--coverage") != std::string::npos);
+  CHECK(script.find("-fprofile-instr-generate -fcoverage-mapping") != std::string::npos);
+  CHECK(script.find("llvm-profdata") != std::string::npos);
+  CHECK(script.find("llvm-cov") != std::string::npos);
+  CHECK(script.find("PRIMESTAGE_COVERAGE_IGNORE_REGEX") != std::string::npos);
+  CHECK(script.find("LLVM_PROFILE_FILE") != std::string::npos);
+  CHECK(script.find("coverage_dir=\"") != std::string::npos);
+  CHECK(script.find("coverage.txt") != std::string::npos);
+  CHECK(script.find("coverage_dir/html") != std::string::npos);
+  CHECK(script.find("PrimeStage.profdata") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("scripts/compile.sh --coverage") != std::string::npos);
+  CHECK(agents.find("build-debug/coverage/coverage.txt") != std::string::npos);
+  CHECK(agents.find("build-debug/coverage/html/") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage build artifact hygiene workflow is documented and scripted") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
