@@ -188,6 +188,8 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
         "Paragraph widget wraps text naturally based on width constraints provided by layout.");
 
     PrimeStage::PanelSpec panel;
+    // Advanced PrimeFrame integration (documented exception): this advanced sample demonstrates
+    // selective low-level layout interop through PrimeFrame layout enums.
     panel.layout = PrimeFrame::LayoutType::VerticalStack;
     panel.padding.left = 6.0f;
     panel.padding.top = 6.0f;

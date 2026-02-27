@@ -866,22 +866,34 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
            source.find("app.ui.lifecycle().requestFrame()") != std::string::npos;
   };
 
+  auto hasPrimeFrameIntegration = [](std::string const& source) {
+    return source.find("#include \"PrimeFrame/") != std::string::npos ||
+           source.find("PrimeFrame::") != std::string::npos;
+  };
+
   bool foundLifecycleOrchestrationExample = false;
+  bool foundPrimeFrameIntegrationExample = false;
   for (std::filesystem::path const& advancedSourcePath : advancedSources) {
     std::ifstream advancedInput(advancedSourcePath);
     REQUIRE(advancedInput.good());
     std::string advancedSource((std::istreambuf_iterator<char>(advancedInput)),
                                std::istreambuf_iterator<char>());
     REQUIRE(!advancedSource.empty());
-    if (!hasLifecycleOrchestrationCall(advancedSource)) {
-      continue;
+    if (hasLifecycleOrchestrationCall(advancedSource)) {
+      foundLifecycleOrchestrationExample = true;
+      INFO("advanced lifecycle orchestration file: " << advancedSourcePath.string());
+      CHECK(advancedSource.find("Advanced lifecycle orchestration (documented exception):") !=
+            std::string::npos);
     }
-    foundLifecycleOrchestrationExample = true;
-    INFO("advanced lifecycle orchestration file: " << advancedSourcePath.string());
-    CHECK(advancedSource.find("Advanced lifecycle orchestration (documented exception):") !=
-          std::string::npos);
+    if (hasPrimeFrameIntegration(advancedSource)) {
+      foundPrimeFrameIntegrationExample = true;
+      INFO("advanced PrimeFrame integration file: " << advancedSourcePath.string());
+      CHECK(advancedSource.find("Advanced PrimeFrame integration (documented exception):") !=
+            std::string::npos);
+    }
   }
   CHECK(foundLifecycleOrchestrationExample);
+  CHECK(foundPrimeFrameIntegrationExample);
 
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;
@@ -1098,6 +1110,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(checklist.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
   CHECK(checklist.find("examples/advanced/*.cpp") != std::string::npos);
   CHECK(checklist.find("Keep canonical examples out of `PrimeStage::LowLevel`") !=
+        std::string::npos);
+  CHECK(checklist.find("Advanced PrimeFrame integration (documented exception):") !=
         std::string::npos);
   CHECK(checklist.find("Advanced lifecycle orchestration (documented exception):") !=
         std::string::npos);

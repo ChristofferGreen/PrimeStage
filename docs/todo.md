@@ -138,6 +138,19 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [83] Enforce advanced PrimeFrame exception tagging across advanced examples.
+  - expanded `tests/unit/test_api_ergonomics.cpp` to scan
+    `examples/advanced/*.cpp` and enforce that any file with direct
+    `PrimeFrame` integration (`#include "PrimeFrame/..."` or `PrimeFrame::`)
+    includes the inline tag
+    `Advanced PrimeFrame integration (documented exception):`
+  - added a positive guard that at least one advanced example exercises direct
+    PrimeFrame integration, with per-file diagnostics for easier triage
+  - tagged `examples/advanced/primestage_scene.cpp` and
+    `examples/advanced/primestage_widgets.cpp` inline at intentional direct
+    PrimeFrame integration sites to satisfy the documented advanced-tier
+    exception contract
+
 - ☑ [82] Enforce advanced lifecycle exception tagging across all advanced examples.
   - expanded `tests/unit/test_api_ergonomics.cpp` to scan
     `examples/advanced/*.cpp` and enforce that any file calling
