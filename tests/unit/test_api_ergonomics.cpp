@@ -3622,6 +3622,9 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(coreInput.good());
   std::string core((std::istreambuf_iterator<char>(coreInput)), std::istreambuf_iterator<char>());
   REQUIRE(!core.empty());
+  CHECK(core.find("UiNode UiNode::create") == std::string::npos);
+  CHECK(core.find("Window UiNode::create") == std::string::npos);
+  CHECK(core.find("ScrollView UiNode::create") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createList(ListSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createTable(TableSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") ==
@@ -4111,7 +4114,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(todoInput.good());
   std::string todo((std::istreambuf_iterator<char>(todoInput)), std::istreambuf_iterator<char>());
   REQUIRE(!todo.empty());
-  CHECK(todo.find("◐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.") !=
+  CHECK(todo.find("☑ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.") !=
         std::string::npos);
   CHECK(todo.find("[119] Continue collection widget extraction from `src/PrimeStage.cpp`.") !=
         std::string::npos);

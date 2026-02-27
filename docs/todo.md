@@ -26,7 +26,7 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ◐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.
+- ☑ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.
   - extract per-widget build/interaction paths (`TextField`, `TreeView`, `Table`, `List`, etc.)
     into dedicated translation units to reduce blast radius and review complexity
   - preserve existing public API surface and behavior contracts while improving internal module boundaries
@@ -91,6 +91,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved low-level callback composition and widget-identity
     reconciler runtime (`LowLevel::appendNodeOnEvent/...`, `NodeCallbackHandle`,
     `WidgetIdentityReconciler`) into `src/PrimeStageLowLevel.cpp`
+  - completed: public widget entrypoints now live in dedicated translation units;
+    `tests/unit/test_api_ergonomics.cpp` enforces that `src/PrimeStage.cpp`
+    no longer defines `UiNode::create...` entrypoints
 
 - ☑ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
