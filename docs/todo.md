@@ -26,11 +26,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [75] Add automated API surface linting.
-  - detect and flag forbidden headers/types in canonical examples (`PrimeFrame/*`, raw `NodeId`, manual event translation)
-  - enforce linting in CI for examples and docs snippets
-  - acceptance: low-level leakage into canonical path fails presubmit
-
 - ☐ [76] Add structured widget-spec defaults audit.
   - inventory all spec fields and classify required vs optional vs advanced
   - minimize required fields for standard controls and deprecate noisy defaults
@@ -51,6 +46,18 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
+
+- ☑ [75] Add automated API surface linting.
+  - added `scripts/lint_canonical_api_surface.sh` to detect forbidden low-level API surface usage
+    in canonical example sources (`examples/canonical/*.cpp`) and canonical docs C++ snippets
+    (`README.md`, `docs/5-minute-app.md`)
+  - lint checks now fail on forbidden patterns (`PrimeFrame/*`, `PrimeFrame::`, raw `NodeId`,
+    `lowLevelNodeId(...)`, and manual host-event translation markers such as
+    `std::get_if<PrimeHost::...>`)
+  - wired linting into CI presubmit with dedicated job `canonical-api-surface-lint` in
+    `.github/workflows/presubmit.yml`
+  - added regression/documentation guardrails in `tests/unit/test_api_ergonomics.cpp`,
+    `README.md`, `docs/example-app-consumer-checklist.md`, and `AGENTS.md`
 
 - ☑ [74] Add dedicated docs for "5-minute app" and "advanced escape hatches".
   - added dedicated onboarding docs:

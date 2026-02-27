@@ -1397,6 +1397,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   REQUIRE(!readme.empty());
   CHECK(readme.find("./scripts/compile.sh") != std::string::npos);
   CHECK(readme.find("./scripts/compile.sh --test") != std::string::npos);
+  CHECK(readme.find("./scripts/lint_canonical_api_surface.sh") != std::string::npos);
   CHECK(readme.find("docs/api-evolution-policy.md") != std::string::npos);
   CHECK(readme.find("cmake --install build-release --prefix") != std::string::npos);
   CHECK(readme.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
@@ -1906,12 +1907,72 @@ TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility p
   CHECK(workflow.find("build_type") != std::string::npos);
   CHECK(workflow.find("relwithdebinfo") != std::string::npos);
   CHECK(workflow.find("release") != std::string::npos);
+  CHECK(workflow.find("canonical-api-surface-lint") != std::string::npos);
+  CHECK(workflow.find("Canonical API Surface Lint") != std::string::npos);
+  CHECK(workflow.find("./scripts/lint_canonical_api_surface.sh") != std::string::npos);
   CHECK(workflow.find("./scripts/compile.sh --${{ matrix.build_type }} --test") != std::string::npos);
 
   CHECK(workflow.find("PRIMESTAGE_HEADLESS_ONLY=ON") != std::string::npos);
   CHECK(workflow.find("PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF") != std::string::npos);
 
   CHECK(workflow.find("--test-case=\"*focus*,*interaction*,*ergonomics*\"") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage canonical API surface lint script is wired and documented") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path lintScriptPath = repoRoot / "scripts" / "lint_canonical_api_surface.sh";
+  std::filesystem::path workflowPath = repoRoot / ".github" / "workflows" / "presubmit.yml";
+  std::filesystem::path checklistPath = repoRoot / "docs" / "example-app-consumer-checklist.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(lintScriptPath));
+  REQUIRE(std::filesystem::exists(workflowPath));
+  REQUIRE(std::filesystem::exists(checklistPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream lintInput(lintScriptPath);
+  REQUIRE(lintInput.good());
+  std::string lint((std::istreambuf_iterator<char>(lintInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!lint.empty());
+  CHECK(lint.find("examples/canonical") != std::string::npos);
+  CHECK(lint.find("README.md") != std::string::npos);
+  CHECK(lint.find("docs/5-minute-app.md") != std::string::npos);
+  CHECK(lint.find("PrimeFrame::") != std::string::npos);
+  CHECK(lint.find("NodeId") != std::string::npos);
+  CHECK(lint.find("std::get_if<PrimeHost::") != std::string::npos);
+  CHECK(lint.find("mktemp") != std::string::npos);
+  CHECK(lint.find("canonical API surface lint failed") != std::string::npos);
+
+  std::ifstream workflowInput(workflowPath);
+  REQUIRE(workflowInput.good());
+  std::string workflow((std::istreambuf_iterator<char>(workflowInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!workflow.empty());
+  CHECK(workflow.find("canonical-api-surface-lint") != std::string::npos);
+  CHECK(workflow.find("./scripts/lint_canonical_api_surface.sh") != std::string::npos);
+
+  std::ifstream checklistInput(checklistPath);
+  REQUIRE(checklistInput.good());
+  std::string checklist((std::istreambuf_iterator<char>(checklistInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!checklist.empty());
+  CHECK(checklist.find("./scripts/lint_canonical_api_surface.sh") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("./scripts/lint_canonical_api_surface.sh") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("scripts/lint_canonical_api_surface.sh") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage end-to-end ergonomics suite is wired and guarded") {

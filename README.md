@@ -26,6 +26,7 @@ Quality-gate options:
 - `./scripts/compile.sh --warnings-as-errors`
 - `./scripts/compile.sh --asan --ubsan --test` (sanitizer mode builds tests with examples disabled)
 - `./scripts/compile.sh --release --perf-budget` (runs benchmark suite and enforces p95 budgets)
+- `./scripts/lint_canonical_api_surface.sh` (forbidden low-level API usage guard in canonical examples/docs snippets)
 
 Clean local generated artifacts:
 - `./scripts/clean.sh --dry-run`

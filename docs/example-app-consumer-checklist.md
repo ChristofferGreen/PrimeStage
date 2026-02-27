@@ -51,4 +51,6 @@ These exceptions must be clearly tagged inline in the example source with
   `PrimeFrame` headers and internals.
 - Confirm advanced examples (`examples/advanced/*.cpp`) are the only place host/frame internals are
   demonstrated.
+- Run `./scripts/lint_canonical_api_surface.sh` and keep it green when canonical examples/docs
+  snippets change.
 - Confirm new example logic is covered by unit guard checks in `tests/unit/test_api_ergonomics.cpp`.

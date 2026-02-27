@@ -310,5 +310,5 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Automated API surface linting and defaults audit (`[75]`/`[76]`).
+- Structured widget-spec defaults audit (`[76]`).
 - Additional compile-time ergonomics diagnostics (`[77]`).

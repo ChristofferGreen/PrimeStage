@@ -7,6 +7,21 @@ on:
       - master
 
 jobs:
+  canonical-api-surface-lint:
+    name: Canonical API Surface Lint
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rewrite GitHub SSH URLs
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+
+      - name: Lint Canonical API Surface
+        run: ./scripts/lint_canonical_api_surface.sh
+
   build-matrix:
     name: Build/Test (${{ matrix.build_type }})
     runs-on: macos-14
