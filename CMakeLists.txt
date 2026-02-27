@@ -115,6 +115,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageLayoutPrimitives.cpp
   src/PrimeStageParagraph.cpp
   src/PrimeStageProgress.cpp
+  src/PrimeStageLowLevel.cpp
   src/PrimeStageSlider.cpp
   src/PrimeStageTabs.cpp
   src/PrimeStageTextField.cpp

@@ -88,6 +88,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createTextField(TextFieldSpec)` runtime into
     `src/PrimeStageTextField.cpp`, with shared text-field normalization/state/scrim
     helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved low-level callback composition and widget-identity
+    reconciler runtime (`LowLevel::appendNodeOnEvent/...`, `NodeCallbackHandle`,
+    `WidgetIdentityReconciler`) into `src/PrimeStageLowLevel.cpp`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

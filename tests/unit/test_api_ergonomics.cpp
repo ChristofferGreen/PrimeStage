@@ -1999,12 +1999,14 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path lowLevelCppPath = repoRoot / "src" / "PrimeStageLowLevel.cpp";
   REQUIRE(std::filesystem::exists(callbackDocPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(lowLevelCppPath));
 
   std::ifstream callbackDocInput(callbackDocPath);
   REQUIRE(callbackDocInput.good());
@@ -2061,10 +2063,16 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
-  CHECK(sourceCpp.find("CallbackReentryScope") != std::string::npos);
-  CHECK(sourceCpp.find("reentrant %s invocation suppressed") != std::string::npos);
-  CHECK(sourceCpp.find("LowLevel::NodeCallbackHandle::bind") != std::string::npos);
-  CHECK(sourceCpp.find("LowLevel::NodeCallbackHandle::reset") != std::string::npos);
+  std::ifstream lowLevelInput(lowLevelCppPath);
+  REQUIRE(lowLevelInput.good());
+  std::string lowLevelCpp((std::istreambuf_iterator<char>(lowLevelInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!lowLevelCpp.empty());
+  std::string lowLevelCombinedSource = sourceCpp + lowLevelCpp;
+  CHECK(lowLevelCombinedSource.find("CallbackReentryScope") != std::string::npos);
+  CHECK(lowLevelCombinedSource.find("reentrant %s invocation suppressed") != std::string::npos);
+  CHECK(lowLevelCombinedSource.find("LowLevel::NodeCallbackHandle::bind") != std::string::npos);
+  CHECK(lowLevelCombinedSource.find("LowLevel::NodeCallbackHandle::reset") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wired") {
@@ -2960,12 +2968,14 @@ TEST_CASE("PrimeStage core widget ids enums and shared specs are exposed") {
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path uiPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path lowLevelCppPath = repoRoot / "src" / "PrimeStageLowLevel.cpp";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(uiPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(lowLevelCppPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -2988,11 +2998,17 @@ TEST_CASE("PrimeStage core widget ids enums and shared specs are exposed") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
-  CHECK(source.find("WidgetIdentityReconciler::registerNode(WidgetIdentityId identity") !=
+  std::ifstream lowLevelInput(lowLevelCppPath);
+  REQUIRE(lowLevelInput.good());
+  std::string lowLevelSource((std::istreambuf_iterator<char>(lowLevelInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!lowLevelSource.empty());
+  std::string coreIdentitySource = source + lowLevelSource;
+  CHECK(coreIdentitySource.find("WidgetIdentityReconciler::registerNode(WidgetIdentityId identity") !=
         std::string::npos);
-  CHECK(source.find("WidgetIdentityReconciler::findNode(WidgetIdentityId identity) const") !=
+  CHECK(coreIdentitySource.find("WidgetIdentityReconciler::findNode(WidgetIdentityId identity) const") !=
         std::string::npos);
-  CHECK(source.find("pendingFocusedIdentityId_") != std::string::npos);
+  CHECK(coreIdentitySource.find("pendingFocusedIdentityId_") != std::string::npos);
 
   std::ifstream apiRefInput(apiRefPath);
   REQUIRE(apiRefInput.good());
@@ -3547,6 +3563,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path selectableTextPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
+  std::filesystem::path lowLevelPath = repoRoot / "src" / "PrimeStageLowLevel.cpp";
   std::filesystem::path windowPath = repoRoot / "src" / "PrimeStageWindow.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
@@ -3567,6 +3584,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(selectableTextPath));
   REQUIRE(std::filesystem::exists(textLinePath));
   REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
+  REQUIRE(std::filesystem::exists(lowLevelPath));
   REQUIRE(std::filesystem::exists(windowPath));
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(cmakePath));
@@ -3627,6 +3645,9 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput)") ==
         std::string::npos);
   CHECK(core.find("Window UiNode::createWindow(WindowSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("LowLevel::NodeCallbackHandle::bind") == std::string::npos);
+  CHECK(core.find("WidgetIdentityReconciler::registerNode(WidgetIdentityId identity") ==
+        std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3784,6 +3805,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(windowSource.find("Internal::normalizeWindowSpec(specInput)") != std::string::npos);
 
+  std::ifstream lowLevelInput(lowLevelPath);
+  REQUIRE(lowLevelInput.good());
+  std::string lowLevelSource((std::istreambuf_iterator<char>(lowLevelInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!lowLevelSource.empty());
+  CHECK(lowLevelSource.find("LowLevel::NodeCallbackHandle::bind") != std::string::npos);
+  CHECK(lowLevelSource.find("LowLevel::appendNodeOnEvent") != std::string::npos);
+  CHECK(lowLevelSource.find("WidgetIdentityReconciler::registerNode(WidgetIdentityId identity") !=
+        std::string::npos);
+
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
   std::string booleanSource((std::istreambuf_iterator<char>(booleanInput)),
@@ -3928,6 +3959,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageLabel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageLowLevel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextField.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
