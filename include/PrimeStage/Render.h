@@ -30,22 +30,54 @@ struct RenderTarget {
   float scale = 1.0f;
 };
 
-bool renderFrameToTarget(PrimeFrame::Frame& frame,
-                         PrimeFrame::LayoutOutput const& layout,
-                         RenderTarget const& target,
-                         RenderOptions const& options = {});
+enum class RenderStatusCode : uint8_t {
+  Success = 0,
+  BackendUnavailable,
+  InvalidTargetDimensions,
+  InvalidTargetStride,
+  InvalidTargetBuffer,
+  LayoutHasNoRoots,
+  LayoutMissingRootMetrics,
+  LayoutZeroExtent,
+  PngPathEmpty,
+  PngWriteFailed,
+};
 
-bool renderFrameToTarget(PrimeFrame::Frame& frame,
-                         RenderTarget const& target,
-                         RenderOptions const& options = {});
+struct RenderStatus {
+  RenderStatusCode code = RenderStatusCode::Success;
+  uint32_t targetWidth = 0;
+  uint32_t targetHeight = 0;
+  uint32_t targetStride = 0;
+  uint32_t requiredStride = 0;
+  std::string_view detail{};
 
-bool renderFrameToPng(PrimeFrame::Frame& frame,
-                      PrimeFrame::LayoutOutput const& layout,
-                      std::string_view path,
-                      RenderOptions const& options = {});
+  [[nodiscard]] bool ok() const {
+    return code == RenderStatusCode::Success;
+  }
 
-bool renderFrameToPng(PrimeFrame::Frame& frame,
-                      std::string_view path,
-                      RenderOptions const& options = {});
+  [[nodiscard]] explicit operator bool() const {
+    return ok();
+  }
+};
+
+[[nodiscard]] std::string_view renderStatusMessage(RenderStatusCode code);
+
+[[nodiscard]] RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
+                                               PrimeFrame::LayoutOutput const& layout,
+                                               RenderTarget const& target,
+                                               RenderOptions const& options = {});
+
+[[nodiscard]] RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
+                                               RenderTarget const& target,
+                                               RenderOptions const& options = {});
+
+[[nodiscard]] RenderStatus renderFrameToPng(PrimeFrame::Frame& frame,
+                                            PrimeFrame::LayoutOutput const& layout,
+                                            std::string_view path,
+                                            RenderOptions const& options = {});
+
+[[nodiscard]] RenderStatus renderFrameToPng(PrimeFrame::Frame& frame,
+                                            std::string_view path,
+                                            RenderOptions const& options = {});
 
 } // namespace PrimeStage

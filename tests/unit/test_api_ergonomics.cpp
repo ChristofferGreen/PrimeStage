@@ -704,6 +704,108 @@ TEST_CASE("PrimeStage performance benchmark harness and budget gate are wired") 
   CHECK(workflow.find("--check-budgets") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path renderHeader = repoRoot / "include" / "PrimeStage" / "Render.h";
+  std::filesystem::path renderSource = repoRoot / "src" / "Render.cpp";
+  std::filesystem::path renderTests = repoRoot / "tests" / "unit" / "test_render.cpp";
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path benchmarkPath = repoRoot / "tests" / "perf" / "PrimeStage_benchmarks.cpp";
+  std::filesystem::path docsPath = repoRoot / "docs" / "render-diagnostics.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(renderHeader));
+  REQUIRE(std::filesystem::exists(renderSource));
+  REQUIRE(std::filesystem::exists(renderTests));
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(benchmarkPath));
+  REQUIRE(std::filesystem::exists(docsPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream headerInput(renderHeader);
+  REQUIRE(headerInput.good());
+  std::string header((std::istreambuf_iterator<char>(headerInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!header.empty());
+  CHECK(header.find("enum class RenderStatusCode") != std::string::npos);
+  CHECK(header.find("struct RenderStatus") != std::string::npos);
+  CHECK(header.find("RenderStatus renderFrameToTarget") != std::string::npos);
+  CHECK(header.find("RenderStatus renderFrameToPng") != std::string::npos);
+  CHECK(header.find("std::string_view renderStatusMessage") != std::string::npos);
+  CHECK(header.find("InvalidTargetStride") != std::string::npos);
+  CHECK(header.find("PngWriteFailed") != std::string::npos);
+
+  std::ifstream sourceInput(renderSource);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("target stride must be at least width * 4 bytes") != std::string::npos);
+  CHECK(source.find("LayoutMissingRootMetrics") != std::string::npos);
+  CHECK(source.find("PngPathEmpty") != std::string::npos);
+  CHECK(source.find("PngWriteFailed") != std::string::npos);
+  CHECK(source.find("renderStatusMessage(RenderStatusCode code)") != std::string::npos);
+
+  std::ifstream testsInput(renderTests);
+  REQUIRE(testsInput.good());
+  std::string tests((std::istreambuf_iterator<char>(testsInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!tests.empty());
+  CHECK(tests.find("render target diagnostics expose actionable status") != std::string::npos);
+  CHECK(tests.find("PNG diagnostics report layout and path failures") != std::string::npos);
+  CHECK(tests.find("RenderStatusCode::InvalidTargetStride") != std::string::npos);
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("tests/unit/test_render.cpp") != std::string::npos);
+
+  std::ifstream benchmarkInput(benchmarkPath);
+  REQUIRE(benchmarkInput.good());
+  std::string benchmark((std::istreambuf_iterator<char>(benchmarkInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!benchmark.empty());
+  CHECK(benchmark.find("PrimeStage::RenderStatus status = PrimeStage::renderFrameToTarget") !=
+        std::string::npos);
+  CHECK(benchmark.find("if (!status.ok())") != std::string::npos);
+
+  std::ifstream docsInput(docsPath);
+  REQUIRE(docsInput.good());
+  std::string docs((std::istreambuf_iterator<char>(docsInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!docs.empty());
+  CHECK(docs.find("RenderStatusCode") != std::string::npos);
+  CHECK(docs.find("renderStatusMessage") != std::string::npos);
+  CHECK(docs.find("InvalidTargetBuffer") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("docs/render-diagnostics.md") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("docs/render-diagnostics.md") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[43] Improve render API diagnostics and failure reporting.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

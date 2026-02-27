@@ -882,12 +882,9 @@ bool runBenchmarks(BenchmarkOptions const& options,
                               options.warmupIterations,
                               options.benchmarkIterations,
                               [&]() {
-                                bool ok = PrimeStage::renderFrameToTarget(
-                                    dashboard.frame,
-                                    dashboard.layout,
-                                    dashboardTarget,
-                                    PrimeStage::RenderOptions{});
-                                if (!ok) {
+                                PrimeStage::RenderStatus status = PrimeStage::renderFrameToTarget(
+                                    dashboard.frame, dashboard.layout, dashboardTarget, PrimeStage::RenderOptions{});
+                                if (!status.ok()) {
                                   return false;
                                 }
                                 PerfSink += dashboardPixels[0];
@@ -944,11 +941,9 @@ bool runBenchmarks(BenchmarkOptions const& options,
                               options.warmupIterations,
                               options.benchmarkIterations,
                               [&]() {
-                                bool ok = PrimeStage::renderFrameToTarget(tree.frame,
-                                                                           tree.layout,
-                                                                           treeTarget,
-                                                                           PrimeStage::RenderOptions{});
-                                if (!ok) {
+                                PrimeStage::RenderStatus status = PrimeStage::renderFrameToTarget(
+                                    tree.frame, tree.layout, treeTarget, PrimeStage::RenderOptions{});
+                                if (!status.ok()) {
                                   return false;
                                 }
                                 PerfSink += treePixels[0];

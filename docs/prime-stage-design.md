@@ -7,6 +7,8 @@ Contributor ergonomics and app-facing ownership contracts are documented in `doc
 Resolved architecture choices are documented in `docs/design-decisions.md`.
 Public API evolution and compatibility expectations are documented in
 `docs/api-evolution-policy.md`.
+Render failure/status diagnostics for `PrimeStage/Render.h` APIs are documented in
+`docs/render-diagnostics.md`.
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.

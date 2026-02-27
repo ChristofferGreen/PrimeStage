@@ -183,9 +183,10 @@ Release Exit Criteria (for API-quality milestone):
   - add tests that exercise rebuilds/callbacks with short-lived source strings
   - delivered via ownership contract doc `docs/data-ownership-lifetime.md`, guideline/design/readme/agents alignment, owned-row backing for table callback payloads in `src/PrimeStage.cpp`, and short-lived source + docs/source guard coverage in `tests/unit/test_interaction.cpp` and `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [43] Improve render API diagnostics and failure reporting.
+- ☑ [43] Improve render API diagnostics and failure reporting.
   - replace opaque `bool` failures with structured error/status information
   - expose actionable error context for PNG write/layout/render failures
+  - delivered via structured render diagnostics API (`RenderStatusCode`/`RenderStatus` + `renderStatusMessage`) in `include/PrimeStage/Render.h` and `src/Render.cpp`, benchmark-callsite migration in `tests/perf/PrimeStage_benchmarks.cpp`, render status regression tests in `tests/unit/test_render.cpp`, docs in `docs/render-diagnostics.md` with README/design/agents alignment, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [44] Remove renderer style heuristics tied to theme color indices.
   - replace color-index-based rounded-corner inference with explicit style metadata

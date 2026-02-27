@@ -900,9 +900,15 @@ int main(int argc, char** argv) {
     app.renderScale = app.surfaceScale;
     runRebuildIfNeeded(app);
     updateLayoutIfNeeded(app);
-    bool ok = PrimeStage::renderFrameToPng(app.frame, app.layout, *snapshotPath, app.renderOptions);
-    if (!ok) {
-      std::cerr << "Failed to render snapshot to " << *snapshotPath << "\n";
+    PrimeStage::RenderStatus status =
+        PrimeStage::renderFrameToPng(app.frame, app.layout, *snapshotPath, app.renderOptions);
+    if (!status.ok()) {
+      std::cerr << "Failed to render snapshot to " << *snapshotPath << ": "
+                << PrimeStage::renderStatusMessage(status.code);
+      if (!status.detail.empty()) {
+        std::cerr << " (" << status.detail << ")";
+      }
+      std::cerr << "\n";
       return 1;
     }
     std::cout << "Wrote snapshot to " << *snapshotPath << "\n";
@@ -979,7 +985,15 @@ int main(int argc, char** argv) {
     targetBuffer.height = buffer.size.height;
     targetBuffer.stride = buffer.stride;
     targetBuffer.scale = buffer.scale;
-    PrimeStage::renderFrameToTarget(app.frame, app.layout, targetBuffer, app.renderOptions);
+    PrimeStage::RenderStatus status =
+        PrimeStage::renderFrameToTarget(app.frame, app.layout, targetBuffer, app.renderOptions);
+    if (!status.ok()) {
+      std::cerr << "Frame render failed: " << PrimeStage::renderStatusMessage(status.code);
+      if (!status.detail.empty()) {
+        std::cerr << " (" << status.detail << ")";
+      }
+      std::cerr << "\n";
+    }
     app.host->presentFrameBuffer(target, buffer);
     app.runtime.markFramePresented();
   };

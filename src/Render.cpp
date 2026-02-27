@@ -37,6 +37,32 @@
 
 namespace PrimeStage {
 
+std::string_view renderStatusMessage(RenderStatusCode code) {
+  switch (code) {
+    case RenderStatusCode::Success:
+      return "Success";
+    case RenderStatusCode::BackendUnavailable:
+      return "Render backend unavailable (PrimeManifest disabled)";
+    case RenderStatusCode::InvalidTargetDimensions:
+      return "Invalid render target dimensions";
+    case RenderStatusCode::InvalidTargetStride:
+      return "Render target stride is smaller than width * 4";
+    case RenderStatusCode::InvalidTargetBuffer:
+      return "Render target pixel buffer is empty or undersized";
+    case RenderStatusCode::LayoutHasNoRoots:
+      return "Frame has no root nodes";
+    case RenderStatusCode::LayoutMissingRootMetrics:
+      return "Layout output missing metrics for frame roots";
+    case RenderStatusCode::LayoutZeroExtent:
+      return "Layout produced zero-sized render bounds";
+    case RenderStatusCode::PngPathEmpty:
+      return "PNG output path is empty";
+    case RenderStatusCode::PngWriteFailed:
+      return "PNG write failed";
+  }
+  return "Unknown render status";
+}
+
 #if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
 namespace {
 
@@ -229,6 +255,30 @@ bool write_png(std::string_view path, PrimeManifest::RenderTarget const& target)
                         static_cast<int>(target.width * 4)) != 0;
 }
 
+RenderStatus make_status(RenderStatusCode code,
+                         RenderTarget const* target = nullptr,
+                         uint32_t requiredStride = 0,
+                         std::string_view detail = {}) {
+  RenderStatus status;
+  status.code = code;
+  status.requiredStride = requiredStride;
+  status.detail = detail;
+  if (target != nullptr) {
+    status.targetWidth = target->width;
+    status.targetHeight = target->height;
+    status.targetStride = target->stride;
+  }
+  return status;
+}
+
+RenderStatus make_success(RenderTarget const* target = nullptr) {
+  return make_status(RenderStatusCode::Success, target);
+}
+
+uint64_t required_buffer_bytes(RenderTarget const& target) {
+  return static_cast<uint64_t>(target.stride) * static_cast<uint64_t>(target.height);
+}
+
 bool colors_close(PrimeFrame::Color const& a, PrimeFrame::Color const& b) {
   float eps = 0.02f;
   return std::abs(a.r - b.r) < eps && std::abs(a.g - b.g) < eps &&
@@ -256,40 +306,69 @@ void ensure_fonts_loaded() {
   loaded = true;
 }
 
-bool compute_target_size(PrimeFrame::Frame const& frame,
-                         PrimeFrame::LayoutOutput const& layout,
-                         uint32_t& outW,
-                         uint32_t& outH) {
+RenderStatus compute_target_size(PrimeFrame::Frame const& frame,
+                                 PrimeFrame::LayoutOutput const& layout,
+                                 uint32_t& outW,
+                                 uint32_t& outH) {
   auto const& roots = frame.roots();
   if (roots.empty()) {
-    return false;
+    return make_status(RenderStatusCode::LayoutHasNoRoots);
   }
   float maxX = 0.0f;
   float maxY = 0.0f;
+  bool hadRootLayout = false;
   for (PrimeFrame::NodeId rootId : roots) {
     PrimeFrame::LayoutOut const* out = layout.get(rootId);
     if (!out) {
       continue;
     }
+    hadRootLayout = true;
     maxX = std::max(maxX, out->absX + out->absW);
     maxY = std::max(maxY, out->absY + out->absH);
   }
+  if (!hadRootLayout) {
+    return make_status(RenderStatusCode::LayoutMissingRootMetrics);
+  }
   outW = static_cast<uint32_t>(std::lround(maxX));
   outH = static_cast<uint32_t>(std::lround(maxY));
-  return outW > 0 && outH > 0;
+  if (outW == 0 || outH == 0) {
+    RenderStatus status = make_status(RenderStatusCode::LayoutZeroExtent);
+    status.targetWidth = outW;
+    status.targetHeight = outH;
+    return status;
+  }
+  RenderStatus status = make_success();
+  status.targetWidth = outW;
+  status.targetHeight = outH;
+  return status;
 }
 
 } // namespace
 
-bool renderFrameToTarget(PrimeFrame::Frame& frame,
-                         PrimeFrame::LayoutOutput const& layout,
-                         RenderTarget const& target,
-                         RenderOptions const& options) {
-  if (target.width == 0 || target.height == 0 || target.pixels.empty()) {
-    return false;
+RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
+                                 PrimeFrame::LayoutOutput const& layout,
+                                 RenderTarget const& target,
+                                 RenderOptions const& options) {
+  if (target.width == 0 || target.height == 0) {
+    return make_status(RenderStatusCode::InvalidTargetDimensions,
+                       &target,
+                       target.width * 4u,
+                       "target width/height must be greater than zero");
   }
-  if (target.stride < target.width * 4) {
-    return false;
+  uint32_t requiredStride = target.width * 4u;
+  if (target.stride < requiredStride) {
+    return make_status(RenderStatusCode::InvalidTargetStride,
+                       &target,
+                       requiredStride,
+                       "target stride must be at least width * 4 bytes");
+  }
+  uint64_t requiredBytes = required_buffer_bytes(target);
+  if (target.pixels.empty() ||
+      static_cast<uint64_t>(target.pixels.size()) < requiredBytes) {
+    return make_status(RenderStatusCode::InvalidTargetBuffer,
+                       &target,
+                       requiredStride,
+                       "target pixel span is smaller than required stride * height bytes");
   }
 
   ensure_fonts_loaded();
@@ -404,12 +483,12 @@ bool renderFrameToTarget(PrimeFrame::Frame& frame,
   PrimeManifest::OptimizedBatch optimized;
   PrimeManifest::OptimizeRenderBatch(pmTarget, batch, optimized);
   PrimeManifest::RenderOptimized(pmTarget, batch, optimized);
-  return true;
+  return make_success(&target);
 }
 
-bool renderFrameToTarget(PrimeFrame::Frame& frame,
-                         RenderTarget const& target,
-                         RenderOptions const& options) {
+RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
+                                 RenderTarget const& target,
+                                 RenderOptions const& options) {
   PrimeFrame::LayoutEngine engine;
   PrimeFrame::LayoutOutput layout;
   PrimeFrame::LayoutOptions layoutOptions;
@@ -422,14 +501,18 @@ bool renderFrameToTarget(PrimeFrame::Frame& frame,
   return renderFrameToTarget(frame, layout, target, options);
 }
 
-bool renderFrameToPng(PrimeFrame::Frame& frame,
-                      PrimeFrame::LayoutOutput const& layout,
-                      std::string_view path,
-                      RenderOptions const& options) {
+RenderStatus renderFrameToPng(PrimeFrame::Frame& frame,
+                              PrimeFrame::LayoutOutput const& layout,
+                              std::string_view path,
+                              RenderOptions const& options) {
+  if (path.empty()) {
+    return make_status(RenderStatusCode::PngPathEmpty, nullptr, 0, "path must not be empty");
+  }
   uint32_t widthPx = 0;
   uint32_t heightPx = 0;
-  if (!compute_target_size(frame, layout, widthPx, heightPx)) {
-    return false;
+  RenderStatus sizeStatus = compute_target_size(frame, layout, widthPx, heightPx);
+  if (!sizeStatus.ok()) {
+    return sizeStatus;
   }
   std::vector<uint8_t> buffer(widthPx * heightPx * 4, 0);
   RenderTarget target;
@@ -439,16 +522,23 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
   target.stride = widthPx * 4;
   target.scale = 1.0f;
 
-  if (!renderFrameToTarget(frame, layout, target, options)) {
-    return false;
+  RenderStatus renderStatus = renderFrameToTarget(frame, layout, target, options);
+  if (!renderStatus.ok()) {
+    return renderStatus;
   }
   PrimeManifest::RenderTarget pmTarget{std::span<uint8_t>(buffer), widthPx, heightPx, widthPx * 4};
-  return write_png(path, pmTarget);
+  if (!write_png(path, pmTarget)) {
+    return make_status(RenderStatusCode::PngWriteFailed,
+                       &target,
+                       target.stride,
+                       "stbi_write_png returned failure");
+  }
+  return make_success(&target);
 }
 
-bool renderFrameToPng(PrimeFrame::Frame& frame,
-                      std::string_view path,
-                      RenderOptions const& options) {
+RenderStatus renderFrameToPng(PrimeFrame::Frame& frame,
+                              std::string_view path,
+                              RenderOptions const& options) {
   PrimeFrame::LayoutEngine engine;
   PrimeFrame::LayoutOutput layout;
   engine.layout(frame, layout);
@@ -457,22 +547,40 @@ bool renderFrameToPng(PrimeFrame::Frame& frame,
 
 #else
 
-bool renderFrameToTarget(PrimeFrame::Frame&, PrimeFrame::LayoutOutput const&, RenderTarget const&,
-                         RenderOptions const&) {
-  return false;
+RenderStatus renderFrameToTarget(PrimeFrame::Frame&,
+                                 PrimeFrame::LayoutOutput const&,
+                                 RenderTarget const& target,
+                                 RenderOptions const&) {
+  RenderStatus status;
+  status.code = RenderStatusCode::BackendUnavailable;
+  status.targetWidth = target.width;
+  status.targetHeight = target.height;
+  status.targetStride = target.stride;
+  status.requiredStride = target.width * 4u;
+  status.detail = "build configured with PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF";
+  return status;
 }
 
-bool renderFrameToTarget(PrimeFrame::Frame&, RenderTarget const&, RenderOptions const&) {
-  return false;
+RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
+                                 RenderTarget const& target,
+                                 RenderOptions const& options) {
+  return renderFrameToTarget(frame, PrimeFrame::LayoutOutput{}, target, options);
 }
 
-bool renderFrameToPng(PrimeFrame::Frame&, PrimeFrame::LayoutOutput const&, std::string_view,
-                      RenderOptions const&) {
-  return false;
+RenderStatus renderFrameToPng(PrimeFrame::Frame&,
+                              PrimeFrame::LayoutOutput const&,
+                              std::string_view,
+                              RenderOptions const&) {
+  RenderStatus status;
+  status.code = RenderStatusCode::BackendUnavailable;
+  status.detail = "build configured with PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF";
+  return status;
 }
 
-bool renderFrameToPng(PrimeFrame::Frame&, std::string_view, RenderOptions const&) {
-  return false;
+RenderStatus renderFrameToPng(PrimeFrame::Frame& frame,
+                              std::string_view path,
+                              RenderOptions const& options) {
+  return renderFrameToPng(frame, PrimeFrame::LayoutOutput{}, path, options);
 }
 
 #endif
