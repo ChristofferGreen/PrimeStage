@@ -87,6 +87,8 @@ Use only for explicit interop, not canonical app flow.
   before adding advanced integration examples that introduce external dependencies.
 - Review visual snapshot/update workflow in `docs/visual-test-harness.md` before adding advanced
   interaction or rendering escape hatches.
+- Review complexity/ergonomics budget expectations in `docs/api-ergonomics-scorecard.md` before
+  expanding advanced-path complexity.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:

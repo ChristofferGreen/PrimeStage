@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [105] Link advanced onboarding docs to ergonomics scorecard policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/api-ergonomics-scorecard.md` so advanced-path expansions
+    review complexity/ergonomics budget expectations first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    scorecard link and guardrail phrasing, preventing undocumented advanced
+    complexity-budget drift
+
 - ☑ [104] Link advanced onboarding docs to visual test harness policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/visual-test-harness.md` so advanced interaction/rendering
