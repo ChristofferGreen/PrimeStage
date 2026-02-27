@@ -238,6 +238,13 @@ Default focus behavior expected by app code:
   `focusStyle` remains an opt-in override, not a requirement.
 - App code should drive focus through `PrimeFrame::FocusManager`, not by patching focus primitives manually.
 
+## Default Styling Readability Contract
+- Default theme text on default surface must maintain at least `4.5:1` contrast.
+- Default semantic focus ring on default surface must maintain at least `3.0:1` contrast.
+- Apps should not need to set custom palette/style tokens for baseline legibility.
+- Regression coverage for this contract lives in `tests/unit/test_visual_regression.cpp`
+  with golden snapshots under `tests/snapshots/default_theme_readability.snap`.
+
 Example (`FocusManager` with widget defaults):
 
 ```cpp

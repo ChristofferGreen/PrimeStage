@@ -12,6 +12,16 @@ The harness is implemented in `tests/unit/visual_test_harness.h` and pins:
 
 Golden snapshot files include a `[harness]` metadata block so drift in these assumptions is explicit.
 
+## Default Theme Readability Contract
+
+`tests/unit/test_visual_regression.cpp` includes a default-theme readability snapshot
+(`tests/snapshots/default_theme_readability.snap`) that enforces semantic minimums:
+- `min_text_contrast=4.50` for default text vs default surface
+- `min_focus_contrast=3.00` for focus ring vs default surface
+
+The snapshot records measured `text_contrast` / `focus_contrast` plus focused button
+rect commands and resolved color values, so regressions in defaults remain visible in diffs.
+
 ## Golden Update Workflow
 
 1. Run tests to verify current failures:

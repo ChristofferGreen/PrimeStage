@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [58] Add readable semantic-default styling contract.
-  - define mandatory minimum contrast and focus visibility requirements for default theme
-  - ensure every standard widget is legible on default clear/background without app customization
-  - acceptance: visual regression suite verifies readability thresholds for default theme snapshots
-
 - ☐ [59] Reduce mandatory manual sizing and layout micromanagement.
   - improve intrinsic sizing defaults and layout heuristics so widgets compose without explicit width/height in common flows
   - provide max-width and responsive container policies to avoid per-widget preferred width tuning
@@ -136,6 +131,15 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [58] Add readable semantic-default styling contract.
+  - defined contract minimums (`4.5:1` text contrast, `3.0:1` focus contrast) in
+    `docs/api-ergonomics-guidelines.md` and `docs/visual-test-harness.md`
+  - hardened default-theme fallback selection in `src/PrimeStage.cpp` to enforce contrast
+    thresholds for semantic text/focus colors
+  - delivered default-theme readability visual regression coverage in
+    `tests/unit/test_visual_regression.cpp` with golden snapshot
+    `tests/snapshots/default_theme_readability.snap`
 
 - ☑ [57] Provide high-level platform service integration.
   - delivered via `AppPlatformServices` plus `connectHostServices(...)` and

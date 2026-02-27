@@ -42,6 +42,8 @@ constexpr int KeyHome = keyCodeInt(KeyCode::Home);
 constexpr int KeyEnd = keyCodeInt(KeyCode::End);
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
+constexpr float MinDefaultTextContrastRatio = 4.5f;
+constexpr float MinDefaultFocusContrastRatio = 3.0f;
 
 bool is_activation_key(int key) {
   return key == KeyEnter || key == KeySpace;
@@ -570,8 +572,27 @@ bool color_is_near(PrimeFrame::Color const& color,
          std::abs(color.a - a) <= epsilon;
 }
 
-float color_luminance(PrimeFrame::Color const& color) {
-  return 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b;
+float linearize_srgb(float channel) {
+  channel = std::clamp(channel, 0.0f, 1.0f);
+  if (channel <= 0.04045f) {
+    return channel / 12.92f;
+  }
+  return std::pow((channel + 0.055f) / 1.055f, 2.4f);
+}
+
+float relative_luminance(PrimeFrame::Color const& color) {
+  float r = linearize_srgb(color.r);
+  float g = linearize_srgb(color.g);
+  float b = linearize_srgb(color.b);
+  return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+}
+
+float color_contrast_ratio(PrimeFrame::Color const& lhs, PrimeFrame::Color const& rhs) {
+  float lhsLum = relative_luminance(lhs);
+  float rhsLum = relative_luminance(rhs);
+  float high = std::max(lhsLum, rhsLum);
+  float low = std::min(lhsLum, rhsLum);
+  return (high + 0.05f) / (low + 0.05f);
 }
 
 PrimeFrame::Color make_theme_color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255u) {
@@ -688,9 +709,10 @@ void ensure_readable_theme_defaults(PrimeFrame::Frame& frame) {
     }
   }
 
-  float contrast = std::abs(color_luminance(textColor) - color_luminance(fillColor));
+  float contrast = color_contrast_ratio(textColor, fillColor);
   bool needsReadablePatch = paletteLooksZeroed || textToken >= theme->palette.size() ||
-                            contrast < 0.35f || theme->textStyles[0].size <= 0.0f ||
+                            contrast < MinDefaultTextContrastRatio ||
+                            theme->textStyles[0].size <= 0.0f ||
                             color_is_near(fillColor, 0.0f, 0.0f, 0.0f, 1.0f);
   if (!needsReadablePatch) {
     return;
@@ -704,16 +726,18 @@ void ensure_readable_theme_defaults(PrimeFrame::Frame& frame) {
   size_t bestToken = 0u;
   float bestContrast = -1.0f;
   for (size_t i = 0; i < theme->palette.size(); ++i) {
-    float candidate = std::abs(color_luminance(theme->palette[i]) - color_luminance(fillColor));
+    float candidate = color_contrast_ratio(theme->palette[i], fillColor);
     if (candidate > bestContrast) {
       bestContrast = candidate;
       bestToken = i;
     }
   }
-  if (bestContrast < 0.50f) {
-    PrimeFrame::Color fallbackText = color_luminance(fillColor) < 0.5f
-                                         ? make_theme_color(236, 242, 250)
-                                         : make_theme_color(16, 20, 27);
+  if (bestContrast < MinDefaultTextContrastRatio) {
+    PrimeFrame::Color lightText = make_theme_color(236, 242, 250);
+    PrimeFrame::Color darkText = make_theme_color(16, 20, 27);
+    float lightContrast = color_contrast_ratio(lightText, fillColor);
+    float darkContrast = color_contrast_ratio(darkText, fillColor);
+    PrimeFrame::Color fallbackText = lightContrast >= darkContrast ? lightText : darkText;
     theme->palette.push_back(fallbackText);
     bestToken = theme->palette.size() - 1u;
   }
@@ -736,26 +760,40 @@ PrimeFrame::Color resolve_semantic_focus_color(PrimeFrame::Frame& frame) {
     for (size_t index : PreferredPaletteIndices) {
       if (index < theme->palette.size()) {
         PrimeFrame::Color candidate = theme->palette[index];
-        float contrast = std::abs(color_luminance(candidate) - color_luminance(surface));
+        float contrast = color_contrast_ratio(candidate, surface);
         if (contrast > bestContrast) {
           bestContrast = contrast;
           bestColor = candidate;
         }
-        if (contrast >= 0.30f) {
+        if (contrast >= MinDefaultFocusContrastRatio) {
           return candidate;
         }
       }
     }
     for (PrimeFrame::Color const& candidate : theme->palette) {
-      float contrast = std::abs(color_luminance(candidate) - color_luminance(surface));
+      float contrast = color_contrast_ratio(candidate, surface);
       if (contrast > bestContrast) {
         bestContrast = contrast;
         bestColor = candidate;
       }
     }
-    if (bestContrast >= 0.18f) {
+    if (bestContrast >= MinDefaultFocusContrastRatio) {
       return bestColor;
     }
+    std::array<PrimeFrame::Color, 4> fallbackCandidates{
+        make_theme_color(255, 89, 45),
+        make_theme_color(55, 122, 210),
+        make_theme_color(236, 242, 250),
+        make_theme_color(16, 20, 27),
+    };
+    for (PrimeFrame::Color const& candidate : fallbackCandidates) {
+      float contrast = color_contrast_ratio(candidate, surface);
+      if (contrast > bestContrast) {
+        bestContrast = contrast;
+        bestColor = candidate;
+      }
+    }
+    return bestColor;
   }
   return PrimeFrame::Color{0.20f, 0.56f, 0.95f, 1.0f};
 }

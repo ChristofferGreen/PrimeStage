@@ -1,0 +1,20 @@
+[harness]
+version=default_theme_readability_v1
+theme=primestage_default_semantic_v1
+font_policy=command_batch_no_raster
+layout_scale=1.00
+root_size=480x280
+[metrics]
+min_text_contrast=4.50
+min_focus_contrast=3.00
+text_contrast=11.91
+focus_contrast=4.25
+surface_color=#28303EFF
+text_color=#EFF3F8FF
+focus_color=#FF592DFF
+[button_focused]
+R 0 0 180 36 #28303EFF 1000
+R 0 0 180 2 #FF592DFF 1000
+R 0 34 180 2 #FF592DFF 1000
+R 0 2 2 32 #FF592DFF 1000
+R 178 2 2 32 #FF592DFF 1000

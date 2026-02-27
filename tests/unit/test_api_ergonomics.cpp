@@ -7,6 +7,7 @@
 
 #include "third_party/doctest.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -51,6 +52,29 @@ PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, float x, float y)
   return event;
 }
 
+float srgbChannelToLinear(float value) {
+  value = std::clamp(value, 0.0f, 1.0f);
+  if (value <= 0.04045f) {
+    return value / 12.92f;
+  }
+  return std::pow((value + 0.055f) / 1.055f, 2.4f);
+}
+
+float contrastRatio(PrimeFrame::Color const& lhs, PrimeFrame::Color const& rhs) {
+  auto luminance = [](PrimeFrame::Color const& color) -> float {
+    float r = srgbChannelToLinear(color.r);
+    float g = srgbChannelToLinear(color.g);
+    float b = srgbChannelToLinear(color.b);
+    return 0.2126f * r + 0.7152f * g + 0.0722f * b;
+  };
+
+  float lhsLum = luminance(lhs);
+  float rhsLum = luminance(rhs);
+  float hi = std::max(lhsLum, rhsLum);
+  float lo = std::min(lhsLum, rhsLum);
+  return (hi + 0.05f) / (lo + 0.05f);
+}
+
 } // namespace
 
 static_assert(std::is_base_of_v<PrimeStage::WidgetSpec, PrimeStage::LabelSpec>);
@@ -91,10 +115,8 @@ TEST_CASE("PrimeStage installs readable defaults for untouched PrimeFrame themes
 
   PrimeFrame::Color fill = theme->palette[fillIndex];
   PrimeFrame::Color text = theme->palette[textIndex];
-  float contrast =
-      std::abs((0.2126f * text.r + 0.7152f * text.g + 0.0722f * text.b) -
-               (0.2126f * fill.r + 0.7152f * fill.g + 0.0722f * fill.b));
-  CHECK(contrast >= 0.30f);
+  float contrast = contrastRatio(text, fill);
+  CHECK(contrast >= 4.5f);
 }
 
 TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
