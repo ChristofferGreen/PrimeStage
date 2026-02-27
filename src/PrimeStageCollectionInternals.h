@@ -11,11 +11,39 @@ struct InternalRect {
   float height = 0.0f;
 };
 
+struct InternalFocusStyle {
+  PrimeFrame::RectStyleToken token = 0;
+  PrimeFrame::RectStyleOverride overrideStyle{};
+};
+
 ListSpec normalizeListSpec(ListSpec const& specInput);
+TableSpec normalizeTableSpec(TableSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();
 float defaultScrollViewHeight();
+float defaultCollectionWidth();
+float defaultCollectionHeight();
+float estimateTextWidth(PrimeFrame::Frame& frame,
+                        PrimeFrame::TextStyleToken token,
+                        std::string_view text);
+InternalFocusStyle resolveFocusStyle(PrimeFrame::Frame& frame,
+                                     PrimeFrame::RectStyleToken focusStyle,
+                                     PrimeFrame::RectStyleOverride const& focusStyleOverride,
+                                     PrimeFrame::RectStyleToken fallbackA,
+                                     PrimeFrame::RectStyleToken fallbackB,
+                                     PrimeFrame::RectStyleToken fallbackC,
+                                     PrimeFrame::RectStyleToken fallbackD,
+                                     PrimeFrame::RectStyleToken fallbackE);
+void attachFocusOverlay(PrimeFrame::Frame& frame,
+                        PrimeFrame::NodeId nodeId,
+                        InternalRect const& rect,
+                        InternalFocusStyle const& focusStyle,
+                        bool visible);
+void addDisabledScrimOverlay(PrimeFrame::Frame& frame,
+                             PrimeFrame::NodeId nodeId,
+                             InternalRect const& rect,
+                             bool visible);
 PrimeFrame::NodeId createNode(PrimeFrame::Frame& frame,
                               PrimeFrame::NodeId parent,
                               InternalRect const& rect,

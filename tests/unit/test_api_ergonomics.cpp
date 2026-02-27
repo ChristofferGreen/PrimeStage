@@ -2047,6 +2047,7 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   std::filesystem::path readmePath = repoRoot / "README.md";
   std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(ownershipDocPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -2054,6 +2055,7 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   REQUIRE(std::filesystem::exists(readmePath));
   REQUIRE(std::filesystem::exists(agentsPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(todoPath));
 
   std::ifstream ownershipInput(ownershipDocPath);
@@ -2103,13 +2105,19 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
-  CHECK(sourceCpp.find("ownedRows") != std::string::npos);
-  CHECK(sourceCpp.find("rowViewScratch") != std::string::npos);
-  CHECK(sourceCpp.find("interaction->ownedRows.push_back(std::move(ownedRow));") !=
+  std::ifstream collectionsInput(collectionsCppPath);
+  REQUIRE(collectionsInput.good());
+  std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!collectionsCpp.empty());
+  std::string combinedSource = sourceCpp + collectionsCpp;
+  CHECK(combinedSource.find("ownedRows") != std::string::npos);
+  CHECK(combinedSource.find("rowViewScratch") != std::string::npos);
+  CHECK(combinedSource.find("interaction->ownedRows.push_back(std::move(ownedRow));") !=
         std::string::npos);
-  CHECK(sourceCpp.find("info.row = std::span<const std::string_view>(interaction->rowViewScratch);") !=
+  CHECK(combinedSource.find("info.row = std::span<const std::string_view>(interaction->rowViewScratch);") !=
         std::string::npos);
-  CHECK(sourceCpp.find("interaction->rows = spec.rows;") == std::string::npos);
+  CHECK(combinedSource.find("interaction->rows = spec.rows;") == std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -3114,11 +3122,13 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
   REQUIRE(std::filesystem::exists(matrixPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
 
   std::ifstream matrixInput(matrixPath);
@@ -3162,24 +3172,30 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
+  std::ifstream collectionsInput(collectionsCppPath);
+  REQUIRE(collectionsInput.good());
+  std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!collectionsCpp.empty());
+  std::string combinedSource = sourceCpp + collectionsCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Button") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::TextField") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::StaticText") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Toggle") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Checkbox") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Slider") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::TabList") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::ComboBox") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::ProgressBar") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Table") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Tree") != std::string::npos);
-  CHECK(sourceCpp.find("AccessibilityRole::Group") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Button") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::TextField") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::StaticText") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Toggle") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Checkbox") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Slider") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::TabList") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::ComboBox") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::ProgressBar") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Table") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Tree") != std::string::npos);
+  CHECK(combinedSource.find("AccessibilityRole::Group") != std::string::npos);
   CHECK(sourceCpp.find("bool needsPatchState = enabled ||") != std::string::npos);
-  CHECK(sourceCpp.find("LowLevel::appendNodeOnEvent(frame(),") != std::string::npos);
-  CHECK(sourceCpp.find("tableRoot.nodeId()") != std::string::npos);
+  CHECK(combinedSource.find("LowLevel::appendNodeOnEvent(frame(),") != std::string::npos);
+  CHECK(combinedSource.find("tableRoot.nodeId()") != std::string::npos);
 
   std::ifstream interactionInput(interactionPath);
   REQUIRE(interactionInput.good());
@@ -3405,11 +3421,13 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::string core((std::istreambuf_iterator<char>(coreInput)), std::istreambuf_iterator<char>());
   REQUIRE(!core.empty());
   CHECK(core.find("UiNode UiNode::createList(ListSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTable(TableSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") ==
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
         std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
+  CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
 
@@ -3419,6 +3437,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
                           std::istreambuf_iterator<char>());
   REQUIRE(!collections.empty());
   CHECK(collections.find("UiNode UiNode::createList(ListSpec const& specInput)") != std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTable(TableSpec const& specInput)") != std::string::npos);
   CHECK(collections.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
         std::string::npos);
   CHECK(collections.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") !=
@@ -3426,6 +3445,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
+  CHECK(collections.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
 
   std::ifstream internalsInput(internalsPath);
@@ -3434,6 +3454,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
                         std::istreambuf_iterator<char>());
   REQUIRE(!internals.empty());
   CHECK(internals.find("ListSpec normalizeListSpec(ListSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("TableSpec normalizeTableSpec(TableSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
