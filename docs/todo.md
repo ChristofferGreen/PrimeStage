@@ -12,12 +12,165 @@ Priority:
 
 Release Exit Criteria (for API-quality milestone):
 - no direct `PrimeFrame` node callback mutation required in app code for standard widgets
+- no `PrimeFrame` include usage in canonical app examples (`examples/*.cpp`) outside explicitly-labeled low-level integration samples
 - focus behavior is default-correct and visibly rendered for all interactive widgets
 - keyboard and pointer behavior are consistent across widgets and platforms
+- default theme is readable without app-side color or style-token configuration
+- app code does not manually orchestrate rebuild/layout/frame scheduling for standard usage
+- common widgets are usable with content/state only (callbacks optional, not required for baseline interaction)
 - CI covers build/test matrix, interaction regressions, and visual state regressions
 - docs match shipped API and canonical build/test workflow
 
 ## P0 (Do First)
+
+- ☐ [51] Guarantee zero-theme-setup readable defaults.
+  - default widget rendering must be legible without any app-level palette or color configuration
+  - examples should not need custom theme bootstrapping to achieve basic contrast/readability
+  - acceptance: `examples/primestage_widgets.cpp` uses no custom theme/palette/color setup and remains readable
+
+- ☐ [52] Remove callback-gated interaction from stateful controls.
+  - controls like slider/progress should remain interactive when state is provided, without requiring `onValueChanged` to enable pointer drag behavior
+  - make controlled/uncontrolled behavior consistent across button/toggle/checkbox/slider/progress/tabs/dropdown
+  - acceptance: examples can omit no-op callbacks while keeping default interaction behavior
+
+- ☐ [53] Ship a high-level `App` API that hides `PrimeFrame` internals.
+  - provide a first-class app shell abstraction for host + frame + layout + routing lifecycle
+  - remove direct `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` ownership from normal app code
+  - acceptance: canonical examples compile without including `PrimeFrame/*` headers
+
+- ☐ [54] Add a declarative UI composition API.
+  - support nested composition with strongly-typed builders (for example `ui.column([...])`, `ui.row([...])`, `ui.window(...)`)
+  - eliminate repetitive `Spec` object zero-init + field mutation for common cases
+  - acceptance: canonical widget gallery can be expressed without manual `Spec` variable ceremony for every node
+
+- ☐ [55] Add first-class state/binding primitives.
+  - provide `State<T>`/`Signal`-style primitives for value ownership and mutation tracking
+  - allow widgets to bind directly to values (`bind(value)`) with default two-way behavior where appropriate
+  - acceptance: tabs/dropdown/toggle/checkbox/slider/progress no longer require separate ad-hoc app state wiring patterns
+
+- ☐ [56] Define and enforce a minimal callback surface.
+  - standardize semantic callbacks (`onActivate`, `onChange`, `onOpen`, `onSelect`) and avoid redundant low-level callback sets
+  - callbacks should be optional; controls remain useful/interactive without callback registration
+  - acceptance: no canonical example uses no-op callbacks solely to turn interaction on
+
+- ☐ [57] Provide high-level platform service integration.
+  - move clipboard/cursor/IME services into app/runtime context rather than widget-by-widget manual plumbing
+  - text controls should work out-of-the-box when app runtime is used
+  - acceptance: no per-text-field clipboard lambda boilerplate in canonical examples
+
+- ☐ [58] Add readable semantic-default styling contract.
+  - define mandatory minimum contrast and focus visibility requirements for default theme
+  - ensure every standard widget is legible on default clear/background without app customization
+  - acceptance: visual regression suite verifies readability thresholds for default theme snapshots
+
+- ☐ [59] Reduce mandatory manual sizing and layout micromanagement.
+  - improve intrinsic sizing defaults and layout heuristics so widgets compose without explicit width/height in common flows
+  - provide max-width and responsive container policies to avoid per-widget preferred width tuning
+  - acceptance: canonical examples require only occasional size hints for explicit demos, not baseline visibility
+
+- ☐ [60] Introduce typed widget handles and remove `NodeId` from app-facing APIs.
+  - expose stable typed handles for focus, visibility, and imperative actions
+  - keep raw `NodeId` internal or explicitly low-level
+  - acceptance: canonical examples do not store/query `NodeId` directly
+
+- ☐ [61] Add domain-model adapters for collection widgets.
+  - support typed row/item models for list/table/tree with adapters and key extractors
+  - avoid repeated conversion to `std::vector<std::string_view>` in app code
+  - acceptance: collection examples bind model containers directly
+
+- ☐ [62] Replace full-rebuild app pattern with incremental invalidation defaults.
+  - runtime should automatically schedule minimal recomposition/layout/paint from state changes
+  - remove explicit `requestRebuild` spam in normal callbacks
+  - acceptance: canonical examples do not call rebuild/layout/frame request APIs for ordinary widget interactions
+
+- ☐ [63] Publish a strict "Modern API" canonical example and gate it in CI.
+  - add a new example intentionally limited to high-level API surfaces (no low-level escape hatches)
+  - add regression tests that fail if this example starts using low-level internals
+  - acceptance: this example is the README-default and remains under defined complexity thresholds
+
+- ☐ [64] Add ergonomic convenience overloads for common widgets.
+  - provide concise constructors/helpers (`button("Save", onClick)`, `checkbox("Enabled", bind(flag))`, `tabs({"A","B"}, bind(index))`)
+  - maintain `Spec` APIs for advanced control, but optimize default path for brevity
+  - acceptance: gallery code demonstrates concise overloads for all major widgets
+
+- ☐ [65] Add standardized command/action routing.
+  - provide app-level action registry and keyboard shortcut binding independent of widget-local event code
+  - unify command invocation across menu/button/shortcut entrypoints
+  - acceptance: example shortcuts use action routing without raw key event plumbing
+
+- ☐ [66] Add built-in form API for common input workflows.
+  - compose label+control+validation+help text via high-level form primitives
+  - reduce repetitive stack/spacing boilerplate in app code
+  - acceptance: settings-like example pages use form primitives instead of hand-built row stacks
+
+- ☐ [67] Add explicit API ergonomics scorecard and measurable thresholds.
+  - define objective targets (example LOC, average lines per widget instantiation, number of required fields per standard widget)
+  - track scorecard in CI/presubmit to prevent regression
+  - acceptance: canonical examples meet targets and fail CI when thresholds regress
+
+- ☐ [68] Harden default behavior consistency matrix.
+  - define per-widget defaults for focusability, keyboard activation, pointer semantics, and accessibility role
+  - verify matrix via automated tests and docs tables
+  - acceptance: no behavior surprises between similar controls under default config
+
+- ☐ [69] Add migration path toward retained-state widgets with owned defaults.
+  - provide opt-in owned state for controls that currently require external state structs
+  - keep externally-controlled model supported, but make default usage minimal
+  - acceptance: simple apps can instantiate controls without managing dedicated state structs unless needed
+
+- ☐ [70] Introduce low-level API quarantine and naming.
+  - explicitly separate stable high-level API from advanced/experimental low-level layers
+  - enforce naming/namespaces to prevent accidental use of internal primitives
+  - acceptance: public docs and examples default to high-level namespace only
+
+- ☐ [71] Add API review checklist for any new widget/control.
+  - require default readability, minimal constructor path, optional callbacks, and state/binding story before merge
+  - add checklist enforcement in PR template/docs
+  - acceptance: new widget APIs cannot land without meeting checklist criteria
+
+- ☐ [72] Add full end-to-end ergonomics regression tests.
+  - test canonical app flows using only high-level APIs (no low-level hooks) across keyboard/mouse/text input
+  - include compile-time regression tests for convenience overloads and declarative builders
+  - acceptance: ergonomics suite runs in CI and blocks regressions
+
+
+## P1 (Do Next)
+
+- ☐ [73] Split examples into `canonical` and `advanced` tiers.
+  - keep one minimal canonical path for normal users and isolate host/frame internals to advanced samples
+  - make README point only to canonical tier for first use
+  - acceptance: canonical tier contains no low-level integration primitives
+
+- ☐ [74] Add dedicated docs for "5-minute app" and "advanced escape hatches".
+  - include a concise getting-started API that maps directly to canonical sample code
+  - separately document when/why to drop to low-level APIs
+  - acceptance: docs clearly separate recommended vs advanced usage paths
+
+- ☐ [75] Add automated API surface linting.
+  - detect and flag forbidden headers/types in canonical examples (`PrimeFrame/*`, raw `NodeId`, manual event translation)
+  - enforce linting in CI for examples and docs snippets
+  - acceptance: low-level leakage into canonical path fails presubmit
+
+- ☐ [76] Add structured widget-spec defaults audit.
+  - inventory all spec fields and classify required vs optional vs advanced
+  - minimize required fields for standard controls and deprecate noisy defaults
+  - acceptance: each major widget has a documented "minimal 1-3 line instantiation" path
+
+- ☐ [77] Improve compile-time ergonomics and diagnostics.
+  - add `constexpr` validation helpers and clearer static assertions for common misuse
+  - ensure error messages are actionable and reference high-level API docs
+  - acceptance: common mistakes produce concise diagnostics without deep template noise
+
+
+## P2 (Foundational Cleanup / Backlog)
+
+_No open items._
+
+## Archive (Completed)
+
+Completed items moved here to keep active backlog focused.
+
+### P0 (Do First)
 
 - ☑ [22] Define PrimeStage API ergonomics guidelines.
   - document what belongs in PrimeStage vs what user code should never have to implement
@@ -80,7 +233,8 @@ Release Exit Criteria (for API-quality milestone):
   - run in CI via `scripts/compile.sh --test`
   - delivered via `tests/unit/test_widgets_demo_regression.cpp` (demo-like page-flow/rebuild regression and wheel+scrollbar interaction coverage) and `CMakeLists.txt` test target updates
 
-## P1 (Do Next)
+
+### P1 (Do Next)
 
 - ☑ [23] Add a PrimeStage app runtime helper for frame lifecycle.
   - centralize rebuild/layout/render scheduling and dirty-flag handling
@@ -224,7 +378,8 @@ Release Exit Criteria (for API-quality milestone):
 - ☑ [10] Final pass: validate naming rules, add minimal API docs, and run tests.
   - delivered via minimal symbol reference `docs/minimal-api-reference.md` with README/design/agents alignment, automated naming/doc guard coverage in `tests/unit/test_api_ergonomics.cpp` (public-header naming + API-reference checks), and full validation runs through `scripts/compile.sh --test` and `scripts/compile.sh`
 
-## P2 (Foundational Cleanup / Backlog)
+
+### P2 (Foundational Cleanup / Backlog)
 
 - ☑ [26] Add patch-first update path for high-frequency text/selection edits.
   - avoid full-scene rebuild on every text/caret update where structural changes are not required
@@ -276,3 +431,4 @@ Release Exit Criteria (for API-quality milestone):
   - delivered via new example app `examples/primestage_scene.cpp` (window + widget-scene
     composition and layout pass), example-target wiring in `CMakeLists.txt`, regression guards in
     `tests/unit/test_api_ergonomics.cpp`, and README example-binary documentation updates
+

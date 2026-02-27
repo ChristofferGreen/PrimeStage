@@ -39,6 +39,7 @@ build_dir="${root_dir}/build-$(echo "$build_type" | tr '[:upper:]' '[:lower:]')"
 
 cmake -S "$root_dir" -B "$build_dir" \
   -DCMAKE_BUILD_TYPE="$build_type" \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_COMPILER=clang++ \
   -DCMAKE_OBJCXX_COMPILER=clang++ \
   -DPRIMESTAGE_BUILD_EXAMPLES="$build_examples" \
@@ -49,6 +50,11 @@ cmake -S "$root_dir" -B "$build_dir" \
   -DPRIMESTAGE_WARNINGS_AS_ERRORS=$([[ "$warnings_as_errors" -eq 1 ]] && echo ON || echo OFF) \
   -DPRIMESTAGE_ENABLE_ASAN=$([[ "$enable_asan" -eq 1 ]] && echo ON || echo OFF) \
   -DPRIMESTAGE_ENABLE_UBSAN=$([[ "$enable_ubsan" -eq 1 ]] && echo ON || echo OFF)
+
+compile_commands_path="$build_dir/compile_commands.json"
+if [[ -f "$compile_commands_path" ]]; then
+  ln -sfn "$compile_commands_path" "$root_dir/compile_commands.json"
+fi
 
 cmake --build "$build_dir"
 

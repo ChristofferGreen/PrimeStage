@@ -45,6 +45,15 @@ PrimeFrame::Event makePointerDown(float x, float y) {
   return event;
 }
 
+PrimeFrame::Event makePointerUp(float x, float y) {
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::PointerUp;
+  event.pointerId = 1;
+  event.x = x;
+  event.y = y;
+  return event;
+}
+
 void clickCenter(PrimeFrame::Frame& frame,
                  PrimeFrame::LayoutOutput const& layout,
                  PrimeFrame::EventRouter& router,
@@ -55,6 +64,19 @@ void clickCenter(PrimeFrame::Frame& frame,
   float centerX = out->absX + out->absW * 0.5f;
   float centerY = out->absY + out->absH * 0.5f;
   router.dispatch(makePointerDown(centerX, centerY), frame, layout, &focus);
+}
+
+void clickCenterPressRelease(PrimeFrame::Frame& frame,
+                             PrimeFrame::LayoutOutput const& layout,
+                             PrimeFrame::EventRouter& router,
+                             PrimeFrame::FocusManager& focus,
+                             PrimeStage::UiNode node) {
+  PrimeFrame::LayoutOut const* out = layout.get(node.nodeId());
+  REQUIRE(out != nullptr);
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerDown(centerX, centerY), frame, layout, &focus);
+  router.dispatch(makePointerUp(centerX, centerY), frame, layout, &focus);
 }
 
 struct FocusCase {
@@ -320,6 +342,237 @@ TEST_CASE("PrimeStage focus contract for interactive widgets") {
   for (FocusCase const& focusCase : focusCases) {
     INFO(focusCase.name);
     runFocusCase(focusCase);
+  }
+}
+
+TEST_CASE("PrimeStage click-to-focus contract covers all focusable widget abstractions") {
+  struct ClickFocusCase {
+    std::string_view name;
+    std::function<PrimeStage::UiNode(PrimeStage::UiNode&)> createWidget;
+    std::function<PrimeFrame::NodeId(PrimeFrame::Frame const&, PrimeStage::UiNode)> resolveFocusedNode;
+  };
+
+  auto focusSelf = [](PrimeFrame::Frame const&, PrimeStage::UiNode widget) {
+    return widget.nodeId();
+  };
+
+  PrimeStage::TextFieldState textState;
+  textState.text = "focus-check";
+
+  std::vector<ClickFocusCase> cases;
+  cases.push_back(ClickFocusCase{
+      .name = "button",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::ButtonSpec spec;
+            spec.label = "Button";
+            spec.size.preferredWidth = 120.0f;
+            spec.size.preferredHeight = 28.0f;
+            spec.backgroundStyle = 11u;
+            return root.createButton(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "text_field",
+      .createWidget =
+          [&textState](PrimeStage::UiNode& root) {
+            PrimeStage::TextFieldSpec spec;
+            spec.state = &textState;
+            spec.size.preferredWidth = 180.0f;
+            spec.size.preferredHeight = 28.0f;
+            spec.backgroundStyle = 21u;
+            spec.textStyle = 22u;
+            return root.createTextField(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "toggle",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::ToggleSpec spec;
+            spec.size.preferredWidth = 56.0f;
+            spec.size.preferredHeight = 24.0f;
+            spec.trackStyle = 31u;
+            spec.knobStyle = 32u;
+            return root.createToggle(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "checkbox",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::CheckboxSpec spec;
+            spec.label = "Check";
+            spec.boxStyle = 41u;
+            spec.checkStyle = 42u;
+            spec.textStyle = 43u;
+            spec.size.preferredWidth = 140.0f;
+            spec.size.preferredHeight = 26.0f;
+            return root.createCheckbox(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "slider",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::SliderSpec spec;
+            spec.size.preferredWidth = 180.0f;
+            spec.size.preferredHeight = 20.0f;
+            spec.trackStyle = 51u;
+            spec.fillStyle = 52u;
+            spec.thumbStyle = 53u;
+            return root.createSlider(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "tabs",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::TabsSpec spec;
+            spec.labels = {"Only"};
+            spec.size.preferredHeight = 28.0f;
+            spec.tabStyle = 61u;
+            spec.activeTabStyle = 62u;
+            spec.textStyle = 63u;
+            spec.activeTextStyle = 64u;
+            return root.createTabs(spec);
+          },
+      .resolveFocusedNode =
+          [](PrimeFrame::Frame const& frame, PrimeStage::UiNode tabs) {
+            std::vector<PrimeFrame::NodeId> tabsChildren = childNodes(frame, tabs.nodeId());
+            REQUIRE(tabsChildren.size() == 1u);
+            return tabsChildren.front();
+          },
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "dropdown",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::DropdownSpec spec;
+            spec.options = {"One", "Two"};
+            spec.size.preferredWidth = 140.0f;
+            spec.size.preferredHeight = 24.0f;
+            spec.backgroundStyle = 71u;
+            spec.textStyle = 72u;
+            spec.indicatorStyle = 73u;
+            return root.createDropdown(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "progress_bar",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::ProgressBarSpec spec;
+            spec.size.preferredWidth = 180.0f;
+            spec.size.preferredHeight = 14.0f;
+            spec.trackStyle = 81u;
+            spec.fillStyle = 82u;
+            return root.createProgressBar(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "table",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::TableSpec spec;
+            spec.size.preferredWidth = 240.0f;
+            spec.size.preferredHeight = 120.0f;
+            spec.headerHeight = 20.0f;
+            spec.headerStyle = 91u;
+            spec.rowStyle = 92u;
+            spec.rowAltStyle = 93u;
+            spec.columns = {{"A", 100.0f, 0u, 0u}, {"B", 100.0f, 0u, 0u}};
+            spec.rows = {{"1", "2"}, {"3", "4"}};
+            return root.createTable(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "list",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::ListSpec spec;
+            spec.items = {"Alpha", "Beta", "Gamma"};
+            spec.size.preferredWidth = 180.0f;
+            spec.size.preferredHeight = 120.0f;
+            spec.textStyle = 101u;
+            spec.rowStyle = 102u;
+            spec.rowAltStyle = 103u;
+            spec.selectionStyle = 104u;
+            spec.dividerStyle = 105u;
+            return root.createList(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "tree_view",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::TreeViewSpec spec;
+            spec.size.preferredWidth = 240.0f;
+            spec.size.preferredHeight = 120.0f;
+            spec.rowStyle = 111u;
+            spec.rowAltStyle = 112u;
+            spec.selectionStyle = 113u;
+            spec.selectionAccentStyle = 114u;
+            spec.textStyle = 115u;
+            spec.selectedTextStyle = 116u;
+            spec.nodes = {PrimeStage::TreeNode{"Root"}};
+            return root.createTreeView(spec);
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  cases.push_back(ClickFocusCase{
+      .name = "window",
+      .createWidget =
+          [](PrimeStage::UiNode& root) {
+            PrimeStage::WindowSpec spec;
+            spec.title = "Window";
+            spec.width = 220.0f;
+            spec.height = 140.0f;
+            spec.frameStyle = 121u;
+            spec.titleBarStyle = 122u;
+            spec.titleTextStyle = 123u;
+            spec.contentStyle = 124u;
+            PrimeStage::Window window = root.createWindow(spec);
+            return window.root;
+          },
+      .resolveFocusedNode = focusSelf,
+  });
+
+  for (ClickFocusCase const& focusCase : cases) {
+    INFO(focusCase.name);
+    PrimeFrame::Frame frame;
+    PrimeStage::UiNode root = createRoot(frame);
+    PrimeStage::UiNode widget = focusCase.createWidget(root);
+    PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+    PrimeFrame::FocusManager focus;
+    PrimeFrame::EventRouter router;
+
+    CHECK_FALSE(focus.focusedNode().isValid());
+    clickCenterPressRelease(frame, layout, router, focus, widget);
+
+    PrimeFrame::NodeId expectedFocus = focusCase.resolveFocusedNode(frame, widget);
+    REQUIRE(expectedFocus.isValid());
+    CHECK(focus.focusedNode() == expectedFocus);
   }
 }
 

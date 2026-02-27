@@ -233,6 +233,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_spec_validation.cpp
     tests/unit/test_render.cpp
     tests/unit/test_state_machine_fuzz.cpp
+    tests/unit/test_widget_visual_facility.cpp
   )
   target_link_libraries(PrimeStage_tests PRIVATE PrimeStage)
   if(TARGET PrimeHost)

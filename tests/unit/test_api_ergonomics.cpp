@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <cmath>
 #include <regex>
 #include <string>
 #include <type_traits>
@@ -62,6 +63,39 @@ static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::Tog
 static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::ProgressBarSpec>);
 static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::TableSpec>);
 static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::TreeViewSpec>);
+
+TEST_CASE("PrimeStage installs readable defaults for untouched PrimeFrame themes") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  REQUIRE(theme != nullptr);
+
+  theme->palette.assign(1u, PrimeFrame::Color{0.0f, 0.0f, 0.0f, 1.0f});
+  theme->rectStyles.assign(1u, PrimeFrame::RectStyle{0u, 1.0f});
+  theme->textStyles.assign(1u, PrimeFrame::TextStyle{});
+
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+  (void)root;
+
+  theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  REQUIRE(theme != nullptr);
+  REQUIRE(theme->palette.size() >= 2u);
+  REQUIRE(theme->rectStyles.size() >= 1u);
+  REQUIRE(theme->textStyles.size() >= 1u);
+
+  size_t fillIndex = theme->rectStyles[0].fill;
+  size_t textIndex = theme->textStyles[0].color;
+  REQUIRE(fillIndex < theme->palette.size());
+  REQUIRE(textIndex < theme->palette.size());
+
+  PrimeFrame::Color fill = theme->palette[fillIndex];
+  PrimeFrame::Color text = theme->palette[textIndex];
+  float contrast =
+      std::abs((0.2126f * text.r + 0.7152f * text.g + 0.0722f * text.b) -
+               (0.2126f * fill.r + 0.7152f * fill.g + 0.0722f * fill.b));
+  CHECK(contrast >= 0.30f);
+}
 
 TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
   PrimeFrame::Frame frame;
@@ -1481,6 +1515,9 @@ TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks"
   CHECK(script.find("PRIMESTAGE_ENABLE_UBSAN") != std::string::npos);
   CHECK(script.find("build_examples=\"OFF\"") != std::string::npos);
   CHECK(script.find("PRIMESTAGE_BUILD_EXAMPLES=\"$build_examples\"") != std::string::npos);
+  CHECK(script.find("CMAKE_EXPORT_COMPILE_COMMANDS=ON") != std::string::npos);
+  CHECK(script.find("compile_commands.json") != std::string::npos);
+  CHECK(script.find("ln -sfn") != std::string::npos);
 
   std::ifstream workflowInput(workflowPath);
   REQUIRE(workflowInput.good());

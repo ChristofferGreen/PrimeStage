@@ -551,16 +551,211 @@ PrimeFrame::RectStyleToken resolve_focus_style_token(
   return 0;
 }
 
+bool color_is_zero(PrimeFrame::Color const& color) {
+  return std::abs(color.r) <= 0.0001f &&
+         std::abs(color.g) <= 0.0001f &&
+         std::abs(color.b) <= 0.0001f &&
+         std::abs(color.a) <= 0.0001f;
+}
+
+bool color_is_near(PrimeFrame::Color const& color,
+                   float r,
+                   float g,
+                   float b,
+                   float a,
+                   float epsilon = 0.0001f) {
+  return std::abs(color.r - r) <= epsilon &&
+         std::abs(color.g - g) <= epsilon &&
+         std::abs(color.b - b) <= epsilon &&
+         std::abs(color.a - a) <= epsilon;
+}
+
+float color_luminance(PrimeFrame::Color const& color) {
+  return 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b;
+}
+
+PrimeFrame::Color make_theme_color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255u) {
+  auto to_float = [](uint8_t value) -> float {
+    return static_cast<float>(value) / 255.0f;
+  };
+  return PrimeFrame::Color{
+      to_float(r),
+      to_float(g),
+      to_float(b),
+      to_float(a),
+  };
+}
+
+bool is_canonical_primeframe_default_theme(PrimeFrame::Theme const& theme) {
+  if (theme.palette.size() != 1u || theme.rectStyles.size() != 1u || theme.textStyles.size() != 1u) {
+    return false;
+  }
+  PrimeFrame::RectStyle const& rect = theme.rectStyles[0];
+  PrimeFrame::TextStyle const& text = theme.textStyles[0];
+  return color_is_near(theme.palette[0], 0.0f, 0.0f, 0.0f, 1.0f) && rect.fill == 0u &&
+         std::abs(rect.opacity - 1.0f) <= 0.0001f && text.color == 0u &&
+         std::abs(text.size - 14.0f) <= 0.0001f && std::abs(text.weight - 400.0f) <= 0.0001f;
+}
+
+void install_primestage_default_theme(PrimeFrame::Theme& theme) {
+  theme.name = "PrimeStage Default";
+  theme.palette = {
+      make_theme_color(5, 12, 26),     // 0: backdrop/disabled tint
+      make_theme_color(40, 48, 62),    // 1: surface
+      make_theme_color(54, 64, 80),    // 2: surface alt
+      make_theme_color(78, 89, 108),   // 3: divider/muted
+      make_theme_color(55, 122, 210),  // 4: accent
+      make_theme_color(30, 167, 67),   // 5: selection
+      make_theme_color(255, 89, 45),   // 6: focus
+      make_theme_color(239, 243, 248), // 7: text primary
+      make_theme_color(203, 212, 223), // 8: text muted
+      make_theme_color(245, 211, 133), // 9: text accent
+      make_theme_color(86, 97, 112),   // 10: track/knob base
+  };
+
+  theme.rectStyles.assign(6u, PrimeFrame::RectStyle{});
+  theme.rectStyles[0] = PrimeFrame::RectStyle{1u, 1.0f};
+  theme.rectStyles[1] = PrimeFrame::RectStyle{6u, 1.0f};
+  theme.rectStyles[2] = PrimeFrame::RectStyle{2u, 1.0f};
+  theme.rectStyles[3] = PrimeFrame::RectStyle{4u, 1.0f};
+  theme.rectStyles[4] = PrimeFrame::RectStyle{5u, 1.0f};
+  theme.rectStyles[5] = PrimeFrame::RectStyle{10u, 1.0f};
+
+  theme.textStyles.assign(2u, PrimeFrame::TextStyle{});
+  theme.textStyles[0].color = 7u;
+  theme.textStyles[1].color = 9u;
+}
+
+PrimeFrame::Color resolve_theme_surface_color(PrimeFrame::Theme const& theme) {
+  if (theme.palette.empty()) {
+    return PrimeFrame::Color{0.16f, 0.19f, 0.24f, 1.0f};
+  }
+  if (!theme.rectStyles.empty()) {
+    size_t fillIndex = theme.rectStyles[0].fill;
+    if (fillIndex < theme.palette.size()) {
+      return theme.palette[fillIndex];
+    }
+  }
+  return theme.palette[0];
+}
+
+void ensure_readable_theme_defaults(PrimeFrame::Frame& frame) {
+  PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  if (!theme) {
+    return;
+  }
+
+  if (is_canonical_primeframe_default_theme(*theme)) {
+    install_primestage_default_theme(*theme);
+    return;
+  }
+
+  if (theme->palette.empty()) {
+    install_primestage_default_theme(*theme);
+    return;
+  }
+  if (theme->rectStyles.empty()) {
+    theme->rectStyles.resize(1u, PrimeFrame::RectStyle{});
+    theme->rectStyles[0].fill = 0u;
+    theme->rectStyles[0].opacity = 1.0f;
+  }
+  if (theme->textStyles.empty()) {
+    theme->textStyles.resize(1u, PrimeFrame::TextStyle{});
+    theme->textStyles[0].color = 0u;
+    theme->textStyles[0].size = 14.0f;
+    theme->textStyles[0].weight = 400.0f;
+  }
+
+  PrimeFrame::RectStyleToken fillToken = theme->rectStyles[0].fill;
+  if (fillToken >= theme->palette.size()) {
+    fillToken = 0u;
+    theme->rectStyles[0].fill = fillToken;
+  }
+  PrimeFrame::Color fillColor = theme->palette[fillToken];
+
+  PrimeFrame::ColorToken textToken = theme->textStyles[0].color;
+  PrimeFrame::Color textColor{};
+  if (textToken < theme->palette.size()) {
+    textColor = theme->palette[textToken];
+  }
+
+  bool paletteLooksZeroed = true;
+  size_t sampleCount = std::min<size_t>(theme->palette.size(), 8u);
+  for (size_t i = 0; i < sampleCount; ++i) {
+    if (!color_is_zero(theme->palette[i])) {
+      paletteLooksZeroed = false;
+      break;
+    }
+  }
+
+  float contrast = std::abs(color_luminance(textColor) - color_luminance(fillColor));
+  bool needsReadablePatch = paletteLooksZeroed || textToken >= theme->palette.size() ||
+                            contrast < 0.35f || theme->textStyles[0].size <= 0.0f ||
+                            color_is_near(fillColor, 0.0f, 0.0f, 0.0f, 1.0f);
+  if (!needsReadablePatch) {
+    return;
+  }
+
+  if (color_is_near(fillColor, 0.0f, 0.0f, 0.0f, 1.0f)) {
+    theme->palette[fillToken] = make_theme_color(40, 48, 62);
+    fillColor = theme->palette[fillToken];
+  }
+
+  size_t bestToken = 0u;
+  float bestContrast = -1.0f;
+  for (size_t i = 0; i < theme->palette.size(); ++i) {
+    float candidate = std::abs(color_luminance(theme->palette[i]) - color_luminance(fillColor));
+    if (candidate > bestContrast) {
+      bestContrast = candidate;
+      bestToken = i;
+    }
+  }
+  if (bestContrast < 0.50f) {
+    PrimeFrame::Color fallbackText = color_luminance(fillColor) < 0.5f
+                                         ? make_theme_color(236, 242, 250)
+                                         : make_theme_color(16, 20, 27);
+    theme->palette.push_back(fallbackText);
+    bestToken = theme->palette.size() - 1u;
+  }
+  theme->textStyles[0].color = static_cast<PrimeFrame::ColorToken>(bestToken);
+  if (theme->textStyles[0].size <= 0.0f) {
+    theme->textStyles[0].size = 14.0f;
+  }
+  if (theme->textStyles[0].weight <= 0.0f) {
+    theme->textStyles[0].weight = 400.0f;
+  }
+}
+
 PrimeFrame::Color resolve_semantic_focus_color(PrimeFrame::Frame& frame) {
   PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
   if (theme && !theme->palette.empty()) {
+    PrimeFrame::Color surface = resolve_theme_surface_color(*theme);
+    float bestContrast = 0.0f;
+    PrimeFrame::Color bestColor = theme->palette[0];
     constexpr std::array<size_t, 6> PreferredPaletteIndices{6u, 8u, 7u, 2u, 1u, 0u};
     for (size_t index : PreferredPaletteIndices) {
       if (index < theme->palette.size()) {
-        return theme->palette[index];
+        PrimeFrame::Color candidate = theme->palette[index];
+        float contrast = std::abs(color_luminance(candidate) - color_luminance(surface));
+        if (contrast > bestContrast) {
+          bestContrast = contrast;
+          bestColor = candidate;
+        }
+        if (contrast >= 0.30f) {
+          return candidate;
+        }
       }
     }
-    return theme->palette.back();
+    for (PrimeFrame::Color const& candidate : theme->palette) {
+      float contrast = std::abs(color_luminance(candidate) - color_luminance(surface));
+      if (contrast > bestContrast) {
+        bestContrast = contrast;
+        bestColor = candidate;
+      }
+    }
+    if (bestContrast >= 0.18f) {
+      return bestColor;
+    }
   }
   return PrimeFrame::Color{0.20f, 0.56f, 0.95f, 1.0f};
 }
@@ -699,6 +894,26 @@ std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
   // Keep focus overlay as the last sibling so flatten traversal renders it above content/highlight nodes.
   frame.removeChild(parent, overlayId);
   frame.addChild(parent, overlayId);
+  return overlay;
+}
+
+std::optional<FocusOverlay> add_focus_overlay_primitives(PrimeFrame::Frame& frame,
+                                                         PrimeFrame::NodeId nodeId,
+                                                         Rect const& rect,
+                                                         PrimeFrame::RectStyleToken token,
+                                                         PrimeFrame::RectStyleOverride const& overrideStyle,
+                                                         bool visible) {
+  if (token == 0 || !visible) {
+    return std::nullopt;
+  }
+  FocusOverlay overlay;
+  overlay.focused = overrideStyle;
+  overlay.blurred = overrideStyle;
+  overlay.blurred.opacity = 0.0f;
+  overlay.primitives = add_focus_ring_primitives(frame, nodeId, token, overlay.blurred, &rect);
+  if (overlay.primitives.empty()) {
+    return std::nullopt;
+  }
   return overlay;
 }
 
@@ -1723,7 +1938,9 @@ bool WidgetIdentityReconciler::restoreFocus(PrimeFrame::FocusManager& focus,
 }
 
 UiNode::UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute)
-    : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {}
+    : frame_(frame), id_(id), allowAbsolute_(allowAbsolute) {
+  ensure_readable_theme_defaults(frame_);
+}
 
 UiNode& UiNode::setVisible(bool visible) {
   PrimeFrame::Node* node = frame().getNode(id_);
@@ -4866,12 +5083,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     };
     tabNode->callbacks = frame().addCallback(std::move(callback));
 
-    ResolvedFocusStyle focusStyle = resolve_focus_style(
-        frame(),
-        0,
-        {},
-        {rectStyle, spec.activeTabStyle, spec.tabStyle},
-        rectOverride);
+    ResolvedFocusStyle focusStyle = resolve_focus_style(frame(), 0, {}, {});
     std::optional<FocusOverlay> focusOverlay;
     Rect focusRect{0.0f, 0.0f, textWidth + spec.tabPaddingX * 2.0f, bounds.height};
     focusOverlay = add_focus_overlay_node(frame(),
@@ -5078,12 +5290,12 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   std::optional<FocusOverlay> focusOverlay;
   if (spec.visible && enabled) {
     Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
-    focusOverlay = add_focus_overlay_node(frame(),
-                                          dropdown.nodeId(),
-                                          focusRect,
-                                          focusStyle.token,
-                                          focusStyle.overrideStyle,
-                                          spec.visible);
+    focusOverlay = add_focus_overlay_primitives(frame(),
+                                                dropdown.nodeId(),
+                                                focusRect,
+                                                focusStyle.token,
+                                                focusStyle.overrideStyle,
+                                                spec.visible);
   }
   if (focusOverlay.has_value()) {
     attach_focus_callbacks(frame(), dropdown.nodeId(), *focusOverlay);
@@ -6169,6 +6381,20 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
                         }
                         return false;
                       });
+  }
+
+  if (spec.visible && spec.focusable) {
+    ResolvedFocusStyle focusStyle = resolve_focus_style(frame(), 0, {}, {});
+    Rect focusRect{0.0f, 0.0f, spec.width, spec.height};
+    auto focusOverlay = add_focus_overlay_node(frame(),
+                                               windowId,
+                                               focusRect,
+                                               focusStyle.token,
+                                               focusStyle.overrideStyle,
+                                               spec.visible);
+    if (focusOverlay.has_value()) {
+      attach_focus_callbacks(frame(), windowId, *focusOverlay);
+    }
   }
 
   return Window{
