@@ -1017,6 +1017,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(modernSource.find("requestRebuild") == std::string::npos);
   CHECK(modernSource.find("requestLayout") == std::string::npos);
   CHECK(modernSource.find("requestFrame") == std::string::npos);
+  CHECK(modernSource.find(PrimeFrameIntegrationTag) == std::string::npos);
+  CHECK(modernSource.find(LifecycleOrchestrationTag) == std::string::npos);
   CHECK(modernSource.find("makeListModel(") != std::string::npos);
   CHECK(modernSource.find("makeTableModel(") != std::string::npos);
   CHECK(modernSource.find("makeTreeModel(") != std::string::npos);
@@ -1150,6 +1152,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(basicExample.find("PrimeHost::") == std::string::npos);
   CHECK(basicExample.find("PrimeStage::LowLevel::") == std::string::npos);
   CHECK(basicExample.find(".nodeId(") == std::string::npos);
+  CHECK(basicExample.find(PrimeFrameIntegrationTag) == std::string::npos);
+  CHECK(basicExample.find(LifecycleOrchestrationTag) == std::string::npos);
   CHECK(basicExample.find("PrimeStage::getVersionString") != std::string::npos);
 
   std::ifstream sceneExampleInput(sceneExamplePath);

@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [89] Keep advanced exception tags out of canonical examples.
+  - expanded `tests/unit/test_api_ergonomics.cpp` to assert canonical example
+    sources do not contain advanced exception markers:
+    `Advanced PrimeFrame integration (documented exception):` and
+    `Advanced lifecycle orchestration (documented exception):`
+  - added explicit canonical-tier checks for both
+    `examples/canonical/primestage_modern_api.cpp` and
+    `examples/canonical/primestage_example.cpp`
+
 - ☑ [88] Enforce proximity of advanced PrimeHost runtime exception tags.
   - tightened `tests/unit/test_api_ergonomics.cpp` so advanced `PrimeHost::`
     runtime markers (not just includes) require a nearby inline exception tag
