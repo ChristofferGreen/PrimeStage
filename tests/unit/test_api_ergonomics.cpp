@@ -472,11 +472,17 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode row()") != std::string::npos);
   CHECK(uiHeader.find("UiNode overlay()") != std::string::npos);
   CHECK(uiHeader.find("UiNode panel()") != std::string::npos);
+  CHECK(uiHeader.find("struct FormSpec") != std::string::npos);
+  CHECK(uiHeader.find("struct FormFieldSpec") != std::string::npos);
   CHECK(uiHeader.find("UiNode label(std::string_view text)") != std::string::npos);
   CHECK(uiHeader.find("UiNode paragraph(std::string_view text, float maxWidth = 0.0f)") !=
         std::string::npos);
   CHECK(uiHeader.find("UiNode textLine(std::string_view text)") != std::string::npos);
   CHECK(uiHeader.find("UiNode button(std::string_view text, std::function<void()> onActivate = {})") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode form()") != std::string::npos);
+  CHECK(uiHeader.find("UiNode form(FormSpec const& spec)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode formField(FormFieldSpec const& spec, Fn&& buildControl)") !=
         std::string::npos);
   CHECK(uiHeader.find("UiNode toggle(Binding<bool> binding)") != std::string::npos);
   CHECK(uiHeader.find("UiNode checkbox(std::string_view label, Binding<bool> binding)") !=
@@ -562,6 +568,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("onChange") != std::string::npos);
   CHECK(apiRef.find("onOpen") != std::string::npos);
   CHECK(apiRef.find("onSelect") != std::string::npos);
+  CHECK(apiRef.find("FormSpec") != std::string::npos);
+  CHECK(apiRef.find("FormFieldSpec") != std::string::npos);
+  CHECK(apiRef.find("form(...)") != std::string::npos);
+  CHECK(apiRef.find("formField(...)") != std::string::npos);
   CHECK(apiRef.find("toggle(binding)") != std::string::npos);
   CHECK(apiRef.find("checkbox(label, binding)") != std::string::npos);
   CHECK(apiRef.find("tabs(labels, binding)") != std::string::npos);
@@ -577,6 +587,8 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(design.find("createWindow(spec, fn)") != std::string::npos);
   CHECK(design.find("column(...)") != std::string::npos);
   CHECK(design.find("row(...)") != std::string::npos);
+  CHECK(design.find("form(...)") != std::string::npos);
+  CHECK(design.find("formField(...)") != std::string::npos);
   CHECK(design.find("window(spec, fn)") != std::string::npos);
   CHECK(design.find("onActivate") != std::string::npos);
   CHECK(design.find("onChange") != std::string::npos);
@@ -590,6 +602,8 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
   CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
   CHECK(guidelines.find("Declarative Composition Helpers") != std::string::npos);
+  CHECK(guidelines.find("form(...)") != std::string::npos);
+  CHECK(guidelines.find("formField(...)") != std::string::npos);
   CHECK(guidelines.find("toggle(bind(flag))") != std::string::npos);
   CHECK(guidelines.find("tabs({\"A\", \"B\"}, bind(index))") != std::string::npos);
   CHECK(guidelines.find("onActivate") != std::string::npos);
@@ -684,6 +698,10 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("root.column(") != std::string::npos);
   CHECK(widgetsSource.find("columns.column(") != std::string::npos);
   CHECK(widgetsSource.find("actions.row(") != std::string::npos);
+  CHECK(widgetsSource.find("settings.form(formSpec,") != std::string::npos);
+  CHECK(widgetsSource.find("form.formField(nameField,") != std::string::npos);
+  CHECK(widgetsSource.find("form.formField(\"Release channel\",") != std::string::npos);
+  CHECK(widgetsSource.find("form.formField(\"Selectable notes\",") != std::string::npos);
   CHECK(widgetsSource.find("root.window(") != std::string::npos);
   CHECK(widgetsSource.find("size.maxWidth") != std::string::npos);
   CHECK(countOccurrences("size.preferredWidth") <= 3u);
@@ -735,6 +753,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeStage::ProgressBarSpec progress;") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::TabsSpec tabs;") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::DropdownSpec dropdown;") == std::string::npos);
+  CHECK(widgetsSource.find("textInput.createTextField(") == std::string::npos);
+  CHECK(widgetsSource.find("textInput.createSelectableText(") == std::string::npos);
   CHECK(widgetsSource.find("tabViews.reserve(") == std::string::npos);
   CHECK(widgetsSource.find("dropdownViews.reserve(") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.connectHostServices(*app.host, app.surfaceId);") !=
@@ -813,6 +833,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
   CHECK(checklist.find("registerAction") != std::string::npos);
   CHECK(checklist.find("bindShortcut") != std::string::npos);
+  CHECK(checklist.find("form(...)") != std::string::npos);
+  CHECK(checklist.find("formField(...)") != std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
 

@@ -97,6 +97,8 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::WidgetSpec`
 - `PrimeStage::EnableableWidgetSpec`
 - `PrimeStage::FocusableWidgetSpec`
+- `PrimeStage::FormSpec`
+- `PrimeStage::FormFieldSpec`
 - `PrimeStage::State<T>`
 - `PrimeStage::Binding<T>`
 - `PrimeStage::bind(...)`
@@ -154,6 +156,8 @@ Declarative helpers:
 - `divider(height)`
 - `spacer(height)`
 - `button(text, onActivate)`
+- `form(...)`
+- `formField(...)`
 - `toggle(binding)`
 - `checkbox(label, binding)`
 - `slider(binding, vertical)`

@@ -228,6 +228,19 @@ struct PanelSpec : ContainerSpec {
   PrimeFrame::LayoutType layout = PrimeFrame::LayoutType::None;
 };
 
+struct FormSpec : ContainerSpec {
+  float rowGap = 8.0f;
+};
+
+struct FormFieldSpec : WidgetSpec {
+  std::string_view label;
+  std::string_view helpText;
+  std::string_view errorText;
+  bool invalid = false;
+  float gap = 4.0f;
+  float messageMaxWidth = 0.0f;
+};
+
 struct LabelSpec : WidgetSpec {
   std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
@@ -1355,6 +1368,57 @@ public:
     spec.label = text;
     spec.callbacks.onActivate = std::move(onActivate);
     return createButton(spec);
+  }
+  UiNode form() { return form(FormSpec{}); }
+  UiNode form(FormSpec const& spec) {
+    StackSpec stack;
+    stack.size = spec.size;
+    stack.padding = spec.padding;
+    stack.gap = spec.rowGap >= 0.0f ? spec.rowGap : 0.0f;
+    stack.clipChildren = spec.clipChildren;
+    stack.visible = spec.visible;
+    return createVerticalStack(stack);
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode form(Fn&& fn) {
+    return form(FormSpec{}, std::forward<Fn>(fn));
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode form(FormSpec const& spec, Fn&& fn) {
+    UiNode built = form(spec);
+    std::forward<Fn>(fn)(built);
+    return built;
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode formField(FormFieldSpec const& spec, Fn&& buildControl) {
+    StackSpec fieldStack;
+    fieldStack.size = spec.size;
+    fieldStack.gap = spec.gap >= 0.0f ? spec.gap : 0.0f;
+    fieldStack.clipChildren = false;
+    fieldStack.visible = spec.visible;
+    UiNode field = createVerticalStack(fieldStack);
+    if (!spec.label.empty()) {
+      field.label(spec.label);
+    }
+    std::forward<Fn>(buildControl)(field);
+    if (!spec.helpText.empty()) {
+      field.paragraph(spec.helpText, spec.messageMaxWidth);
+    }
+    if (spec.invalid && !spec.errorText.empty()) {
+      field.paragraph(spec.errorText, spec.messageMaxWidth);
+    }
+    return field;
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode formField(std::string_view label, Fn&& buildControl, std::string_view helpText = {}) {
+    FormFieldSpec spec;
+    spec.label = label;
+    spec.helpText = helpText;
+    return formField(spec, std::forward<Fn>(buildControl));
   }
   UiNode toggle(Binding<bool> binding) { return createToggle(binding); }
   UiNode checkbox(std::string_view label, Binding<bool> binding) {

@@ -168,6 +168,7 @@ For low-ceremony composition, `UiNode` also exposes declarative helpers:
 - `column(...)`, `row(...)`, `overlay(...)`, `panel(...)`
 - `label(text)`, `paragraph(text, maxWidth)`, `textLine(text)`
 - `divider(height)`, `spacer(height)`, `button(text, onActivate)`
+- `form(...)`, `formField(...)`
 - `toggle(binding)`, `checkbox(label, binding)`, `slider(binding, vertical)`
 - `tabs(labels, binding)`, `dropdown(options, binding)`, `progressBar(binding)`
 - `window(spec, fn)`
@@ -218,6 +219,8 @@ struct UiNode {
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
   UiNode createSelectableText(SelectableTextSpec const& spec);
+  UiNode form(FormSpec const& spec);
+  UiNode formField(FormFieldSpec const& spec, Fn&& buildControl);
   UiNode toggle(Binding<bool> binding);
   UiNode checkbox(std::string_view label, Binding<bool> binding);
   UiNode slider(Binding<float> binding, bool vertical = false);

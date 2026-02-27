@@ -281,3 +281,85 @@ TEST_CASE("PrimeStage declarative tabs/dropdown helpers clamp empty choices") {
   CHECK(tabsState.value == 0);
   CHECK(dropdownState.value == 0);
 }
+
+TEST_CASE("PrimeStage form helpers compose label control help and validation") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::TextFieldState nameState;
+  nameState.text = "PrimeStage";
+  nameState.cursor = static_cast<uint32_t>(nameState.text.size());
+  PrimeStage::State<bool> notifications{false};
+
+  PrimeFrame::NodeId formId{};
+  PrimeFrame::NodeId nameFieldId{};
+  PrimeFrame::NodeId nameControlId{};
+  PrimeFrame::NodeId notificationsFieldId{};
+  PrimeFrame::NodeId notificationsControlId{};
+
+  root.form([&](PrimeStage::UiNode& form) {
+    formId = form.nodeId();
+
+    PrimeStage::FormFieldSpec nameField;
+    nameField.label = "Display name";
+    nameField.helpText = "Used for project labels.";
+    nameField.invalid = true;
+    nameField.errorText = "Display name cannot be empty.";
+    nameFieldId = form.formField(nameField, [&](PrimeStage::UiNode& field) {
+      PrimeStage::TextFieldSpec spec;
+      spec.state = &nameState;
+      nameControlId = field.createTextField(spec).nodeId();
+    }).nodeId();
+
+    notificationsFieldId = form.formField(
+        "Notifications",
+        [&](PrimeStage::UiNode& field) {
+          notificationsControlId = field.toggle(PrimeStage::bind(notifications)).nodeId();
+        },
+        "Enable badge updates.").nodeId();
+  });
+
+  CHECK(frame.getNode(formId) != nullptr);
+  CHECK(frame.getNode(nameFieldId) != nullptr);
+  CHECK(frame.getNode(notificationsFieldId) != nullptr);
+  CHECK(hasChild(frame, formId, nameFieldId));
+  CHECK(hasChild(frame, formId, notificationsFieldId));
+  CHECK(hasChild(frame, nameFieldId, nameControlId));
+  CHECK(hasChild(frame, notificationsFieldId, notificationsControlId));
+
+  PrimeFrame::Node const* nameFieldNode = frame.getNode(nameFieldId);
+  REQUIRE(nameFieldNode != nullptr);
+  CHECK(nameFieldNode->children.size() == 4u);
+
+  PrimeFrame::Node const* notificationsFieldNode = frame.getNode(notificationsFieldId);
+  REQUIRE(notificationsFieldNode != nullptr);
+  CHECK(notificationsFieldNode->children.size() == 3u);
+}
+
+TEST_CASE("PrimeStage form helpers clamp invalid spacing values") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::FormSpec formSpec;
+  formSpec.rowGap = -12.0f;
+  PrimeFrame::NodeId formId{};
+  PrimeFrame::NodeId fieldId{};
+
+  root.form(formSpec, [&](PrimeStage::UiNode& form) {
+    formId = form.nodeId();
+    PrimeStage::FormFieldSpec fieldSpec;
+    fieldSpec.label = "Name";
+    fieldSpec.gap = -6.0f;
+    fieldId = form.formField(fieldSpec, [&](PrimeStage::UiNode& field) {
+      field.textLine("Control");
+    }).nodeId();
+  });
+
+  PrimeFrame::Node const* formNode = frame.getNode(formId);
+  REQUIRE(formNode != nullptr);
+  CHECK(formNode->gap == doctest::Approx(0.0f));
+
+  PrimeFrame::Node const* fieldNode = frame.getNode(fieldId);
+  REQUIRE(fieldNode != nullptr);
+  CHECK(fieldNode->gap == doctest::Approx(0.0f));
+}

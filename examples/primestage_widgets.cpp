@@ -208,19 +208,41 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     actions.textLine(std::string("Last action: ") + app.state.lastAction);
   }
 
-  PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
+  PrimeStage::UiNode settings = createSection(leftColumn, "Settings Form + Selectable Text");
   {
-    PrimeStage::TextFieldSpec field;
-    field.state = &app.state.textField;
-    field.placeholder = "Type here";
-    app.ui.applyPlatformServices(field);
-    textInput.createTextField(field);
+    PrimeStage::FormSpec formSpec;
+    formSpec.rowGap = 10.0f;
+    settings.form(formSpec, [&](PrimeStage::UiNode& form) {
+      PrimeStage::FormFieldSpec nameField;
+      nameField.label = "Display name";
+      nameField.helpText = "Used by project-level labels and command previews.";
+      nameField.invalid = app.state.textField.text.empty();
+      nameField.errorText = "Display name cannot be empty.";
+      form.formField(nameField, [&](PrimeStage::UiNode& fieldSlot) {
+        PrimeStage::TextFieldSpec field;
+        field.state = &app.state.textField;
+        field.placeholder = "Type here";
+        app.ui.applyPlatformServices(field);
+        fieldSlot.createTextField(field);
+      });
 
-    PrimeStage::SelectableTextSpec selectable;
-    selectable.state = &app.state.selectableText;
-    selectable.text = app.state.selectableTextContent;
-    app.ui.applyPlatformServices(selectable);
-    textInput.createSelectableText(selectable);
+      form.formField("Release channel",
+                     [&](PrimeStage::UiNode& fieldSlot) {
+                       fieldSlot.dropdown({"Preview", "Edit", "Export", "Publish"},
+                                          PrimeStage::bind(app.state.dropdown));
+                     },
+                     "Shortcuts and actions keep this selection synchronized.");
+
+      form.formField("Selectable notes",
+                     [&](PrimeStage::UiNode& fieldSlot) {
+                       PrimeStage::SelectableTextSpec selectable;
+                       selectable.state = &app.state.selectableText;
+                       selectable.text = app.state.selectableTextContent;
+                       app.ui.applyPlatformServices(selectable);
+                       fieldSlot.createSelectableText(selectable);
+                     },
+                     "Supports drag selection, keyboard movement, and clipboard shortcuts.");
+    });
   }
 
   PrimeStage::UiNode range = createSection(rightColumn, "Slider + Progress");

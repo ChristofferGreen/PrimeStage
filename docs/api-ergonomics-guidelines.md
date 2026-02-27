@@ -167,6 +167,8 @@ root.createButton(apply);
 - Prefer `label(text)`, `paragraph(text, maxWidth)`, and `textLine(text)` for default text nodes
   when style overrides are unnecessary.
 - Use `button(text, onActivate)` for default button construction when advanced styling is not needed.
+- Use `form(...)` + `formField(...)` for settings/input pages so label+control+help/error text
+  composition does not require ad-hoc stack boilerplate.
 - Use `toggle(bind(flag))`, `checkbox("Enabled", bind(flag))`, `slider(bind(value))`,
   `tabs({"A", "B"}, bind(index))`, `dropdown({"One", "Two"}, bind(index))`, and
   `progressBar(bind(value))` for concise default value-widget composition.

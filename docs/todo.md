@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [66] Add built-in form API for common input workflows.
-  - compose label+control+validation+help text via high-level form primitives
-  - reduce repetitive stack/spacing boilerplate in app code
-  - acceptance: settings-like example pages use form primitives instead of hand-built row stacks
-
 - ☐ [67] Add explicit API ergonomics scorecard and measurable thresholds.
   - define objective targets (example LOC, average lines per widget instantiation, number of required fields per standard widget)
   - track scorecard in CI/presubmit to prevent regression
@@ -96,6 +91,20 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [66] Add built-in form API for common input workflows.
+  - added `FormSpec` and `FormFieldSpec` plus declarative `UiNode` primitives
+    `form(...)` and `formField(...)` in `include/PrimeStage/Ui.h` for label+control+help/error
+    composition without ad-hoc row/stack boilerplate
+  - migrated settings-like canonical example flows in `examples/primestage_widgets.cpp` to use the
+    new form primitives for text input, selection notes, and release-channel controls
+  - added builder/runtime regression coverage in `tests/unit/test_builder_api.cpp` for form
+    composition and invalid-spacing diagnostics
+  - expanded API/docs/example guardrails in `tests/unit/test_api_ergonomics.cpp` to enforce form
+    API visibility and canonical example usage
+  - updated docs (`docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`,
+    `docs/prime-stage-design.md`, and `docs/example-app-consumer-checklist.md`) to document and
+    require the built-in form authoring path
 
 - ☑ [65] Add standardized command/action routing.
   - added app-level action APIs in `PrimeStage::App`:

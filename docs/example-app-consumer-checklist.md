@@ -25,6 +25,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
     no low-level PrimeFrame/PrimeHost internals and complexity constrained by CI thresholds.
 13. Route keyboard shortcuts through `PrimeStage::App` action APIs
     (`registerAction`, `bindShortcut`, `invokeAction`) rather than raw key-switch plumbing.
+14. Prefer `form(...)` and `formField(...)` for settings-like pages instead of hand-built
+    row/column stacks for label+control+validation/help composition.
 
 ## Advanced Exceptions
 
