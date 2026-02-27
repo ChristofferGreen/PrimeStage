@@ -54,6 +54,13 @@ Optional configuration:
 - `-DPRIMESTAGE_ENABLE_UBSAN=ON/OFF` enables UndefinedBehaviorSanitizer for test builds.
 - `-DPRIMESTAGE_BUILD_BENCHMARKS=ON/OFF` toggles the `PrimeStage_benchmarks` executable.
 
+## Example Binaries
+
+With examples enabled (`-DPRIMESTAGE_BUILD_EXAMPLES=ON`), the build provides:
+- `primestage_example` (version smoke example)
+- `primestage_scene` (window + widgets scene composition example)
+- `primestage_widgets` (full host/render interactive demo)
+
 ## Tests
 
 From a build dir:

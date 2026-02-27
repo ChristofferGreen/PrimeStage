@@ -338,10 +338,14 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
   std::filesystem::path basicExamplePath = repoRoot / "examples" / "primestage_example.cpp";
+  std::filesystem::path sceneExamplePath = repoRoot / "examples" / "primestage_scene.cpp";
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
   REQUIRE(std::filesystem::exists(widgetsExamplePath));
   REQUIRE(std::filesystem::exists(basicExamplePath));
+  REQUIRE(std::filesystem::exists(sceneExamplePath));
+  REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(checklistPath));
 
   std::ifstream widgetsInput(widgetsExamplePath);
@@ -390,6 +394,29 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   REQUIRE(!basicExample.empty());
   CHECK(basicExample.find("#include \"PrimeFrame/") == std::string::npos);
   CHECK(basicExample.find("PrimeStage::getVersionString") != std::string::npos);
+
+  std::ifstream sceneExampleInput(sceneExamplePath);
+  REQUIRE(sceneExampleInput.good());
+  std::string sceneExample((std::istreambuf_iterator<char>(sceneExampleInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!sceneExample.empty());
+  CHECK(sceneExample.find("createWindow(") != std::string::npos);
+  CHECK(sceneExample.find("createButton(") != std::string::npos);
+  CHECK(sceneExample.find("createTextField(") != std::string::npos);
+  CHECK(sceneExample.find("createToggle(") != std::string::npos);
+  CHECK(sceneExample.find("createCheckbox(") != std::string::npos);
+  CHECK(sceneExample.find("createSlider(") != std::string::npos);
+  CHECK(sceneExample.find("createList(") != std::string::npos);
+  CHECK(sceneExample.find("createTreeView(") != std::string::npos);
+  CHECK(sceneExample.find("createScrollView(") != std::string::npos);
+  CHECK(sceneExample.find("PrimeFrame::LayoutEngine") != std::string::npos);
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmakeSource((std::istreambuf_iterator<char>(cmakeInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!cmakeSource.empty());
+  CHECK(cmakeSource.find("add_executable(primestage_scene") != std::string::npos);
 
   std::ifstream checklistInput(checklistPath);
   REQUIRE(checklistInput.good());

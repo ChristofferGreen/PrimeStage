@@ -272,4 +272,7 @@ Release Exit Criteria (for API-quality milestone):
   - delivered via dedicated minimal builder coverage in
     `tests/unit/test_builder_api.cpp` (nested fluent composition + non-materialized default
     builder diagnostics), with test-target wiring in `CMakeLists.txt`
-- ☐ [9] Add example scene build demonstrating window + widgets.
+- ☑ [9] Add example scene build demonstrating window + widgets.
+  - delivered via new example app `examples/primestage_scene.cpp` (window + widget-scene
+    composition and layout pass), example-target wiring in `CMakeLists.txt`, regression guards in
+    `tests/unit/test_api_ergonomics.cpp`, and README example-binary documentation updates
