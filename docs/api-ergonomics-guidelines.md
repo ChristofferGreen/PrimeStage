@@ -11,18 +11,20 @@ PrimeStage responsibilities:
 - Install widget event handlers from spec callbacks.
 - Apply widget-local interaction visuals (hover, pressed, focus ring).
 - Expose focusable behavior on interactive widgets by default.
+- Provide a high-level app shell (`PrimeStage::App`) that owns frame/layout/router/focus wiring.
 
 Application responsibilities:
 - Own durable domain state and widget state objects.
 - Provide callback implementations that update app state.
-- Trigger rebuild/layout scheduling in app runtime loops.
-- Feed host input through `PrimeStage` input bridge helpers.
+- Trigger rebuild/layout/frame intent via `PrimeStage::App::lifecycle()`.
+- Feed host input through `PrimeStage::App::bridgeHostInputEvent(...)`.
 
 What app code should avoid:
 - Writing `node->callbacks = ...` directly for standard widgets.
 - Composing low-level `PrimeFrame::Callback` chains in feature code.
 - Re-implementing focus visuals per widget by patching primitives.
 - Translating raw key constants inside each feature/widget usage site.
+- Owning `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` in canonical app paths.
 
 ## State Ownership Rules
 - PrimeStage owns transient interaction state (`pressed`, `hovered`, drag/session flags) during one built scene.
@@ -181,7 +183,8 @@ if (result.requestFrame) {
 ```
 
 ## Frame Lifecycle Helper
-- Prefer `PrimeStage::FrameLifecycle` for app-level rebuild/layout/frame scheduling.
+- Prefer `PrimeStage::App` as the top-level runtime shell and use `PrimeStage::FrameLifecycle`
+  through `app.lifecycle()` for rebuild/layout/frame scheduling.
 - Use `requestRebuild()` when widget callbacks change scene structure or state that requires UI rebuild.
 - Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
 - Use `requestFrame()` for patch-only updates that do not require rebuild/layout.

@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [53] Ship a high-level `App` API that hides `PrimeFrame` internals.
-  - provide a first-class app shell abstraction for host + frame + layout + routing lifecycle
-  - remove direct `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` ownership from normal app code
-  - acceptance: canonical examples compile without including `PrimeFrame/*` headers
-
 - ☐ [54] Add a declarative UI composition API.
   - support nested composition with strongly-typed builders (for example `ui.column([...])`, `ui.row([...])`, `ui.window(...)`)
   - eliminate repetitive `Spec` object zero-init + field mutation for common cases
@@ -161,6 +156,9 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [53] Ship a high-level `App` API that hides `PrimeFrame` internals.
+  - delivered via `include/PrimeStage/App.h` + `src/App.cpp` (high-level app shell for rebuild/layout/router/focus/input/render lifecycle), canonical migration in `examples/primestage_widgets.cpp`, and regression coverage updates in `tests/unit/test_app_runtime.cpp`, `tests/unit/test_api_ergonomics.cpp`, and `tests/cmake/find_package_smoke/main.cpp`
 
 - ☑ [52] Remove callback-gated interaction from stateful controls.
   - slider/progress remain interactive when state is provided, without requiring `onValueChanged`

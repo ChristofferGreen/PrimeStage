@@ -6,6 +6,7 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 ## Core Headers
 
 - `include/PrimeStage/PrimeStage.h`
+- `include/PrimeStage/App.h`
 - `include/PrimeStage/Ui.h`
 - `include/PrimeStage/AppRuntime.h`
 - `include/PrimeStage/InputBridge.h`
@@ -15,6 +16,17 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 
 - `PrimeStage::getVersion()`
 - `PrimeStage::getVersionString()`
+- `PrimeStage::App`
+  - `runRebuildIfNeeded(...)`
+  - `runLayoutIfNeeded()`
+  - `dispatchFrameEvent(...)`
+  - `bridgeHostInputEvent(...)`
+  - `setSurfaceMetrics(...)`
+  - `setRenderMetrics(...)`
+  - `renderToTarget(...)`
+  - `renderToPng(...)`
+  - `markFramePresented()`
+  - `lifecycle()`
 - `PrimeStage::FrameLifecycle`
   - `requestRebuild()`
   - `requestLayout()`

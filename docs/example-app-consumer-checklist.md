@@ -7,11 +7,12 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
 ## Canonical Rules
 
 1. Prefer widget-level PrimeStage specs/callbacks over direct `PrimeFrame::Callback` mutation.
-2. Route host input through `PrimeStage::bridgeHostInputEvent(...)`.
-3. Use `PrimeStage::FrameLifecycle` for rebuild/layout/frame scheduling.
-4. Use `PrimeStage::WidgetIdentityReconciler` for focus restoration across rebuilds.
-5. Avoid raw numeric key codes in example app logic; use `PrimeStage::KeyCode`/`HostKey`.
-6. Avoid app-level `node->callbacks = ...` and ad-hoc callback composition helpers.
+2. Use `PrimeStage::App` as the canonical host/runtime shell.
+3. Route host input through `PrimeStage::App::bridgeHostInputEvent(...)`.
+4. Use `PrimeStage::FrameLifecycle` through `PrimeStage::App::lifecycle()`.
+5. Use `PrimeStage::WidgetIdentityReconciler` for focus restoration across rebuilds.
+6. Avoid raw numeric key codes in example app logic; use `PrimeStage::KeyCode`/`HostKey`.
+7. Avoid app-level `node->callbacks = ...` and ad-hoc callback composition helpers.
 
 ## Advanced Exceptions
 
@@ -19,9 +20,7 @@ Direct PrimeFrame usage is allowed in examples only when the operation is explic
 advanced host/runtime integration concern and no PrimeStage wrapper currently exists.
 
 Current documented advanced exceptions:
-
-- Frame root creation and root-node sizing/layout bootstrap.
-- Layout/focus/event-router orchestration at host-loop boundaries.
+- none for canonical examples; low-level runtime ownership belongs to `PrimeStage::App`.
 
 These exceptions must be clearly tagged inline in the example source with
 `Advanced PrimeFrame integration (documented exception):`.

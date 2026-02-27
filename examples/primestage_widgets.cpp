@@ -1,15 +1,9 @@
 #include "PrimeHost/PrimeHost.h"
-#include "PrimeStage/InputBridge.h"
+#include "PrimeStage/App.h"
 #include "PrimeStage/PrimeStage.h"
-#include "PrimeStage/Render.h"
-
-#include "PrimeFrame/Events.h"
-#include "PrimeFrame/Focus.h"
-#include "PrimeFrame/Layout.h"
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -45,21 +39,8 @@ struct DemoState {
 struct DemoApp {
   PrimeHost::Host* host = nullptr;
   PrimeHost::SurfaceId surfaceId{};
-  PrimeFrame::Frame frame;
-  PrimeFrame::LayoutEngine layoutEngine;
-  PrimeFrame::LayoutOutput layout;
-  PrimeFrame::EventRouter router;
-  PrimeFrame::FocusManager focus;
+  PrimeStage::App ui;
   DemoState state;
-  PrimeStage::FrameLifecycle runtime{};
-  uint32_t surfaceWidth = 1280u;
-  uint32_t surfaceHeight = 720u;
-  float surfaceScale = 1.0f;
-  uint32_t renderWidth = 0u;
-  uint32_t renderHeight = 0u;
-  float renderScale = 1.0f;
-  PrimeStage::RenderOptions renderOptions{};
-  PrimeStage::InputBridgeState inputBridge{};
 };
 
 PrimeStage::UiNode createSection(PrimeStage::UiNode parent, std::string_view title) {
@@ -152,22 +133,7 @@ void initializeState(DemoState& state) {
   };
 }
 
-void rebuildUi(DemoApp& app) {
-  app.frame = PrimeFrame::Frame();
-  app.router.clearAllCaptures();
-
-  app.renderOptions = PrimeStage::RenderOptions{};
-
-  PrimeFrame::NodeId rootId = app.frame.createNode();
-  app.frame.addRoot(rootId);
-  if (PrimeFrame::Node* rootNode = app.frame.getNode(rootId)) {
-    rootNode->layout = PrimeFrame::LayoutType::Overlay;
-    rootNode->visible = true;
-    rootNode->clipChildren = true;
-    rootNode->hitTestVisible = false;
-  }
-
-  PrimeStage::UiNode root(app.frame, rootId);
+void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
   PrimeStage::StackSpec pageSpec;
   pageSpec.size.stretchX = 1.0f;
@@ -247,14 +213,14 @@ void rebuildUi(DemoApp& app) {
     button.label = "Button";
     button.callbacks.onClick = [&app]() {
       app.state.clickCount += 1;
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     row.createButton(button);
 
     PrimeStage::ToggleSpec toggle;
     toggle.state = &app.state.toggle;
     toggle.callbacks.onChanged = [&app](bool) {
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     row.createToggle(toggle);
 
@@ -262,7 +228,7 @@ void rebuildUi(DemoApp& app) {
     checkbox.state = &app.state.checkbox;
     checkbox.label = "Checkbox";
     checkbox.callbacks.onChanged = [&app](bool) {
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     row.createCheckbox(checkbox);
 
@@ -302,7 +268,7 @@ void rebuildUi(DemoApp& app) {
     field.clipboard = clipboard;
     field.size.preferredWidth = 320.0f;
     field.callbacks.onStateChanged = [&app]() {
-      app.runtime.requestFrame();
+      app.ui.lifecycle().requestFrame();
     };
     field.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
       if (app.host && app.surfaceId.isValid()) {
@@ -321,7 +287,7 @@ void rebuildUi(DemoApp& app) {
     selectable.maxWidth = 320.0f;
     selectable.size.preferredWidth = 320.0f;
     selectable.callbacks.onStateChanged = [&app]() {
-      app.runtime.requestFrame();
+      app.ui.lifecycle().requestFrame();
     };
     selectable.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
       if (app.host && app.surfaceId.isValid()) {
@@ -356,7 +322,7 @@ void rebuildUi(DemoApp& app) {
     tabs.state = &app.state.tabs;
     tabs.labels = tabViews;
     tabs.callbacks.onTabChanged = [&app](int) {
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     choice.createTabs(tabs);
 
@@ -370,7 +336,7 @@ void rebuildUi(DemoApp& app) {
     dropdown.state = &app.state.dropdown;
     dropdown.options = dropdownViews;
     dropdown.callbacks.onSelected = [&app](int) {
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     choice.createDropdown(dropdown);
 
@@ -387,7 +353,7 @@ void rebuildUi(DemoApp& app) {
     list.size.preferredHeight = 116.0f;
     list.callbacks.onSelected = [&app](PrimeStage::ListRowInfo const& info) {
       app.state.listSelectedIndex = info.rowIndex;
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     choice.createList(list);
   }
@@ -410,7 +376,7 @@ void rebuildUi(DemoApp& app) {
     };
     table.callbacks.onRowClicked = [&app](PrimeStage::TableRowInfo const& info) {
       app.state.tableSelectedRow = info.rowIndex;
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     data.createTable(table);
 
@@ -423,13 +389,13 @@ void rebuildUi(DemoApp& app) {
       if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
         node->selected = true;
       }
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     tree.callbacks.onExpandedChanged = [&app](PrimeStage::TreeViewRowInfo const& info, bool expanded) {
       if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
         node->expanded = expanded;
       }
-      app.runtime.requestRebuild();
+      app.ui.lifecycle().requestRebuild();
     };
     data.createTreeView(tree);
   }
@@ -472,26 +438,7 @@ void rebuildUi(DemoApp& app) {
 }
 
 void runRebuildIfNeeded(DemoApp& app) {
-  app.runtime.runRebuildIfNeeded([&app]() { rebuildUi(app); });
-}
-
-void updateLayoutIfNeeded(DemoApp& app) {
-  app.runtime.runLayoutIfNeeded([&app]() {
-    PrimeFrame::LayoutOptions options;
-    float scale = app.renderScale > 0.0f ? app.renderScale
-                                         : (app.surfaceScale > 0.0f ? app.surfaceScale : 1.0f);
-    uint32_t widthPx = app.renderWidth > 0u ? app.renderWidth : app.surfaceWidth;
-    uint32_t heightPx = app.renderHeight > 0u ? app.renderHeight : app.surfaceHeight;
-    options.rootWidth = static_cast<float>(widthPx) / scale;
-    options.rootHeight = static_cast<float>(heightPx) / scale;
-    app.layoutEngine.layout(app.frame, app.layout, options);
-    app.focus.updateAfterRebuild(app.frame, app.layout);
-  });
-}
-
-bool dispatchFrameEvent(DemoApp& app, PrimeFrame::Event const& event) {
-  updateLayoutIfNeeded(app);
-  return app.router.dispatch(event, app.frame, app.layout, &app.focus);
+  (void)app.ui.runRebuildIfNeeded([&app](PrimeStage::UiNode root) { rebuildUi(root, app); });
 }
 
 } // namespace
@@ -518,16 +465,11 @@ int main(int argc, char** argv) {
   if (snapshotPath.has_value()) {
     DemoApp app;
     initializeState(app.state);
-    app.surfaceWidth = snapshotWidth;
-    app.surfaceHeight = snapshotHeight;
-    app.surfaceScale = snapshotScale > 0.0f ? snapshotScale : 1.0f;
-    app.renderWidth = snapshotWidth;
-    app.renderHeight = snapshotHeight;
-    app.renderScale = app.surfaceScale;
+    float resolvedScale = snapshotScale > 0.0f ? snapshotScale : 1.0f;
+    app.ui.setSurfaceMetrics(snapshotWidth, snapshotHeight, resolvedScale);
+    app.ui.setRenderMetrics(snapshotWidth, snapshotHeight, resolvedScale);
     runRebuildIfNeeded(app);
-    updateLayoutIfNeeded(app);
-    PrimeStage::RenderStatus status =
-        PrimeStage::renderFrameToPng(app.frame, app.layout, *snapshotPath, app.renderOptions);
+    PrimeStage::RenderStatus status = app.ui.renderToPng(*snapshotPath);
     if (!status.ok()) {
       std::cerr << "Failed to render snapshot to " << *snapshotPath << ": "
                 << PrimeStage::renderStatusMessage(status.code);
@@ -552,12 +494,12 @@ int main(int argc, char** argv) {
   DemoApp app;
   app.host = hostResult.value().get();
   initializeState(app.state);
-  app.inputBridge.scrollLinePixels = ScrollLinePixels;
-  app.inputBridge.scrollDirectionSign = 1.0f;
+  app.ui.inputBridge().scrollLinePixels = ScrollLinePixels;
+  app.ui.inputBridge().scrollDirectionSign = 1.0f;
 
   PrimeHost::SurfaceConfig config{};
-  config.width = app.surfaceWidth;
-  config.height = app.surfaceHeight;
+  config.width = 1280u;
+  config.height = 720u;
   config.resizable = true;
   config.title = std::string("PrimeStage Widgets");
 
@@ -570,11 +512,11 @@ int main(int argc, char** argv) {
   app.surfaceId = surfaceId;
 
   if (auto size = app.host->surfaceSize(surfaceId)) {
-    app.surfaceWidth = size->width;
-    app.surfaceHeight = size->height;
-  }
-  if (auto scale = app.host->surfaceScale(surfaceId)) {
-    app.surfaceScale = scale.value();
+    float scale = 1.0f;
+    if (auto hostScale = app.host->surfaceScale(surfaceId)) {
+      scale = hostScale.value();
+    }
+    app.ui.setSurfaceMetrics(size->width, size->height, scale);
   }
 
   PrimeHost::Callbacks callbacks;
@@ -590,29 +532,15 @@ int main(int argc, char** argv) {
       return;
     }
     PrimeHost::FrameBuffer buffer = bufferResult.value();
-    uint32_t previousRenderWidth = app.renderWidth;
-    uint32_t previousRenderHeight = app.renderHeight;
-    float previousRenderScale = app.renderScale;
-    float nextScale = buffer.scale > 0.0f ? buffer.scale : app.renderScale;
-    app.renderWidth = buffer.size.width;
-    app.renderHeight = buffer.size.height;
-    app.renderScale = nextScale;
-    app.surfaceScale = app.renderScale;
-    bool renderTargetChanged = previousRenderWidth != app.renderWidth ||
-                               previousRenderHeight != app.renderHeight ||
-                               std::abs(previousRenderScale - app.renderScale) > 0.0001f;
-    if (renderTargetChanged) {
-      app.runtime.requestLayout();
-    }
-    updateLayoutIfNeeded(app);
+    float renderScale = buffer.scale > 0.0f ? buffer.scale : 1.0f;
+    app.ui.setRenderMetrics(buffer.size.width, buffer.size.height, renderScale);
     PrimeStage::RenderTarget targetBuffer;
     targetBuffer.pixels = buffer.pixels;
     targetBuffer.width = buffer.size.width;
     targetBuffer.height = buffer.size.height;
     targetBuffer.stride = buffer.stride;
     targetBuffer.scale = buffer.scale;
-    PrimeStage::RenderStatus status =
-        PrimeStage::renderFrameToTarget(app.frame, app.layout, targetBuffer, app.renderOptions);
+    PrimeStage::RenderStatus status = app.ui.renderToTarget(targetBuffer);
     if (!status.ok()) {
       std::cerr << "Frame render failed: " << PrimeStage::renderStatusMessage(status.code);
       if (!status.detail.empty()) {
@@ -621,12 +549,12 @@ int main(int argc, char** argv) {
       std::cerr << "\n";
     }
     app.host->presentFrameBuffer(target, buffer);
-    app.runtime.markFramePresented();
+    app.ui.markFramePresented();
   };
   app.host->setCallbacks(callbacks);
 
   runRebuildIfNeeded(app);
-  app.runtime.requestFrame();
+  app.ui.lifecycle().requestFrame();
   app.host->requestFrame(app.surfaceId, true);
 
   std::array<PrimeHost::Event, 256> events{};
@@ -652,27 +580,20 @@ int main(int argc, char** argv) {
 
     for (const auto& event : batch.events) {
       if (auto* input = std::get_if<PrimeHost::InputEvent>(&event.payload)) {
-        PrimeStage::InputBridgeResult bridgeResult = PrimeStage::bridgeHostInputEvent(
-            *input,
-            batch,
-            app.inputBridge,
-            [&app](PrimeFrame::Event const& frameEvent) { return dispatchFrameEvent(app, frameEvent); },
-            PrimeStage::HostKey::Escape);
+        PrimeStage::InputBridgeResult bridgeResult =
+            app.ui.bridgeHostInputEvent(*input, batch, PrimeStage::HostKey::Escape);
         if (bridgeResult.requestExit) {
           running = false;
           continue;
         }
         if (bridgeResult.requestFrame) {
-          app.runtime.requestFrame();
+          app.ui.lifecycle().requestFrame();
         }
         if (bridgeResult.bypassFrameCap) {
           bypassCap = true;
         }
       } else if (auto* resize = std::get_if<PrimeHost::ResizeEvent>(&event.payload)) {
-        app.surfaceWidth = resize->width;
-        app.surfaceHeight = resize->height;
-        app.surfaceScale = resize->scale > 0.0f ? resize->scale : 1.0f;
-        app.runtime.requestRebuild();
+        app.ui.setSurfaceMetrics(resize->width, resize->height, resize->scale);
         bypassCap = true;
       } else if (auto* lifecycle = std::get_if<PrimeHost::LifecycleEvent>(&event.payload)) {
         if (lifecycle->phase == PrimeHost::LifecyclePhase::Destroyed) {
@@ -683,7 +604,7 @@ int main(int argc, char** argv) {
 
     runRebuildIfNeeded(app);
 
-    if (app.runtime.framePending()) {
+    if (app.ui.lifecycle().framePending()) {
       app.host->requestFrame(app.surfaceId, bypassCap);
     }
   }

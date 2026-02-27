@@ -392,14 +392,20 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
 
   CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") != std::string::npos);
   CHECK(widgetsSource.find("dropdown.callbacks.onSelected") != std::string::npos);
-  CHECK(widgetsSource.find("bridgeHostInputEvent") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.bridgeHostInputEvent") != std::string::npos);
   CHECK(widgetsSource.find("HostKey::Escape") != std::string::npos);
   CHECK(widgetsSource.find("scrollDirectionSign") != std::string::npos);
-  CHECK(widgetsSource.find("PrimeStage::FrameLifecycle") != std::string::npos);
-  CHECK(widgetsSource.find("runRebuildIfNeeded(app)") != std::string::npos);
-  CHECK(widgetsSource.find("app.runtime.requestRebuild()") != std::string::npos);
-  CHECK(widgetsSource.find("app.runtime.framePending()") != std::string::npos);
-  CHECK(widgetsSource.find("updateLayoutIfNeeded(app)") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::App ui;") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.runRebuildIfNeeded") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.renderToTarget") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.renderToPng") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.lifecycle().requestRebuild()") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.lifecycle().framePending()") != std::string::npos);
+  CHECK(widgetsSource.find("#include \"PrimeFrame/") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeFrame::Frame frame") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeFrame::LayoutEngine") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeFrame::EventRouter") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeFrame::FocusManager") == std::string::npos);
   CHECK(widgetsSource.find("slider.state = &app.state.slider;") != std::string::npos);
   CHECK(widgetsSource.find("progress.state = &app.state.progress;") != std::string::npos);
   CHECK(widgetsSource.find("slider.callbacks.onValueChanged") == std::string::npos);
@@ -463,7 +469,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   REQUIRE(!checklist.empty());
   CHECK(checklist.find("Canonical Rules") != std::string::npos);
   CHECK(checklist.find("bridgeHostInputEvent") != std::string::npos);
-  CHECK(checklist.find("FrameLifecycle") != std::string::npos);
+  CHECK(checklist.find("PrimeStage::App") != std::string::npos);
   CHECK(checklist.find("WidgetIdentityReconciler") != std::string::npos);
   CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
@@ -652,7 +658,7 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   REQUIRE(!example.empty());
   CHECK(example.find("field.callbacks.onStateChanged") != std::string::npos);
   CHECK(example.find("field.callbacks.onCursorHintChanged") != std::string::npos);
-  CHECK(example.find("app.runtime.requestFrame();") != std::string::npos);
+  CHECK(example.find("app.ui.lifecycle().requestFrame();") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage README and design docs match shipped workflow and API names") {
@@ -688,6 +694,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
                      std::istreambuf_iterator<char>());
   REQUIRE(!design.empty());
   CHECK(design.find("createTextField(TextFieldSpec const& spec)") != std::string::npos);
+  CHECK(design.find("PrimeStage::App") != std::string::npos);
   CHECK(design.find("createEditBox") == std::string::npos);
   CHECK(design.find("ButtonCallbacks const& callbacks") == std::string::npos);
   CHECK(design.find("## Focus Behavior (Current)") != std::string::npos);
@@ -701,6 +708,8 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("include/PrimeStage/App.h") != std::string::npos);
+  CHECK(apiRef.find("PrimeStage::App") != std::string::npos);
   CHECK(apiRef.find("PrimeStage::FrameLifecycle") != std::string::npos);
   CHECK(apiRef.find("createWindow(...)") != std::string::npos);
   CHECK(apiRef.find("createPanel(rectStyle, size)") != std::string::npos);

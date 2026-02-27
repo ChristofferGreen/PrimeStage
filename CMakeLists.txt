@@ -105,6 +105,7 @@ function(ps_enable_sanitizers target)
 endfunction()
 
 set(PRIMESTAGE_SOURCES
+  src/App.cpp
   src/PrimeStage.cpp
   src/Render.cpp
 )
@@ -139,6 +140,13 @@ if(TARGET PrimeFrame)
     PUBLIC
       $<BUILD_INTERFACE:PrimeFrame>
       $<INSTALL_INTERFACE:PrimeStage::PrimeFrame>
+  )
+endif()
+
+if(TARGET PrimeHost)
+  target_link_libraries(PrimeStage
+    PRIVATE
+      $<BUILD_INTERFACE:PrimeHost>
   )
 endif()
 

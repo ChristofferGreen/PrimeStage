@@ -27,7 +27,8 @@ PrimeHost handles OS integration and input delivery.
 
 ## Layering
 - `PrimeHost`: windowing + input dispatch.
-- `PrimeStage`: ground-truth UI state, widget composition, callback wiring, window management.
+- `PrimeStage`: ground-truth UI state, widget composition, callback wiring, window management,
+  and high-level app-shell orchestration (`PrimeStage::App`).
 - `PrimeFrame`: layout + rect hierarchy + render batch output.
 - `PrimeManifest`: renderer backend.
 
@@ -35,6 +36,8 @@ PrimeHost handles OS integration and input delivery.
 - PrimeStage uses symbolic key names (`KeyCode`/`HostKey`) for input translation.
 - PrimeHost input is normalized through `bridgeHostInputEvent(...)` so widget code sees consistent
   `PrimeFrame::Event` semantics.
+- For canonical host loops, `PrimeStage::App::bridgeHostInputEvent(...)` wires this bridge to the
+  app-owned frame/layout/router/focus pipeline.
 - Scroll normalization is explicit:
   - `scrollLinePixels` converts line-based host deltas to pixels.
   - `scrollDirectionSign` aligns backend sign conventions so `PointerScroll.scrollY` direction is
@@ -42,6 +45,10 @@ PrimeHost handles OS integration and input delivery.
 
 ## Scene Lifecycle
 PrimeStage builds an ephemeral `PrimeScene` (rect graph) from ground truth.
+
+`PrimeStage::App` is the canonical app shell that owns frame root bootstrap, rebuild/layout
+scheduling, input dispatch routing, and render helpers so application code does not directly own
+`PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` for standard usage.
 
 - **Rebuild**: structural changes (new windows, tree shape changes, large layout changes).
 - **Patch**: transient changes (hover, focus, drag) via callbacks that directly mutate the current `Frame`.
