@@ -74,16 +74,6 @@ PrimeStage::TreeNode* findTreeNode(std::vector<PrimeStage::TreeNode>& nodes,
   return node;
 }
 
-PrimeHost::CursorShape cursorShapeForHint(PrimeStage::CursorHint hint) {
-  switch (hint) {
-    case PrimeStage::CursorHint::IBeam:
-      return PrimeHost::CursorShape::IBeam;
-    case PrimeStage::CursorHint::Arrow:
-    default:
-      return PrimeHost::CursorShape::Arrow;
-  }
-}
-
 void initializeState(DemoState& state) {
   state.textField.text = "Editable text field";
   state.toggle.value = true;
@@ -195,60 +185,25 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
   PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
   {
-    PrimeStage::TextFieldClipboard clipboard;
-    clipboard.setText = [&app](std::string_view text) {
-      if (app.host) {
-        app.host->setClipboardText(text);
-      }
-    };
-    clipboard.getText = [&app]() -> std::string {
-      if (!app.host) {
-        return {};
-      }
-      auto size = app.host->clipboardTextSize();
-      if (!size || size.value() == 0u) {
-        return {};
-      }
-      std::string buffer(size.value(), '\0');
-      auto text = app.host->clipboardText(std::span<char>(buffer));
-      if (!text) {
-        return {};
-      }
-      return std::string(text->data(), text->size());
-    };
-
     PrimeStage::TextFieldSpec field;
     field.state = &app.state.textField;
     field.placeholder = "Type here";
-    field.clipboard = clipboard;
     field.size.preferredWidth = 320.0f;
     field.callbacks.onStateChanged = [&app]() {
       app.ui.lifecycle().requestFrame();
     };
-    field.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
-      if (app.host && app.surfaceId.isValid()) {
-        app.host->setCursorShape(app.surfaceId, cursorShapeForHint(hint));
-      }
-    };
+    app.ui.applyPlatformServices(field);
     textInput.createTextField(field);
-
-    PrimeStage::SelectableTextClipboard selectableClipboard;
-    selectableClipboard.setText = clipboard.setText;
 
     PrimeStage::SelectableTextSpec selectable;
     selectable.state = &app.state.selectableText;
     selectable.text = app.state.selectableTextContent;
-    selectable.clipboard = selectableClipboard;
     selectable.maxWidth = 320.0f;
     selectable.size.preferredWidth = 320.0f;
     selectable.callbacks.onStateChanged = [&app]() {
       app.ui.lifecycle().requestFrame();
     };
-    selectable.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
-      if (app.host && app.surfaceId.isValid()) {
-        app.host->setCursorShape(app.surfaceId, cursorShapeForHint(hint));
-      }
-    };
+    app.ui.applyPlatformServices(selectable);
     textInput.createSelectableText(selectable);
   }
 
@@ -450,6 +405,7 @@ int main(int argc, char** argv) {
   }
   PrimeHost::SurfaceId surfaceId = surfaceResult.value();
   app.surfaceId = surfaceId;
+  app.ui.connectHostServices(*app.host, app.surfaceId);
 
   if (auto size = app.host->surfaceSize(surfaceId)) {
     float scale = 1.0f;

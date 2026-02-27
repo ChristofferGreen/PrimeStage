@@ -38,6 +38,8 @@ PrimeHost handles OS integration and input delivery.
   `PrimeFrame::Event` semantics.
 - For canonical host loops, `PrimeStage::App::bridgeHostInputEvent(...)` wires this bridge to the
   app-owned frame/layout/router/focus pipeline.
+- `PrimeStage::App::connectHostServices(...)` wires clipboard/cursor/IME host services once at the
+  runtime layer.
 - Scroll normalization is explicit:
   - `scrollLinePixels` converts line-based host deltas to pixels.
   - `scrollDirectionSign` aligns backend sign conventions so `PointerScroll.scrollY` direction is
@@ -92,6 +94,11 @@ Callback reentrancy/threading guarantees are documented in
 `docs/callback-reentrancy-threading.md`.
 Data ownership/lifetime guarantees for `std::string_view` specs and callback captures are
 documented in `docs/data-ownership-lifetime.md`.
+
+For text controls, app/runtime platform services are applied through:
+- `AppPlatformServices` for clipboard, cursor-hint, and IME composition-rect callbacks.
+- `App::applyPlatformServices(TextFieldSpec&)`
+- `App::applyPlatformServices(SelectableTextSpec&)`
 
 ## Controlled, Binding, and State-Backed Widgets
 PrimeStage supports three widget value models for interactive controls:

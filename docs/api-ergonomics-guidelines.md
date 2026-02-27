@@ -18,6 +18,8 @@ Application responsibilities:
 - Provide callback implementations that update app state.
 - Trigger rebuild/layout/frame intent via `PrimeStage::App::lifecycle()`.
 - Feed host input through `PrimeStage::App::bridgeHostInputEvent(...)`.
+- Configure app-level platform services once (`AppPlatformServices` or `connectHostServices(...)`)
+  and apply them to text specs via `applyPlatformServices(...)`.
 
 What app code should avoid:
 - Writing `node->callbacks = ...` directly for standard widgets.
@@ -193,6 +195,25 @@ if (result.requestExit) {
 if (result.requestFrame) {
   requestFrame();
 }
+```
+
+## Platform Services Bridge
+- Prefer app-level platform service configuration over per-widget host lambdas for clipboard/cursor/IME.
+- Use `app.connectHostServices(host, surfaceId)` in canonical host loops.
+- Call `app.applyPlatformServices(fieldSpec)` and `app.applyPlatformServices(selectableSpec)` before
+  creating text widgets.
+
+Example:
+
+```cpp
+PrimeStage::App app;
+app.connectHostServices(*host, surfaceId);
+
+PrimeStage::TextFieldSpec field;
+field.state = &state.nameField;
+field.callbacks.onStateChanged = [&]() { app.lifecycle().requestFrame(); };
+app.applyPlatformServices(field);
+root.createTextField(field);
 ```
 
 ## Frame Lifecycle Helper

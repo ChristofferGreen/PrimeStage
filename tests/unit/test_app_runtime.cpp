@@ -3,6 +3,10 @@
 
 #include "third_party/doctest.h"
 
+#include <array>
+#include <string>
+#include <vector>
+
 TEST_CASE("FrameLifecycle defaults to pending rebuild layout and frame") {
   PrimeStage::FrameLifecycle runtime;
   CHECK(runtime.rebuildPending());
@@ -147,4 +151,107 @@ TEST_CASE("App bridges host input events through the owned input bridge state") 
   CHECK(result.bypassFrameCap);
   CHECK_FALSE(result.requestExit);
   CHECK(app.focus().focusedNode() == buttonId);
+}
+
+TEST_CASE("App platform services apply clipboard and cursor plumbing to text specs") {
+  PrimeStage::App app;
+  std::string clipboardValue;
+  std::vector<PrimeStage::CursorHint> cursorHints;
+
+  PrimeStage::AppPlatformServices services;
+  services.textFieldClipboard.setText = [&](std::string_view text) { clipboardValue = std::string(text); };
+  services.textFieldClipboard.getText = [&]() { return clipboardValue; };
+  services.selectableTextClipboard.setText = [&](std::string_view text) {
+    clipboardValue = std::string(text);
+  };
+  services.onCursorHintChanged = [&](PrimeStage::CursorHint hint) { cursorHints.push_back(hint); };
+  app.setPlatformServices(services);
+
+  PrimeStage::TextFieldSpec field;
+  app.applyPlatformServices(field);
+  REQUIRE(field.clipboard.setText);
+  REQUIRE(field.clipboard.getText);
+  REQUIRE(field.callbacks.onCursorHintChanged);
+
+  field.clipboard.setText("Prime");
+  CHECK(clipboardValue == "Prime");
+  CHECK(field.clipboard.getText() == "Prime");
+  field.callbacks.onCursorHintChanged(PrimeStage::CursorHint::IBeam);
+  CHECK(cursorHints.size() == 1);
+  CHECK(cursorHints.back() == PrimeStage::CursorHint::IBeam);
+
+  PrimeStage::SelectableTextSpec selectable;
+  app.applyPlatformServices(selectable);
+  REQUIRE(selectable.clipboard.setText);
+  REQUIRE(selectable.callbacks.onCursorHintChanged);
+  selectable.clipboard.setText("Stage");
+  CHECK(clipboardValue == "Stage");
+  selectable.callbacks.onCursorHintChanged(PrimeStage::CursorHint::Arrow);
+  CHECK(cursorHints.size() == 2);
+  CHECK(cursorHints.back() == PrimeStage::CursorHint::Arrow);
+}
+
+TEST_CASE("App updates IME composition rect from focused layout node") {
+  PrimeStage::App app;
+
+  std::array<int32_t, 4> imeRect{0, 0, 0, 0};
+  int imeUpdates = 0;
+  PrimeStage::AppPlatformServices services;
+  services.onImeCompositionRectChanged = [&](int32_t x, int32_t y, int32_t width, int32_t height) {
+    imeRect = {x, y, width, height};
+    imeUpdates += 1;
+  };
+  app.setPlatformServices(services);
+
+  PrimeFrame::NodeId fieldId{};
+  PrimeFrame::NodeId buttonId{};
+  PrimeStage::TextFieldState textState;
+  textState.text = "IME";
+  textState.cursor = static_cast<uint32_t>(textState.text.size());
+
+  CHECK(app.runRebuildIfNeeded([&](PrimeStage::UiNode root) {
+    PrimeStage::StackSpec stack;
+    stack.gap = 8.0f;
+    stack.size.stretchX = 1.0f;
+    stack.size.stretchY = 1.0f;
+    PrimeStage::UiNode col = root.createVerticalStack(stack);
+
+    PrimeStage::TextFieldSpec field;
+    field.state = &textState;
+    field.size.preferredWidth = 180.0f;
+    field.size.preferredHeight = 28.0f;
+    fieldId = col.createTextField(field).nodeId();
+
+    PrimeStage::ButtonSpec button;
+    button.label = "Blur";
+    button.size.preferredWidth = 120.0f;
+    button.size.preferredHeight = 28.0f;
+    buttonId = col.createButton(button).nodeId();
+  }));
+  CHECK(app.runLayoutIfNeeded());
+
+  PrimeFrame::LayoutOut const* fieldOut = app.layout().get(fieldId);
+  PrimeFrame::LayoutOut const* buttonOut = app.layout().get(buttonId);
+  REQUIRE(fieldOut != nullptr);
+  REQUIRE(buttonOut != nullptr);
+
+  PrimeFrame::Event fieldDown;
+  fieldDown.type = PrimeFrame::EventType::PointerDown;
+  fieldDown.pointerId = 1;
+  fieldDown.x = fieldOut->absX + fieldOut->absW * 0.5f;
+  fieldDown.y = fieldOut->absY + fieldOut->absH * 0.5f;
+  (void)app.dispatchFrameEvent(fieldDown);
+  CHECK(app.focus().focusedNode() == fieldId);
+  CHECK(imeUpdates >= 1);
+  CHECK(imeRect[2] > 0);
+  CHECK(imeRect[3] > 0);
+
+  PrimeFrame::Event buttonDown;
+  buttonDown.type = PrimeFrame::EventType::PointerDown;
+  buttonDown.pointerId = 2;
+  buttonDown.x = buttonOut->absX + buttonOut->absW * 0.5f;
+  buttonDown.y = buttonOut->absY + buttonOut->absH * 0.5f;
+  (void)app.dispatchFrameEvent(buttonDown);
+  CHECK(app.focus().focusedNode() == buttonId);
+  CHECK(imeUpdates >= 2);
 }

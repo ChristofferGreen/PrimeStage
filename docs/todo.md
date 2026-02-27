@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [57] Provide high-level platform service integration.
-  - move clipboard/cursor/IME services into app/runtime context rather than widget-by-widget manual plumbing
-  - text controls should work out-of-the-box when app runtime is used
-  - acceptance: no per-text-field clipboard lambda boilerplate in canonical examples
-
 - ☐ [58] Add readable semantic-default styling contract.
   - define mandatory minimum contrast and focus visibility requirements for default theme
   - ensure every standard widget is legible on default clear/background without app customization
@@ -141,6 +136,13 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [57] Provide high-level platform service integration.
+  - delivered via `AppPlatformServices` plus `connectHostServices(...)` and
+    `applyPlatformServices(...)` in `include/PrimeStage/App.h` / `src/App.cpp`, canonical
+    text-widget migration in `examples/primestage_widgets.cpp` (no manual per-widget
+    clipboard/cursor lambdas), and regression coverage updates in
+    `tests/unit/test_app_runtime.cpp` and `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [56] Define and enforce a minimal callback surface.
   - delivered via semantic callback fields in `include/PrimeStage/Ui.h`

@@ -1,6 +1,8 @@
 #include "PrimeStage/App.h"
 
 #include <algorithm>
+#include <cmath>
+#include <span>
 
 namespace PrimeStage {
 
@@ -14,7 +16,106 @@ float clamp_scale(float value) {
   return value > 0.0f ? value : 1.0f;
 }
 
+PrimeHost::CursorShape cursorShapeForHint(CursorHint hint) {
+  switch (hint) {
+    case CursorHint::IBeam:
+      return PrimeHost::CursorShape::IBeam;
+    case CursorHint::Arrow:
+    default:
+      return PrimeHost::CursorShape::Arrow;
+  }
+}
+
+int32_t round_to_i32(float value) {
+  return static_cast<int32_t>(std::lround(value));
+}
+
 } // namespace
+
+void App::setPlatformServices(AppPlatformServices const& services) {
+  platformServices_ = services;
+}
+
+void App::applyPlatformServices(TextFieldSpec& spec) const {
+  if (!spec.clipboard.setText && platformServices_.textFieldClipboard.setText) {
+    spec.clipboard.setText = platformServices_.textFieldClipboard.setText;
+  }
+  if (!spec.clipboard.getText && platformServices_.textFieldClipboard.getText) {
+    spec.clipboard.getText = platformServices_.textFieldClipboard.getText;
+  }
+  if (platformServices_.onCursorHintChanged) {
+    auto previous = spec.callbacks.onCursorHintChanged;
+    auto onCursorHint = platformServices_.onCursorHintChanged;
+    spec.callbacks.onCursorHintChanged = [previous = std::move(previous),
+                                          onCursorHint = std::move(onCursorHint)](CursorHint hint) {
+      if (previous) {
+        previous(hint);
+      }
+      onCursorHint(hint);
+    };
+  }
+}
+
+void App::applyPlatformServices(SelectableTextSpec& spec) const {
+  if (!spec.clipboard.setText && platformServices_.selectableTextClipboard.setText) {
+    spec.clipboard.setText = platformServices_.selectableTextClipboard.setText;
+  }
+  if (platformServices_.onCursorHintChanged) {
+    auto previous = spec.callbacks.onCursorHintChanged;
+    auto onCursorHint = platformServices_.onCursorHintChanged;
+    spec.callbacks.onCursorHintChanged = [previous = std::move(previous),
+                                          onCursorHint = std::move(onCursorHint)](CursorHint hint) {
+      if (previous) {
+        previous(hint);
+      }
+      onCursorHint(hint);
+    };
+  }
+}
+
+void App::connectHostServices(PrimeHost::Host& host, PrimeHost::SurfaceId surfaceId) {
+  AppPlatformServices services = platformServices_;
+
+  services.textFieldClipboard.setText = [&host](std::string_view text) {
+    (void)host.setClipboardText(text);
+  };
+  services.textFieldClipboard.getText = [&host]() -> std::string {
+    auto size = host.clipboardTextSize();
+    if (!size || size.value() == 0u) {
+      return {};
+    }
+    std::string buffer(size.value(), '\0');
+    auto text = host.clipboardText(std::span<char>(buffer.data(), buffer.size()));
+    if (!text) {
+      return {};
+    }
+    return std::string(text->data(), text->size());
+  };
+  services.selectableTextClipboard.setText = services.textFieldClipboard.setText;
+  services.onCursorHintChanged = [&host, surfaceId](CursorHint hint) {
+    if (!surfaceId.isValid()) {
+      return;
+    }
+    (void)host.setCursorShape(surfaceId, cursorShapeForHint(hint));
+  };
+  services.onImeCompositionRectChanged = [&host, surfaceId](int32_t x,
+                                                             int32_t y,
+                                                             int32_t width,
+                                                             int32_t height) {
+    if (!surfaceId.isValid()) {
+      return;
+    }
+    (void)host.setImeCompositionRect(surfaceId, x, y, width, height);
+  };
+  setPlatformServices(services);
+}
+
+void App::clearHostServices() {
+  platformServices_.textFieldClipboard = {};
+  platformServices_.selectableTextClipboard = {};
+  platformServices_.onCursorHintChanged = {};
+  platformServices_.onImeCompositionRectChanged = {};
+}
 
 void App::setSurfaceMetrics(uint32_t width, uint32_t height, float scale) {
   uint32_t nextWidth = clamp_dimension(width);
@@ -62,7 +163,7 @@ bool App::runRebuildIfNeeded(std::function<void(UiNode)> const& rebuildUi) {
 }
 
 bool App::runLayoutIfNeeded() {
-  return lifecycle_.runLayoutIfNeeded([this]() {
+  bool didLayout = lifecycle_.runLayoutIfNeeded([this]() {
     PrimeFrame::LayoutOptions options;
     float scale = resolvedLayoutScale();
     options.rootWidth = static_cast<float>(resolvedLayoutWidth()) / scale;
@@ -70,11 +171,17 @@ bool App::runLayoutIfNeeded() {
     layoutEngine_.layout(frame_, layout_, options);
     focus_.updateAfterRebuild(frame_, layout_);
   });
+  if (didLayout) {
+    syncImeCompositionRect();
+  }
+  return didLayout;
 }
 
 bool App::dispatchFrameEvent(PrimeFrame::Event const& event) {
   (void)runLayoutIfNeeded();
-  return router_.dispatch(event, frame_, layout_, &focus_);
+  bool handled = router_.dispatch(event, frame_, layout_, &focus_);
+  syncImeCompositionRect();
+  return handled;
 }
 
 InputBridgeResult App::bridgeHostInputEvent(PrimeHost::InputEvent const& input,
@@ -117,6 +224,40 @@ uint32_t App::resolvedLayoutHeight() const {
     return renderHeight_;
   }
   return clamp_dimension(surfaceHeight_);
+}
+
+void App::syncImeCompositionRect() {
+  if (!platformServices_.onImeCompositionRectChanged) {
+    return;
+  }
+  PrimeFrame::NodeId focusedNode = focus_.focusedNode();
+  PrimeFrame::LayoutOut const* out = focusedNode.isValid() ? layout_.get(focusedNode) : nullptr;
+  if (!out) {
+    bool changed = imeFocusedNode_.isValid() || imeW_ != 0 || imeH_ != 0 || imeX_ != 0 || imeY_ != 0;
+    if (changed) {
+      imeFocusedNode_ = PrimeFrame::NodeId{};
+      imeX_ = 0;
+      imeY_ = 0;
+      imeW_ = 0;
+      imeH_ = 0;
+      platformServices_.onImeCompositionRectChanged(0, 0, 0, 0);
+    }
+    return;
+  }
+  int32_t x = round_to_i32(out->absX);
+  int32_t y = round_to_i32(out->absY);
+  int32_t w = std::max(1, round_to_i32(out->absW));
+  int32_t h = std::max(1, round_to_i32(out->absH));
+  bool changed = focusedNode != imeFocusedNode_ || x != imeX_ || y != imeY_ || w != imeW_ || h != imeH_;
+  if (!changed) {
+    return;
+  }
+  imeFocusedNode_ = focusedNode;
+  imeX_ = x;
+  imeY_ = y;
+  imeW_ = w;
+  imeH_ = h;
+  platformServices_.onImeCompositionRectChanged(x, y, w, h);
 }
 
 } // namespace PrimeStage

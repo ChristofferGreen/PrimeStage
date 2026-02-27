@@ -17,6 +17,12 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::getVersion()`
 - `PrimeStage::getVersionString()`
 - `PrimeStage::App`
+  - `platformServices()`
+  - `setPlatformServices(...)`
+  - `connectHostServices(...)`
+  - `clearHostServices()`
+  - `applyPlatformServices(TextFieldSpec&)`
+  - `applyPlatformServices(SelectableTextSpec&)`
   - `runRebuildIfNeeded(...)`
   - `runLayoutIfNeeded()`
   - `dispatchFrameEvent(...)`
@@ -46,6 +52,18 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `bypassFrameCap`
   - `requestExit`
 - `PrimeStage::bridgeHostInputEvent(...)`
+
+## Platform Services
+
+- `PrimeStage::AppPlatformServices`
+  - `textFieldClipboard`
+  - `selectableTextClipboard`
+  - `onCursorHintChanged`
+  - `onImeCompositionRectChanged`
+- `PrimeStage::App::connectHostServices(...)` wires clipboard/cursor/IME callbacks from
+  `PrimeHost::Host` + `SurfaceId`.
+- `PrimeStage::App::applyPlatformServices(...)` applies app-owned clipboard/cursor plumbing to
+  `TextFieldSpec` and `SelectableTextSpec` so widget construction avoids per-widget host lambdas.
 
 ## Core Ids And Shared Specs
 

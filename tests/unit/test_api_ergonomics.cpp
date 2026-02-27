@@ -477,6 +477,13 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
         std::string::npos);
   CHECK(widgetsSource.find("progress.binding = PrimeStage::bind(app.state.progressValue);") !=
         std::string::npos);
+  CHECK(widgetsSource.find("app.ui.connectHostServices(*app.host, app.surfaceId);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("app.ui.applyPlatformServices(field);") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.applyPlatformServices(selectable);") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::TextFieldClipboard") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::SelectableTextClipboard") == std::string::npos);
+  CHECK(widgetsSource.find("callbacks.onCursorHintChanged") == std::string::npos);
   CHECK(widgetsSource.find("slider.state = &app.state.slider;") == std::string::npos);
   CHECK(widgetsSource.find("progress.state = &app.state.progress;") == std::string::npos);
   CHECK(widgetsSource.find("slider.callbacks.onValueChanged") == std::string::npos);
@@ -710,6 +717,7 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   CHECK(guidelines.find("TextField") != std::string::npos);
   CHECK(guidelines.find("patch-first") != std::string::npos);
   CHECK(guidelines.find("Binding mode") != std::string::npos);
+  CHECK(guidelines.find("applyPlatformServices") != std::string::npos);
   CHECK(guidelines.find("State<T>") != std::string::npos);
   CHECK(guidelines.find("bind(...)") != std::string::npos);
   CHECK(guidelines.find("only a frame in typical app loops") != std::string::npos);
@@ -724,6 +732,9 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   CHECK(apiRef.find("Patch-First Widget Interaction Paths") != std::string::npos);
   CHECK(apiRef.find("PrimeStage::State<T>") != std::string::npos);
   CHECK(apiRef.find("PrimeStage::Binding<T>") != std::string::npos);
+  CHECK(apiRef.find("AppPlatformServices") != std::string::npos);
+  CHECK(apiRef.find("connectHostServices") != std::string::npos);
+  CHECK(apiRef.find("applyPlatformServices") != std::string::npos);
   CHECK(apiRef.find("bind(...)") != std::string::npos);
   CHECK(apiRef.find("requestFrame()") != std::string::npos);
 
@@ -733,7 +744,9 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
                       std::istreambuf_iterator<char>());
   REQUIRE(!example.empty());
   CHECK(example.find("field.callbacks.onStateChanged") != std::string::npos);
-  CHECK(example.find("field.callbacks.onCursorHintChanged") != std::string::npos);
+  CHECK(example.find("app.ui.applyPlatformServices(field);") != std::string::npos);
+  CHECK(example.find("app.ui.applyPlatformServices(selectable);") != std::string::npos);
+  CHECK(example.find("field.callbacks.onCursorHintChanged") == std::string::npos);
   CHECK(example.find("app.ui.lifecycle().requestFrame();") != std::string::npos);
 }
 
