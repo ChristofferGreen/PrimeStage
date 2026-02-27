@@ -26,11 +26,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [76] Add structured widget-spec defaults audit.
-  - inventory all spec fields and classify required vs optional vs advanced
-  - minimize required fields for standard controls and deprecate noisy defaults
-  - acceptance: each major widget has a documented "minimal 1-3 line instantiation" path
-
 - ☐ [77] Improve compile-time ergonomics and diagnostics.
   - add `constexpr` validation helpers and clearer static assertions for common misuse
   - ensure error messages are actionable and reference high-level API docs
@@ -46,6 +41,24 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
+
+- ☑ [76] Add structured widget-spec defaults audit.
+  - added `docs/widget-spec-defaults-audit.md` with:
+    - explicit classification rules (`required`, `optional`, `advanced`)
+    - shared-base spec inventory (`SizeSpec`, `WidgetSpec`, `EnableableWidgetSpec`,
+      `FocusableWidgetSpec`)
+    - per-widget field inventory for all standard controls (`ButtonSpec`, `TextFieldSpec`,
+      `SelectableTextSpec`, `ToggleSpec`, `CheckboxSpec`, `SliderSpec`, `TabsSpec`,
+      `DropdownSpec`, `ProgressBarSpec`, `ListSpec`, `TableSpec`, `TreeViewSpec`,
+      `ScrollViewSpec`, `WindowSpec`)
+    - canonical minimal 1-line instantiation path for each standard widget
+  - codified noisy-default policy in the audit doc (legacy callback aliases and deep style/state
+    tuning classified as advanced, with default-first usage preferred)
+  - linked audit doc from `README.md`, `docs/api-ergonomics-guidelines.md`,
+    `docs/minimal-api-reference.md`, `docs/widget-api-review-checklist.md`, and `AGENTS.md`
+  - expanded regression guardrails in `tests/unit/test_api_ergonomics.cpp` to enforce audit-doc
+    presence/content, guideline/checklist/reference links, and alignment with default-fallback
+    builder coverage
 
 - ☑ [75] Add automated API surface linting.
   - added `scripts/lint_canonical_api_surface.sh` to detect forbidden low-level API surface usage

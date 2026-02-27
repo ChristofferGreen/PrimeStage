@@ -53,6 +53,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   `docs/advanced-escape-hatches.md` for low-level paths whenever tier guidance changes.
 - Keep canonical API-surface linting current in `scripts/lint_canonical_api_surface.sh` and run it
   when changing canonical examples/docs snippets or low-level API naming.
+- Keep `docs/widget-spec-defaults-audit.md` synchronized with `include/PrimeStage/Ui.h` whenever
+  spec fields are added/renamed/reclassified.
 - For canonical example composition, prefer intrinsic widget defaults plus `size.maxWidth` container/text constraints over repeated per-widget `preferredWidth` micromanagement.
 - For settings-like canonical UI flows, prefer `UiNode::form(...)` + `UiNode::formField(...)` over manual row/column label-control-help assembly.
 - Keep canonical API ergonomics within `docs/api-ergonomics-scorecard.md` thresholds; update scorecard docs and enforcing tests together when intentionally changing budgets.

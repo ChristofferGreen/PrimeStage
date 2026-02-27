@@ -225,6 +225,8 @@ Collection/windowing:
 - Empty `Table`/`List`/`TreeView` still render with default fallback dimensions.
 - `Paragraph` and `SelectableText` honor `size.maxWidth` as a responsive wrap constraint when
   widget-specific `maxWidth` is not set.
+- Full required/optional/advanced spec-field inventory and minimal 1-line instantiation paths are
+  tracked in `docs/widget-spec-defaults-audit.md`.
 
 ## Semantic Callback Surface
 

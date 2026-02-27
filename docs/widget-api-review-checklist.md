@@ -15,6 +15,7 @@ API in `include/PrimeStage/Ui.h` (or equivalent app-facing API surface).
 
 ### 2. Minimal Constructor Path
 - A canonical minimal usage path exists and is documented in 1-3 lines.
+- `docs/widget-spec-defaults-audit.md` is updated for changed/added spec fields and classification.
 - Default usage does not require a large `Spec` setup just to render/interact.
 - Any required non-default fields are justified and documented.
 

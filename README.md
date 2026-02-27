@@ -127,6 +127,7 @@ diagnostics.
 - `docs/build-artifact-hygiene.md`
 - `docs/5-minute-app.md`
 - `docs/advanced-escape-hatches.md`
+- `docs/widget-spec-defaults-audit.md`
 - `docs/example-app-consumer-checklist.md`
 - `docs/widget-api-review-checklist.md`
 - `docs/minimal-api-reference.md`

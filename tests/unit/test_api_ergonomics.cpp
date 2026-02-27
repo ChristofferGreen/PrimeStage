@@ -1405,6 +1405,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
   CHECK(readme.find("docs/5-minute-app.md") != std::string::npos);
   CHECK(readme.find("docs/advanced-escape-hatches.md") != std::string::npos);
+  CHECK(readme.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
   CHECK(readme.find("docs/example-app-consumer-checklist.md") != std::string::npos);
   CHECK(readme.find("docs/widget-api-review-checklist.md") != std::string::npos);
   CHECK(readme.find("docs/minimal-api-reference.md") != std::string::npos);
@@ -1532,6 +1533,7 @@ TEST_CASE("PrimeStage widget API review checklist is documented and PR-gated") {
   CHECK(checklist.find("Optional Callback Surface") != std::string::npos);
   CHECK(checklist.find("State And Binding Story") != std::string::npos);
   CHECK(checklist.find("PR Gating") != std::string::npos);
+  CHECK(checklist.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
   CHECK(checklist.find(".github/pull_request_template.md") != std::string::npos);
 
@@ -1563,6 +1565,7 @@ TEST_CASE("PrimeStage widget API review checklist is documented and PR-gated") {
                          std::istreambuf_iterator<char>());
   REQUIRE(!guidelines.empty());
   CHECK(guidelines.find("docs/widget-api-review-checklist.md") != std::string::npos);
+  CHECK(guidelines.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage public naming rules remain aligned with AGENTS guidance") {
@@ -2861,6 +2864,135 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
         std::string::npos);
   CHECK(interaction.find("table and list keyboard selection matches pointer selection defaults") !=
         std::string::npos);
+}
+
+TEST_CASE("PrimeStage widget-spec defaults audit is documented and mapped to minimal paths") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path auditPath = repoRoot / "docs" / "widget-spec-defaults-audit.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path checklistPath = repoRoot / "docs" / "widget-api-review-checklist.md";
+  std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path builderTestsPath = repoRoot / "tests" / "unit" / "test_builder_api.cpp";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(auditPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(checklistPath));
+  REQUIRE(std::filesystem::exists(uiHeaderPath));
+  REQUIRE(std::filesystem::exists(builderTestsPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream auditInput(auditPath);
+  REQUIRE(auditInput.good());
+  std::string audit((std::istreambuf_iterator<char>(auditInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!audit.empty());
+  CHECK(audit.find("Widget-Spec Defaults Audit") != std::string::npos);
+  CHECK(audit.find("Classification Rules") != std::string::npos);
+  CHECK(audit.find("required") != std::string::npos);
+  CHECK(audit.find("optional") != std::string::npos);
+  CHECK(audit.find("advanced") != std::string::npos);
+  CHECK(audit.find("Required fields: none.") != std::string::npos);
+  CHECK(audit.find("Noisy Defaults Policy") != std::string::npos);
+  CHECK(audit.find("`onClick`") != std::string::npos);
+  CHECK(audit.find("`onTextChanged`") != std::string::npos);
+  CHECK(audit.find("`onChanged`") != std::string::npos);
+  CHECK(audit.find("`onValueChanged`") != std::string::npos);
+  CHECK(audit.find("`onTabChanged`") != std::string::npos);
+  CHECK(audit.find("`onOpened`") != std::string::npos);
+  CHECK(audit.find("`onSelected`") != std::string::npos);
+  CHECK(audit.find("`onRowClicked`") != std::string::npos);
+
+  CHECK(audit.find("### `ButtonSpec`") != std::string::npos);
+  CHECK(audit.find("### `TextFieldSpec`") != std::string::npos);
+  CHECK(audit.find("### `SelectableTextSpec`") != std::string::npos);
+  CHECK(audit.find("### `ToggleSpec`") != std::string::npos);
+  CHECK(audit.find("### `CheckboxSpec`") != std::string::npos);
+  CHECK(audit.find("### `SliderSpec`") != std::string::npos);
+  CHECK(audit.find("### `TabsSpec`") != std::string::npos);
+  CHECK(audit.find("### `DropdownSpec`") != std::string::npos);
+  CHECK(audit.find("### `ProgressBarSpec`") != std::string::npos);
+  CHECK(audit.find("### `ListSpec`") != std::string::npos);
+  CHECK(audit.find("### `TableSpec`") != std::string::npos);
+  CHECK(audit.find("### `TreeViewSpec`") != std::string::npos);
+  CHECK(audit.find("### `ScrollViewSpec`") != std::string::npos);
+  CHECK(audit.find("### `WindowSpec`") != std::string::npos);
+
+  CHECK(audit.find("root.createButton(PrimeStage::ButtonSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createTextField(PrimeStage::TextFieldSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createSelectableText(PrimeStage::SelectableTextSpec{});") !=
+        std::string::npos);
+  CHECK(audit.find("root.createToggle(PrimeStage::ToggleSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createCheckbox(PrimeStage::CheckboxSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createSlider(PrimeStage::SliderSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createTabs(PrimeStage::TabsSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createDropdown(PrimeStage::DropdownSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createProgressBar(PrimeStage::ProgressBarSpec{});") !=
+        std::string::npos);
+  CHECK(audit.find("root.createList(PrimeStage::ListSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createTable(PrimeStage::TableSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createTreeView(PrimeStage::TreeViewSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createScrollView(PrimeStage::ScrollViewSpec{});") != std::string::npos);
+  CHECK(audit.find("root.createWindow(PrimeStage::WindowSpec{});") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
+  CHECK(guidelines.find("[76]") == std::string::npos);
+
+  std::ifstream checklistInput(checklistPath);
+  REQUIRE(checklistInput.good());
+  std::string checklist((std::istreambuf_iterator<char>(checklistInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!checklist.empty());
+  CHECK(checklist.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
+
+  std::ifstream uiInput(uiHeaderPath);
+  REQUIRE(uiInput.good());
+  std::string ui((std::istreambuf_iterator<char>(uiInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!ui.empty());
+  CHECK(ui.find("struct ButtonSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct TextFieldSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct SelectableTextSpec : EnableableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct ToggleSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct CheckboxSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct SliderSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct TabsSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct DropdownSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct ProgressBarSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct ListSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct TableSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct TreeViewSpec : FocusableWidgetSpec {") != std::string::npos);
+  CHECK(ui.find("struct ScrollViewSpec {") != std::string::npos);
+  CHECK(ui.find("struct WindowSpec {") != std::string::npos);
+
+  std::ifstream builderInput(builderTestsPath);
+  REQUIRE(builderInput.good());
+  std::string builder((std::istreambuf_iterator<char>(builderInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!builder.empty());
+  CHECK(builder.find("builder API materializes default widget fallbacks") != std::string::npos);
+  CHECK(builder.find("PrimeStage::ButtonSpec buttonSpec;") != std::string::npos);
+  CHECK(builder.find("PrimeStage::WindowSpec windowSpec;") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {

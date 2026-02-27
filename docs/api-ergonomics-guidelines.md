@@ -5,6 +5,7 @@ PrimeStage should let apps build interactive UI without mutating `PrimeFrame` in
 App code should describe state and callbacks at the widget-spec level, while PrimeStage owns node setup and callback plumbing.
 Public API compatibility and migration policy is tracked in `docs/api-evolution-policy.md`.
 Ergonomics quality budgets and regression gates are tracked in `docs/api-ergonomics-scorecard.md`.
+Structured spec-field defaults audit is tracked in `docs/widget-spec-defaults-audit.md`.
 Widget/control API merge requirements are tracked in `docs/widget-api-review-checklist.md`.
 End-to-end high-level input ergonomics regressions are gated in
 `tests/unit/test_end_to_end_ergonomics.cpp`.
@@ -310,5 +311,4 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Structured widget-spec defaults audit (`[76]`).
 - Additional compile-time ergonomics diagnostics (`[77]`).
