@@ -138,6 +138,17 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [85] Enforce proximity of advanced lifecycle exception tags.
+  - tightened `tests/unit/test_api_ergonomics.cpp` so advanced-tier lifecycle
+    scheduling calls (`requestRebuild` / `requestLayout` / `requestFrame`)
+    require a nearby inline exception tag
+    `Advanced lifecycle orchestration (documented exception):`
+  - retained file-level lifecycle exception-tag enforcement while adding
+    per-marker proximity assertions with line diagnostics for easier triage
+  - added missing inline lifecycle exception tag near the explicit startup
+    `requestFrame()` orchestration site in
+    `examples/advanced/primestage_widgets.cpp`
+
 - ☑ [84] Enforce proximity of advanced PrimeFrame exception tags.
   - tightened `tests/unit/test_api_ergonomics.cpp` so advanced-tier
     `PrimeFrame::` integration lines require a nearby inline exception tag

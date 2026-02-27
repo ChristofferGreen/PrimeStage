@@ -460,6 +460,8 @@ int main(int argc, char** argv) {
   app.host->setCallbacks(callbacks);
 
   runRebuildIfNeeded(app);
+  // Advanced lifecycle orchestration (documented exception): initial frame presentation is
+  // scheduled explicitly before entering the host event loop.
   app.ui.lifecycle().requestFrame();
   app.host->requestFrame(app.surfaceId, true);
 

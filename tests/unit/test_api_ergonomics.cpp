@@ -874,6 +874,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   constexpr std::string_view PrimeFrameIntegrationTag =
       "Advanced PrimeFrame integration (documented exception):";
   constexpr size_t PrimeFrameTagLookbackLines = 24u;
+  constexpr std::string_view LifecycleOrchestrationTag =
+      "Advanced lifecycle orchestration (documented exception):";
+  constexpr size_t LifecycleTagLookbackLines = 24u;
 
   auto splitLines = [](std::string const& source) {
     std::vector<std::string> lines;
@@ -914,8 +917,22 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
     if (hasLifecycleOrchestrationCall(advancedSource)) {
       foundLifecycleOrchestrationExample = true;
       INFO("advanced lifecycle orchestration file: " << advancedSourcePath.string());
-      CHECK(advancedSource.find("Advanced lifecycle orchestration (documented exception):") !=
-            std::string::npos);
+      CHECK(advancedSource.find(LifecycleOrchestrationTag) != std::string::npos);
+      for (size_t lineIndex = 0u; lineIndex < advancedSourceLines.size(); ++lineIndex) {
+        if (advancedSourceLines[lineIndex].find("app.ui.lifecycle().requestRebuild()") ==
+                std::string::npos &&
+            advancedSourceLines[lineIndex].find("app.ui.lifecycle().requestLayout()") ==
+                std::string::npos &&
+            advancedSourceLines[lineIndex].find("app.ui.lifecycle().requestFrame()") ==
+                std::string::npos) {
+          continue;
+        }
+        INFO("advanced lifecycle marker line: " << (lineIndex + 1u));
+        CHECK(hasNearbyTag(advancedSourceLines,
+                           lineIndex,
+                           LifecycleOrchestrationTag,
+                           LifecycleTagLookbackLines));
+      }
     }
     if (hasPrimeFrameIntegration(advancedSource)) {
       foundPrimeFrameIntegrationExample = true;
