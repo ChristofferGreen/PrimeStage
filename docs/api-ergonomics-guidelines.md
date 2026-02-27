@@ -224,7 +224,6 @@ app.connectHostServices(*host, surfaceId);
 
 PrimeStage::TextFieldSpec field;
 field.state = &state.nameField;
-field.callbacks.onStateChanged = [&]() { app.lifecycle().requestFrame(); };
 app.applyPlatformServices(field);
 root.createTextField(field);
 ```
@@ -232,9 +231,13 @@ root.createTextField(field);
 ## Frame Lifecycle Helper
 - Prefer `PrimeStage::App` as the top-level runtime shell and use `PrimeStage::FrameLifecycle`
   through `app.lifecycle()` for rebuild/layout/frame scheduling.
-- Use `requestRebuild()` when widget callbacks change scene structure or state that requires UI rebuild.
+- `App::dispatchFrameEvent(...)` and `App::bridgeHostInputEvent(...)` automatically request a frame
+  when events are handled, so canonical interaction callbacks do not need manual frame scheduling.
+- Use `requestRebuild()` only when callback logic intentionally changes scene structure or other
+  build-time inputs that require full rebuild.
 - Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
-- Use `requestFrame()` for patch-only updates that do not require rebuild/layout.
+- Use `requestFrame()` for explicit non-event redraw triggers (for example animation ticks), not as
+  boilerplate inside ordinary widget interaction callbacks.
 - `TextField` state-backed edits (typing, caret moves, selection updates) and value-widget
   interactions (`Toggle`, `Checkbox`, `Slider`, and `ProgressBar` in binding-backed or legacy
   state-backed mode) are patch-first in the built scene, so high-frequency callbacks can request

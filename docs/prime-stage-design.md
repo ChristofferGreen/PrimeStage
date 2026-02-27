@@ -38,6 +38,8 @@ PrimeHost handles OS integration and input delivery.
   `PrimeFrame::Event` semantics.
 - For canonical host loops, `PrimeStage::App::bridgeHostInputEvent(...)` wires this bridge to the
   app-owned frame/layout/router/focus pipeline.
+- `PrimeStage::App` automatically requests frame presentation when dispatched input/frame events are
+  handled, reducing manual lifecycle scheduling in canonical interaction callbacks.
 - `PrimeStage::App::connectHostServices(...)` wires clipboard/cursor/IME host services once at the
   runtime layer.
 - Scroll normalization is explicit:

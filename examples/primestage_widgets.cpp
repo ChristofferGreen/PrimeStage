@@ -39,9 +39,6 @@ struct DemoState {
   PrimeStage::State<int> dropdown{};
   PrimeStage::State<float> sliderValue{};
   PrimeStage::State<float> progressValue{};
-  int clickCount = 0;
-  int listSelectedIndex = 1;
-  int tableSelectedRow = -1;
   std::vector<AssetRow> tableRows;
   std::vector<AssetTreeNode> tree;
   std::string selectableTextContent;
@@ -65,26 +62,6 @@ PrimeStage::UiNode createSection(PrimeStage::UiNode parent, std::string_view tit
     section.label(title);
     section.divider();
   });
-}
-
-void clearTreeSelection(std::vector<AssetTreeNode>& nodes) {
-  for (auto& node : nodes) {
-    node.selected = false;
-    clearTreeSelection(node.children);
-  }
-}
-
-AssetTreeNode* findTreeNode(std::vector<AssetTreeNode>& nodes, std::span<const uint32_t> path) {
-  std::vector<AssetTreeNode>* current = &nodes;
-  AssetTreeNode* node = nullptr;
-  for (uint32_t index : path) {
-    if (index >= current->size()) {
-      return nullptr;
-    }
-    node = &(*current)[index];
-    current = &node->children;
-  }
-  return node;
 }
 
 void initializeState(DemoState& state) {
@@ -181,10 +158,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::StackSpec rowSpec;
     rowSpec.gap = 12.0f;
     PrimeStage::UiNode row = actions.row(rowSpec);
-    row.button("Button", [&app]() {
-      app.state.clickCount += 1;
-      app.ui.lifecycle().requestRebuild();
-    });
+    row.button("Button");
 
     PrimeStage::ToggleSpec toggle;
     toggle.binding = PrimeStage::bind(app.state.toggle);
@@ -195,8 +169,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     checkbox.label = "Checkbox";
     row.createCheckbox(checkbox);
 
-    std::string summaryText = "Clicks: " + std::to_string(app.state.clickCount);
-    actions.textLine(summaryText);
   }
 
   PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
@@ -204,18 +176,12 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::TextFieldSpec field;
     field.state = &app.state.textField;
     field.placeholder = "Type here";
-    field.callbacks.onStateChanged = [&app]() {
-      app.ui.lifecycle().requestFrame();
-    };
     app.ui.applyPlatformServices(field);
     textInput.createTextField(field);
 
     PrimeStage::SelectableTextSpec selectable;
     selectable.state = &app.state.selectableText;
     selectable.text = app.state.selectableTextContent;
-    selectable.callbacks.onStateChanged = [&app]() {
-      app.ui.lifecycle().requestFrame();
-    };
     app.ui.applyPlatformServices(selectable);
     textInput.createSelectableText(selectable);
   }
@@ -261,18 +227,12 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
         [](std::string const& item) -> std::string_view { return item; },
         [](std::string const& item) -> PrimeStage::WidgetIdentityId { return PrimeStage::widgetIdentityId(item); });
     listModel.bind(list);
-    list.selectedIndex = app.state.listSelectedIndex;
-    list.callbacks.onSelect = [&app](PrimeStage::ListRowInfo const& info) {
-      app.state.listSelectedIndex = info.rowIndex;
-      app.ui.lifecycle().requestRebuild();
-    };
     choice.createList(list);
   }
 
   PrimeStage::UiNode data = createSection(rightColumn, "Table + Tree View");
   {
     PrimeStage::TableSpec table;
-    table.selectedRow = app.state.tableSelectedRow;
     table.columns = {
         {"Asset"},
         {"Type"},
@@ -295,10 +255,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
         },
         [](AssetRow const& row) -> PrimeStage::WidgetIdentityId { return PrimeStage::widgetIdentityId(row.name); });
     tableModel.bindRows(table);
-    table.callbacks.onSelect = [&app](PrimeStage::TableRowInfo const& info) {
-      app.state.tableSelectedRow = info.rowIndex;
-      app.ui.lifecycle().requestRebuild();
-    };
     data.createTable(table);
 
     PrimeStage::TreeViewSpec tree;
@@ -312,19 +268,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
           return PrimeStage::widgetIdentityId(node.label);
         });
     treeModel.bind(tree);
-    tree.callbacks.onSelect = [&app](PrimeStage::TreeViewRowInfo const& info) {
-      clearTreeSelection(app.state.tree);
-      if (AssetTreeNode* node = findTreeNode(app.state.tree, info.path)) {
-        node->selected = true;
-      }
-      app.ui.lifecycle().requestRebuild();
-    };
-    tree.callbacks.onExpandedChanged = [&app](PrimeStage::TreeViewRowInfo const& info, bool expanded) {
-      if (AssetTreeNode* node = findTreeNode(app.state.tree, info.path)) {
-        node->expanded = expanded;
-      }
-      app.ui.lifecycle().requestRebuild();
-    };
     data.createTreeView(tree);
   }
 
@@ -503,9 +446,6 @@ int main(int argc, char** argv) {
         if (bridgeResult.requestExit) {
           running = false;
           continue;
-        }
-        if (bridgeResult.requestFrame) {
-          app.ui.lifecycle().requestFrame();
         }
         if (bridgeResult.bypassFrameCap) {
           bypassCap = true;

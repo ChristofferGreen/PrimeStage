@@ -634,8 +634,9 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("app.ui.runRebuildIfNeeded") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToTarget") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToPng") != std::string::npos);
-  CHECK(widgetsSource.find("app.ui.lifecycle().requestRebuild()") != std::string::npos);
+  CHECK(widgetsSource.find("app.ui.lifecycle().requestRebuild()") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.lifecycle().framePending()") != std::string::npos);
+  CHECK(widgetsSource.find("if (bridgeResult.requestFrame)") == std::string::npos);
   CHECK(widgetsSource.find("#include \"PrimeFrame/") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::Frame frame") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::LayoutEngine") == std::string::npos);
@@ -925,11 +926,12 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string example((std::istreambuf_iterator<char>(exampleInput)),
                       std::istreambuf_iterator<char>());
   REQUIRE(!example.empty());
-  CHECK(example.find("field.callbacks.onStateChanged") != std::string::npos);
+  CHECK(example.find("field.callbacks.onStateChanged") == std::string::npos);
   CHECK(example.find("app.ui.applyPlatformServices(field);") != std::string::npos);
   CHECK(example.find("app.ui.applyPlatformServices(selectable);") != std::string::npos);
   CHECK(example.find("field.callbacks.onCursorHintChanged") == std::string::npos);
   CHECK(example.find("app.ui.lifecycle().requestFrame();") != std::string::npos);
+  CHECK(example.find("if (bridgeResult.requestFrame)") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage README and design docs match shipped workflow and API names") {

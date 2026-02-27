@@ -39,6 +39,7 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `renderToPng(...)`
   - `markFramePresented()`
   - `lifecycle()`
+  - handled frame/input dispatch auto-requests frame presentation (`framePending()`) by default
 - `PrimeStage::FrameLifecycle`
   - `requestRebuild()`
   - `requestLayout()`

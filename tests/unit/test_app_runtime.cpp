@@ -119,8 +119,11 @@ TEST_CASE("App dispatchFrameEvent routes through owned router and focus manager"
   event.x = layoutOut->absX + layoutOut->absW * 0.5f;
   event.y = layoutOut->absY + layoutOut->absH * 0.5f;
 
+  app.markFramePresented();
+  CHECK_FALSE(app.lifecycle().framePending());
   (void)app.dispatchFrameEvent(event);
   CHECK(app.focus().focusedNode() == buttonId);
+  CHECK(app.lifecycle().framePending());
 }
 
 TEST_CASE("App typed widget handles drive focus visibility and imperative actions") {
@@ -215,10 +218,14 @@ TEST_CASE("App bridges host input events through the owned input bridge state") 
   PrimeHost::InputEvent input = pointer;
   PrimeHost::EventBatch batch{};
 
+  app.markFramePresented();
+  CHECK_FALSE(app.lifecycle().framePending());
   PrimeStage::InputBridgeResult result = app.bridgeHostInputEvent(input, batch);
   CHECK(result.bypassFrameCap);
   CHECK_FALSE(result.requestExit);
+  CHECK(result.requestFrame);
   CHECK(app.focus().focusedNode() == buttonId);
+  CHECK(app.lifecycle().framePending());
 }
 
 TEST_CASE("App platform services apply clipboard and cursor plumbing to text specs") {

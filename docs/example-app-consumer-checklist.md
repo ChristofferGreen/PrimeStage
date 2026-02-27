@@ -19,6 +19,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
    raw `NodeId` in canonical examples.
 10. Prefer collection model adapters (`makeListModel`, `makeTableModel`, `makeTreeModel`) over
     manual `std::vector<std::string_view>` conversion loops in canonical examples.
+11. Avoid manual `requestRebuild`/`requestLayout`/`requestFrame` calls for ordinary widget
+    interactions in canonical examples; rely on `PrimeStage::App` default event-driven scheduling.
 
 ## Advanced Exceptions
 

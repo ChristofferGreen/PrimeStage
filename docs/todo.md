@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [62] Replace full-rebuild app pattern with incremental invalidation defaults.
-  - runtime should automatically schedule minimal recomposition/layout/paint from state changes
-  - remove explicit `requestRebuild` spam in normal callbacks
-  - acceptance: canonical examples do not call rebuild/layout/frame request APIs for ordinary widget interactions
-
 - ☐ [63] Publish a strict "Modern API" canonical example and gate it in CI.
   - add a new example intentionally limited to high-level API surfaces (no low-level escape hatches)
   - add regression tests that fail if this example starts using low-level internals
@@ -116,6 +111,20 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [62] Replace full-rebuild app pattern with incremental invalidation defaults.
+  - updated `PrimeStage::App` runtime scheduling defaults in `src/App.cpp` so
+    `dispatchFrameEvent(...)`, `bridgeHostInputEvent(...)`, and handled imperative widget events
+    automatically request frame presentation
+  - removed canonical demo interaction-time lifecycle micromanagement from
+    `examples/primestage_widgets.cpp` (no ordinary interaction callback
+    `requestRebuild`/`requestLayout`/`requestFrame` calls)
+  - expanded regression guardrails in `tests/unit/test_api_ergonomics.cpp` and
+    `tests/unit/test_app_runtime.cpp` to enforce canonical no-spam lifecycle behavior and App
+    auto-frame scheduling
+  - updated docs in `docs/api-ergonomics-guidelines.md`,
+    `docs/minimal-api-reference.md`, `docs/prime-stage-design.md`, and
+    `docs/example-app-consumer-checklist.md` to document default incremental scheduling behavior
 
 - ☑ [61] Add domain-model adapters for collection widgets.
   - added `ListModelAdapter`/`TableModelAdapter`/`TreeModelAdapter` and

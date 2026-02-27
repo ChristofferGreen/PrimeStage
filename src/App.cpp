@@ -179,20 +179,29 @@ bool App::runLayoutIfNeeded() {
 
 bool App::dispatchFrameEvent(PrimeFrame::Event const& event) {
   (void)runLayoutIfNeeded();
+  PrimeFrame::NodeId focusedBefore = focus_.focusedNode();
   bool handled = router_.dispatch(event, frame_, layout_, &focus_);
+  bool focusChanged = focus_.focusedNode() != focusedBefore;
+  if (handled || focusChanged) {
+    lifecycle_.requestFrame();
+  }
   syncImeCompositionRect();
-  return handled;
+  return handled || focusChanged;
 }
 
 InputBridgeResult App::bridgeHostInputEvent(PrimeHost::InputEvent const& input,
                                             PrimeHost::EventBatch const& batch,
                                             HostKey exitKey) {
-  return PrimeStage::bridgeHostInputEvent(
+  InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
       input,
       batch,
       inputBridge_,
       [this](PrimeFrame::Event const& event) { return dispatchFrameEvent(event); },
       exitKey);
+  if (result.requestFrame) {
+    lifecycle_.requestFrame();
+  }
+  return result;
 }
 
 bool App::focusWidget(WidgetFocusHandle handle) {
@@ -202,6 +211,9 @@ bool App::focusWidget(WidgetFocusHandle handle) {
   }
   (void)runLayoutIfNeeded();
   bool changed = focus_.setFocus(frame_, layout_, nodeId);
+  if (changed) {
+    lifecycle_.requestFrame();
+  }
   syncImeCompositionRect();
   return changed;
 }
@@ -264,6 +276,9 @@ bool App::dispatchWidgetEvent(WidgetActionHandle handle, PrimeFrame::Event const
     return false;
   }
   bool handled = callback->onEvent(event);
+  if (handled) {
+    lifecycle_.requestFrame();
+  }
   syncImeCompositionRect();
   return handled;
 }
