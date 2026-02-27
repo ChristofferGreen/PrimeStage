@@ -57,9 +57,16 @@ Optional configuration:
 ## Example Binaries
 
 With examples enabled (`-DPRIMESTAGE_BUILD_EXAMPLES=ON`), the build provides:
+- `primestage_modern_api` (default strict high-level canonical example; writes a PNG snapshot)
 - `primestage_example` (version smoke example)
 - `primestage_scene` (window + widgets scene composition example)
 - `primestage_widgets` (full host/render interactive demo)
+
+Default quick start:
+
+```sh
+./build-debug/primestage_modern_api
+```
 
 ## Tests
 

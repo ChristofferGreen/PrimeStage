@@ -21,6 +21,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
     manual `std::vector<std::string_view>` conversion loops in canonical examples.
 11. Avoid manual `requestRebuild`/`requestLayout`/`requestFrame` calls for ordinary widget
     interactions in canonical examples; rely on `PrimeStage::App` default event-driven scheduling.
+12. Keep `examples/primestage_modern_api.cpp` as the strict default canonical example:
+    no low-level PrimeFrame/PrimeHost internals and complexity constrained by CI thresholds.
 
 ## Advanced Exceptions
 

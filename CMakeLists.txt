@@ -284,6 +284,11 @@ if(PRIMESTAGE_BUILD_EXAMPLES)
   target_include_directories(primestage_example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   ps_require_cxx23(primestage_example)
 
+  add_executable(primestage_modern_api examples/primestage_modern_api.cpp)
+  target_link_libraries(primestage_modern_api PRIVATE PrimeStage PrimeHost)
+  target_include_directories(primestage_modern_api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  ps_require_cxx23(primestage_modern_api)
+
   add_executable(primestage_widgets examples/primestage_widgets.cpp)
   target_link_libraries(primestage_widgets PRIVATE PrimeStage PrimeHost)
   target_include_directories(primestage_widgets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

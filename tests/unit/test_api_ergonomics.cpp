@@ -584,12 +584,14 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
 TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path modernExamplePath = repoRoot / "examples" / "primestage_modern_api.cpp";
   std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
   std::filesystem::path basicExamplePath = repoRoot / "examples" / "primestage_example.cpp";
   std::filesystem::path sceneExamplePath = repoRoot / "examples" / "primestage_scene.cpp";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
+  REQUIRE(std::filesystem::exists(modernExamplePath));
   REQUIRE(std::filesystem::exists(widgetsExamplePath));
   REQUIRE(std::filesystem::exists(basicExamplePath));
   REQUIRE(std::filesystem::exists(sceneExamplePath));
@@ -602,6 +604,12 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                             std::istreambuf_iterator<char>());
   REQUIRE(!widgetsSource.empty());
 
+  std::ifstream modernInput(modernExamplePath);
+  REQUIRE(modernInput.good());
+  std::string modernSource((std::istreambuf_iterator<char>(modernInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!modernSource.empty());
+
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;
     size_t pos = widgetsSource.find(needle);
@@ -611,6 +619,40 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
     }
     return count;
   };
+
+  auto countModernOccurrences = [&](std::string_view needle) {
+    size_t count = 0u;
+    size_t pos = modernSource.find(needle);
+    while (pos != std::string::npos) {
+      ++count;
+      pos = modernSource.find(needle, pos + needle.size());
+    }
+    return count;
+  };
+
+  CHECK(modernSource.find("#include \"PrimeFrame/") == std::string::npos);
+  CHECK(modernSource.find("#include \"PrimeHost/") == std::string::npos);
+  CHECK(modernSource.find("PrimeFrame::") == std::string::npos);
+  CHECK(modernSource.find("PrimeHost::") == std::string::npos);
+  CHECK(modernSource.find(".nodeId(") == std::string::npos);
+  CHECK(modernSource.find(".lowLevelNodeId(") == std::string::npos);
+  CHECK(modernSource.find(".frame()") == std::string::npos);
+  CHECK(modernSource.find(".layout()") == std::string::npos);
+  CHECK(modernSource.find(".focus()") == std::string::npos);
+  CHECK(modernSource.find(".router()") == std::string::npos);
+  CHECK(modernSource.find("requestRebuild") == std::string::npos);
+  CHECK(modernSource.find("requestLayout") == std::string::npos);
+  CHECK(modernSource.find("requestFrame") == std::string::npos);
+  CHECK(modernSource.find("makeListModel(") != std::string::npos);
+  CHECK(modernSource.find("makeTableModel(") != std::string::npos);
+  CHECK(modernSource.find("makeTreeModel(") != std::string::npos);
+  CHECK(modernSource.find("runRebuildIfNeeded") != std::string::npos);
+  CHECK(modernSource.find("renderToPng") != std::string::npos);
+  CHECK(countModernOccurrences("Spec ") <= 8u);
+  CHECK(countModernOccurrences("create") <= 12u);
+  size_t modernLines =
+      static_cast<size_t>(std::count(modernSource.begin(), modernSource.end(), '\n')) + 1u;
+  CHECK(modernLines <= 220u);
 
   CHECK(widgetsSource.find("tabs.callbacks.onSelect") == std::string::npos);
   CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") == std::string::npos);
@@ -721,6 +763,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::string cmakeSource((std::istreambuf_iterator<char>(cmakeInput)),
                           std::istreambuf_iterator<char>());
   REQUIRE(!cmakeSource.empty());
+  CHECK(cmakeSource.find("add_executable(primestage_modern_api") != std::string::npos);
   CHECK(cmakeSource.find("add_executable(primestage_scene") != std::string::npos);
 
   std::ifstream checklistInput(checklistPath);
@@ -735,6 +778,20 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
+
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  REQUIRE(std::filesystem::exists(readmePath));
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("primestage_modern_api") != std::string::npos);
+  size_t modernPos = readme.find("primestage_modern_api");
+  size_t widgetsPos = readme.find("primestage_widgets");
+  REQUIRE(modernPos != std::string::npos);
+  REQUIRE(widgetsPos != std::string::npos);
+  CHECK(modernPos < widgetsPos);
 }
 
 TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics") {

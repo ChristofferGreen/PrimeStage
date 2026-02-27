@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [63] Publish a strict "Modern API" canonical example and gate it in CI.
-  - add a new example intentionally limited to high-level API surfaces (no low-level escape hatches)
-  - add regression tests that fail if this example starts using low-level internals
-  - acceptance: this example is the README-default and remains under defined complexity thresholds
-
 - ☐ [64] Add ergonomic convenience overloads for common widgets.
   - provide concise constructors/helpers (`button("Save", onClick)`, `checkbox("Enabled", bind(flag))`, `tabs({"A","B"}, bind(index))`)
   - maintain `Spec` APIs for advanced control, but optimize default path for brevity
@@ -111,6 +106,17 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [63] Publish a strict "Modern API" canonical example and gate it in CI.
+  - added `examples/primestage_modern_api.cpp` as a strict high-level canonical sample using only
+    `PrimeStage::App` + `UiNode` surfaces (no PrimeFrame/PrimeHost internals or low-level escapes)
+  - wired the example into build outputs in `CMakeLists.txt` as `primestage_modern_api`
+  - updated `README.md` to make `primestage_modern_api` the default quick-start canonical example
+  - expanded CI guardrails in `tests/unit/test_api_ergonomics.cpp` to enforce low-level API bans
+    and defined complexity thresholds (line count, spec usage, creation-call count) for the modern
+    example
+  - updated checklist guidance in `docs/example-app-consumer-checklist.md` to keep the strict
+    canonical example contract explicit
 
 - ☑ [62] Replace full-rebuild app pattern with incremental invalidation defaults.
   - updated `PrimeStage::App` runtime scheduling defaults in `src/App.cpp` so
