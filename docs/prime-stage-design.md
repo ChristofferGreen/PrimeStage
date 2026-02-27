@@ -168,6 +168,9 @@ Shared spec bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) 
 common accessibility/visibility/enablement/focus-order fields across widget families.
 Core widget metadata types (`WidgetKind`, `WidgetIdentityId`) provide canonical enum/id primitives
 for app/runtime identity bookkeeping.
+Collection adapters (`ListModelAdapter`, `TableModelAdapter`, `TreeModelAdapter`) convert typed
+domain containers to widget spec payloads with optional key extraction, so canonical app code does
+not maintain ad-hoc `std::vector<std::string_view>` mirrors.
 Container sizing and layout metadata are unified via `ContainerSpec`, which is shared by
 `StackSpec` and `PanelSpec` to keep padding/gap/clip/visibility consistent across containers.
 `ScrollView` returns a small struct that exposes both the root node and a dedicated content node

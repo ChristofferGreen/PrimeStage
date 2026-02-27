@@ -17,6 +17,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
    per-node spec boilerplate in canonical examples.
 9. Prefer typed widget handles (`focusHandle`, `visibilityHandle`, `actionHandle`) over storing
    raw `NodeId` in canonical examples.
+10. Prefer collection model adapters (`makeListModel`, `makeTableModel`, `makeTreeModel`) over
+    manual `std::vector<std::string_view>` conversion loops in canonical examples.
 
 ## Advanced Exceptions
 

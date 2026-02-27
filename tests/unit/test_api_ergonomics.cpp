@@ -22,6 +22,26 @@ namespace {
 constexpr float RootWidth = 320.0f;
 constexpr float RootHeight = 180.0f;
 
+struct ListModelRow {
+  std::string key;
+  std::string label;
+};
+
+struct TableModelRow {
+  std::string key;
+  std::string name;
+  std::string type;
+  std::string size;
+};
+
+struct TreeModelRow {
+  std::string key;
+  std::string label;
+  bool expanded = true;
+  bool selected = false;
+  std::vector<TreeModelRow> children;
+};
+
 PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame) {
   PrimeFrame::NodeId rootId = frame.createNode();
   frame.addRoot(rootId);
@@ -117,6 +137,107 @@ TEST_CASE("PrimeStage installs readable defaults for untouched PrimeFrame themes
   PrimeFrame::Color text = theme->palette[textIndex];
   float contrast = contrastRatio(text, fill);
   CHECK(contrast >= 4.5f);
+}
+
+TEST_CASE("PrimeStage list model adapter binds typed rows and key extractors") {
+  std::vector<ListModelRow> rows = {
+      {"asset.alpha", "Alpha"},
+      {"asset.beta", "Beta"},
+      {"asset.gamma", "Gamma"},
+  };
+
+  PrimeStage::ListModelAdapter adapter = PrimeStage::makeListModel(
+      rows,
+      [](ListModelRow const& row) -> std::string_view { return row.label; },
+      [](ListModelRow const& row) -> std::string_view { return row.key; });
+
+  CHECK(adapter.items().size() == 3u);
+  CHECK(adapter.items()[0] == "Alpha");
+  CHECK(adapter.items()[2] == "Gamma");
+  CHECK(adapter.keys().size() == 3u);
+  CHECK(adapter.keyForRow(0) == PrimeStage::widgetIdentityId("asset.alpha"));
+  CHECK(adapter.keyForRow(2) == PrimeStage::widgetIdentityId("asset.gamma"));
+  CHECK(adapter.keyForRow(9) == PrimeStage::InvalidWidgetIdentityId);
+
+  PrimeStage::ListSpec list;
+  adapter.bind(list);
+  CHECK(list.items.size() == 3u);
+  CHECK(list.items[1] == "Beta");
+}
+
+TEST_CASE("PrimeStage table model adapter binds typed rows and deterministic columns") {
+  std::vector<TableModelRow> rows = {
+      {"icons.png", "icons.png", "Texture", "512 KB"},
+      {"theme.ogg", "theme.ogg", "Audio", "3.1 MB"},
+  };
+
+  PrimeStage::TableModelAdapter adapter = PrimeStage::makeTableModel(
+      rows,
+      3u,
+      [](TableModelRow const& row, size_t columnIndex) -> std::string_view {
+        switch (columnIndex) {
+          case 0:
+            return row.name;
+          case 1:
+            return row.type;
+          case 2:
+            return row.size;
+          default:
+            return {};
+        }
+      },
+      [](TableModelRow const& row) -> std::string_view { return row.key; });
+
+  CHECK(adapter.columnCount() == 3u);
+  CHECK(adapter.rows().size() == 2u);
+  CHECK(adapter.rows()[0].size() == 3u);
+  CHECK(adapter.rows()[0][0] == "icons.png");
+  CHECK(adapter.rows()[1][1] == "Audio");
+  CHECK(adapter.keyForRow(0) == PrimeStage::widgetIdentityId("icons.png"));
+  CHECK(adapter.keyForRow(-1) == PrimeStage::InvalidWidgetIdentityId);
+
+  PrimeStage::TableSpec table;
+  adapter.bindRows(table);
+  CHECK(table.rows.size() == 2u);
+  CHECK(table.rows[1][2] == "3.1 MB");
+}
+
+TEST_CASE("PrimeStage tree model adapter binds typed nodes and flattened keys") {
+  std::vector<TreeModelRow> nodes = {
+      {"root.assets",
+       "Assets",
+       true,
+       false,
+       {
+           {"assets.textures", "Textures", true, false, {}},
+           {"assets.audio", "Audio", false, true, {}},
+       }},
+      {"root.scripts", "Scripts", false, false, {}},
+  };
+
+  PrimeStage::TreeModelAdapter adapter = PrimeStage::makeTreeModel(
+      nodes,
+      [](TreeModelRow const& node) -> std::string_view { return node.label; },
+      [](TreeModelRow const& node) -> std::vector<TreeModelRow> const& { return node.children; },
+      [](TreeModelRow const& node) { return node.expanded; },
+      [](TreeModelRow const& node) { return node.selected; },
+      [](TreeModelRow const& node) -> std::string_view { return node.key; });
+
+  CHECK(adapter.nodes().size() == 2u);
+  CHECK(adapter.nodes()[0].label == "Assets");
+  CHECK(adapter.nodes()[0].children.size() == 2u);
+  CHECK(adapter.nodes()[0].children[1].selected);
+  CHECK(adapter.keys().size() == 4u);
+  CHECK(adapter.keyForRow(0) == PrimeStage::widgetIdentityId("root.assets"));
+  CHECK(adapter.keyForRow(1) == PrimeStage::widgetIdentityId("assets.textures"));
+  CHECK(adapter.keyForRow(2) == PrimeStage::widgetIdentityId("assets.audio"));
+  CHECK(adapter.keyForRow(3) == PrimeStage::widgetIdentityId("root.scripts"));
+  CHECK(adapter.keyForRow(12) == PrimeStage::InvalidWidgetIdentityId);
+
+  PrimeStage::TreeViewSpec tree;
+  adapter.bind(tree);
+  CHECK(tree.nodes.size() == 2u);
+  CHECK(tree.nodes[0].children[0].label == "Textures");
 }
 
 TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
@@ -368,10 +489,16 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("class WidgetFocusHandle") != std::string::npos);
   CHECK(uiHeader.find("class WidgetVisibilityHandle") != std::string::npos);
   CHECK(uiHeader.find("class WidgetActionHandle") != std::string::npos);
+  CHECK(uiHeader.find("class ListModelAdapter") != std::string::npos);
+  CHECK(uiHeader.find("class TableModelAdapter") != std::string::npos);
+  CHECK(uiHeader.find("class TreeModelAdapter") != std::string::npos);
   CHECK(uiHeader.find("WidgetFocusHandle focusHandle() const") != std::string::npos);
   CHECK(uiHeader.find("WidgetVisibilityHandle visibilityHandle() const") != std::string::npos);
   CHECK(uiHeader.find("WidgetActionHandle actionHandle() const") != std::string::npos);
   CHECK(uiHeader.find("PrimeFrame::NodeId lowLevelNodeId() const") != std::string::npos);
+  CHECK(uiHeader.find("ListModelAdapter makeListModel(") != std::string::npos);
+  CHECK(uiHeader.find("TableModelAdapter makeTableModel(") != std::string::npos);
+  CHECK(uiHeader.find("TreeModelAdapter makeTreeModel(") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct State") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct Binding") != std::string::npos);
   CHECK(uiHeader.find("Binding<T> bind(State<T>& state)") != std::string::npos);
@@ -414,6 +541,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("window(spec, lambda)") != std::string::npos);
   CHECK(apiRef.find("Semantic Callback Surface") != std::string::npos);
   CHECK(apiRef.find("Typed Widget Handles") != std::string::npos);
+  CHECK(apiRef.find("Collection Model Adapters") != std::string::npos);
+  CHECK(apiRef.find("makeListModel(...)") != std::string::npos);
+  CHECK(apiRef.find("makeTableModel(...)") != std::string::npos);
+  CHECK(apiRef.find("makeTreeModel(...)") != std::string::npos);
   CHECK(apiRef.find("focusWidget(...)") != std::string::npos);
   CHECK(apiRef.find("setWidgetVisible(...)") != std::string::npos);
   CHECK(apiRef.find("dispatchWidgetEvent(...)") != std::string::npos);
@@ -511,6 +642,10 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeFrame::EventRouter") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::FocusManager") == std::string::npos);
   CHECK(widgetsSource.find(".nodeId(") == std::string::npos);
+  CHECK(widgetsSource.find("makeListModel(") != std::string::npos);
+  CHECK(widgetsSource.find("makeTableModel(") != std::string::npos);
+  CHECK(widgetsSource.find("makeTreeModel(") != std::string::npos);
+  CHECK(widgetsSource.find("listViews") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<bool> toggle{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<int> tabs{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<float> sliderValue{};") != std::string::npos);

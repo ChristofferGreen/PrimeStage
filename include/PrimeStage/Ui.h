@@ -5,13 +5,16 @@
 #include <concepts>
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
+#include <ranges>
 
 namespace PrimeFrame {
 class FocusManager;
@@ -807,6 +810,248 @@ struct TreeViewSpec : FocusableWidgetSpec {
   std::vector<TreeNode> nodes;
   TreeViewCallbacks callbacks{};
 };
+
+class ListModelAdapter {
+public:
+  [[nodiscard]] std::span<const std::string_view> items() const { return itemViews_; }
+  [[nodiscard]] std::span<const WidgetIdentityId> keys() const { return keys_; }
+  [[nodiscard]] WidgetIdentityId keyForRow(int rowIndex) const {
+    if (rowIndex < 0 || static_cast<size_t>(rowIndex) >= keys_.size()) {
+      return InvalidWidgetIdentityId;
+    }
+    return keys_[static_cast<size_t>(rowIndex)];
+  }
+  void bind(ListSpec& spec) const { spec.items = itemViews_; }
+
+private:
+  std::deque<std::string> ownedItems_;
+  std::vector<std::string_view> itemViews_;
+  std::vector<WidgetIdentityId> keys_;
+
+  template <std::ranges::input_range ItemRange, typename LabelFn, typename KeyFn>
+  friend ListModelAdapter makeListModel(ItemRange const& items, LabelFn&& labelOf, KeyFn&& keyOf);
+};
+
+class TableModelAdapter {
+public:
+  [[nodiscard]] std::span<const std::vector<std::string_view>> rows() const { return rowViews_; }
+  [[nodiscard]] size_t columnCount() const { return columnCount_; }
+  [[nodiscard]] std::span<const WidgetIdentityId> keys() const { return rowKeys_; }
+  [[nodiscard]] WidgetIdentityId keyForRow(int rowIndex) const {
+    if (rowIndex < 0 || static_cast<size_t>(rowIndex) >= rowKeys_.size()) {
+      return InvalidWidgetIdentityId;
+    }
+    return rowKeys_[static_cast<size_t>(rowIndex)];
+  }
+  void bindRows(TableSpec& spec) const { spec.rows = rowViews_; }
+
+private:
+  size_t columnCount_ = 0u;
+  std::deque<std::string> ownedCells_;
+  std::vector<std::vector<std::string_view>> rowViews_;
+  std::vector<WidgetIdentityId> rowKeys_;
+
+  template <std::ranges::input_range RowRange, typename CellFn, typename KeyFn>
+  friend TableModelAdapter makeTableModel(RowRange const& rows,
+                                          size_t columnCount,
+                                          CellFn&& cellOf,
+                                          KeyFn&& keyOf);
+};
+
+class TreeModelAdapter {
+public:
+  [[nodiscard]] std::span<const TreeNode> nodes() const { return nodes_; }
+  [[nodiscard]] std::span<const WidgetIdentityId> keys() const { return nodeKeys_; }
+  [[nodiscard]] WidgetIdentityId keyForRow(int rowIndex) const {
+    if (rowIndex < 0 || static_cast<size_t>(rowIndex) >= nodeKeys_.size()) {
+      return InvalidWidgetIdentityId;
+    }
+    return nodeKeys_[static_cast<size_t>(rowIndex)];
+  }
+  void bind(TreeViewSpec& spec) const { spec.nodes = nodes_; }
+
+private:
+  std::deque<std::string> ownedLabels_;
+  std::vector<TreeNode> nodes_;
+  std::vector<WidgetIdentityId> nodeKeys_;
+
+  template <std::ranges::input_range NodeRange,
+            typename LabelFn,
+            typename ChildrenFn,
+            typename ExpandedFn,
+            typename SelectedFn,
+            typename KeyFn>
+  friend TreeModelAdapter makeTreeModel(NodeRange const& nodes,
+                                        LabelFn&& labelOf,
+                                        ChildrenFn&& childrenOf,
+                                        ExpandedFn&& expandedOf,
+                                        SelectedFn&& selectedOf,
+                                        KeyFn&& keyOf);
+};
+
+namespace detail {
+
+template <typename>
+inline constexpr bool AlwaysFalse = false;
+
+template <typename Value>
+std::string toOwnedString(Value&& value) {
+  if constexpr (std::is_convertible_v<Value, std::string_view>) {
+    return std::string(std::string_view(std::forward<Value>(value)));
+  } else {
+    static_assert(AlwaysFalse<std::decay_t<Value>>,
+                  "Model label/cell extractors must return a std::string_view-convertible type.");
+  }
+}
+
+template <typename Value>
+WidgetIdentityId toWidgetIdentityKey(Value&& value) {
+  using Decayed = std::decay_t<Value>;
+  if constexpr (std::is_same_v<Decayed, WidgetIdentityId>) {
+    return value;
+  } else if constexpr (std::is_integral_v<Decayed>) {
+    if constexpr (std::is_signed_v<Decayed>) {
+      if (value <= 0) {
+        return InvalidWidgetIdentityId;
+      }
+    }
+    return static_cast<WidgetIdentityId>(value);
+  } else if constexpr (std::is_convertible_v<Value, std::string_view>) {
+    return widgetIdentityId(std::string_view(std::forward<Value>(value)));
+  } else {
+    static_assert(AlwaysFalse<std::decay_t<Value>>,
+                  "Key extractors must return WidgetIdentityId, integral values, or std::string_view-convertible values.");
+  }
+}
+
+template <typename KeyFn, typename Model>
+WidgetIdentityId resolveModelKey(KeyFn&& keyOf, Model const& model) {
+  if constexpr (std::is_same_v<std::decay_t<KeyFn>, std::nullptr_t>) {
+    return InvalidWidgetIdentityId;
+  } else {
+    return toWidgetIdentityKey(std::invoke(std::forward<KeyFn>(keyOf), model));
+  }
+}
+
+struct AlwaysExpanded {
+  template <typename T>
+  bool operator()(T const&) const {
+    return true;
+  }
+};
+
+struct NeverSelected {
+  template <typename T>
+  bool operator()(T const&) const {
+    return false;
+  }
+};
+
+} // namespace detail
+
+template <std::ranges::input_range ItemRange, typename LabelFn, typename KeyFn>
+ListModelAdapter makeListModel(ItemRange const& items, LabelFn&& labelOf, KeyFn&& keyOf) {
+  ListModelAdapter adapter;
+  for (auto const& item : items) {
+    adapter.ownedItems_.push_back(detail::toOwnedString(std::invoke(labelOf, item)));
+    adapter.itemViews_.push_back(adapter.ownedItems_.back());
+    adapter.keys_.push_back(detail::resolveModelKey(keyOf, item));
+  }
+  return adapter;
+}
+
+template <std::ranges::input_range ItemRange, typename LabelFn>
+ListModelAdapter makeListModel(ItemRange const& items, LabelFn&& labelOf) {
+  return makeListModel(items, std::forward<LabelFn>(labelOf), nullptr);
+}
+
+template <std::ranges::input_range RowRange, typename CellFn, typename KeyFn>
+TableModelAdapter makeTableModel(RowRange const& rows,
+                                 size_t columnCount,
+                                 CellFn&& cellOf,
+                                 KeyFn&& keyOf) {
+  TableModelAdapter adapter;
+  adapter.columnCount_ = columnCount;
+  for (auto const& row : rows) {
+    std::vector<std::string_view> rowViews;
+    rowViews.reserve(columnCount);
+    for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex) {
+      adapter.ownedCells_.push_back(detail::toOwnedString(std::invoke(cellOf, row, columnIndex)));
+      rowViews.push_back(adapter.ownedCells_.back());
+    }
+    adapter.rowViews_.push_back(std::move(rowViews));
+    adapter.rowKeys_.push_back(detail::resolveModelKey(keyOf, row));
+  }
+  return adapter;
+}
+
+template <std::ranges::input_range RowRange, typename CellFn>
+TableModelAdapter makeTableModel(RowRange const& rows, size_t columnCount, CellFn&& cellOf) {
+  return makeTableModel(rows, columnCount, std::forward<CellFn>(cellOf), nullptr);
+}
+
+template <std::ranges::input_range NodeRange,
+          typename LabelFn,
+          typename ChildrenFn,
+          typename ExpandedFn,
+          typename SelectedFn,
+          typename KeyFn>
+TreeModelAdapter makeTreeModel(NodeRange const& nodes,
+                               LabelFn&& labelOf,
+                               ChildrenFn&& childrenOf,
+                               ExpandedFn&& expandedOf,
+                               SelectedFn&& selectedOf,
+                               KeyFn&& keyOf) {
+  TreeModelAdapter adapter;
+
+  auto makeNode = [&](this auto& self, auto const& nodeValue) -> TreeNode {
+    TreeNode node;
+    adapter.ownedLabels_.push_back(detail::toOwnedString(std::invoke(labelOf, nodeValue)));
+    node.label = adapter.ownedLabels_.back();
+    node.expanded = static_cast<bool>(std::invoke(expandedOf, nodeValue));
+    node.selected = static_cast<bool>(std::invoke(selectedOf, nodeValue));
+    adapter.nodeKeys_.push_back(detail::resolveModelKey(keyOf, nodeValue));
+
+    auto const& children = std::invoke(childrenOf, nodeValue);
+    for (auto const& childValue : children) {
+      node.children.push_back(self(childValue));
+    }
+    return node;
+  };
+
+  for (auto const& nodeValue : nodes) {
+    adapter.nodes_.push_back(makeNode(nodeValue));
+  }
+  return adapter;
+}
+
+template <std::ranges::input_range NodeRange, typename LabelFn, typename ChildrenFn>
+TreeModelAdapter makeTreeModel(NodeRange const& nodes, LabelFn&& labelOf, ChildrenFn&& childrenOf) {
+  return makeTreeModel(nodes,
+                       std::forward<LabelFn>(labelOf),
+                       std::forward<ChildrenFn>(childrenOf),
+                       detail::AlwaysExpanded{},
+                       detail::NeverSelected{},
+                       nullptr);
+}
+
+template <std::ranges::input_range NodeRange,
+          typename LabelFn,
+          typename ChildrenFn,
+          typename ExpandedFn,
+          typename SelectedFn>
+TreeModelAdapter makeTreeModel(NodeRange const& nodes,
+                               LabelFn&& labelOf,
+                               ChildrenFn&& childrenOf,
+                               ExpandedFn&& expandedOf,
+                               SelectedFn&& selectedOf) {
+  return makeTreeModel(nodes,
+                       std::forward<LabelFn>(labelOf),
+                       std::forward<ChildrenFn>(childrenOf),
+                       std::forward<ExpandedFn>(expandedOf),
+                       std::forward<SelectedFn>(selectedOf),
+                       nullptr);
+}
 
 struct ScrollViewSpec {
   bool clipChildren = true;

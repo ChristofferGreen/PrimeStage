@@ -25,6 +25,7 @@ What app code should avoid:
 - Writing `node->callbacks = ...` directly for standard widgets.
 - Composing low-level `PrimeFrame::Callback` chains in feature code.
 - Storing/querying raw `NodeId` in canonical app code when typed widget handles are sufficient.
+- Rebuilding `std::vector<std::string_view>` item/row mirrors manually for list/table/tree on every frame.
 - Re-implementing focus visuals per widget by patching primitives.
 - Translating raw key constants inside each feature/widget usage site.
 - Owning `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` in canonical app paths.
@@ -173,6 +174,8 @@ root.createButton(apply);
   oversized scroll content), not baseline widget visibility.
 - `ScrollView`, empty `Table`/`List`/`TreeView`, and text widgets without explicit width now provide
   built-in fallback sizing so default usage remains visible.
+- For typed domain models, prefer `makeListModel(...)`, `makeTableModel(...)`, and `makeTreeModel(...)`
+  plus adapter `bind(...)` helpers instead of ad-hoc string-view conversion loops.
 
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`

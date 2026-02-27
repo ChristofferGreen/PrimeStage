@@ -17,6 +17,19 @@ namespace {
 
 constexpr float ScrollLinePixels = 32.0f;
 
+struct AssetRow {
+  std::string name;
+  std::string type;
+  std::string size;
+};
+
+struct AssetTreeNode {
+  std::string label;
+  std::vector<AssetTreeNode> children;
+  bool expanded = true;
+  bool selected = false;
+};
+
 struct DemoState {
   PrimeStage::TextFieldState textField{};
   PrimeStage::SelectableTextState selectableText{};
@@ -29,7 +42,8 @@ struct DemoState {
   int clickCount = 0;
   int listSelectedIndex = 1;
   int tableSelectedRow = -1;
-  std::vector<PrimeStage::TreeNode> tree;
+  std::vector<AssetRow> tableRows;
+  std::vector<AssetTreeNode> tree;
   std::string selectableTextContent;
   std::vector<std::string> dropdownItems;
   std::vector<std::string> tabLabels;
@@ -53,17 +67,16 @@ PrimeStage::UiNode createSection(PrimeStage::UiNode parent, std::string_view tit
   });
 }
 
-void clearTreeSelection(std::vector<PrimeStage::TreeNode>& nodes) {
+void clearTreeSelection(std::vector<AssetTreeNode>& nodes) {
   for (auto& node : nodes) {
     node.selected = false;
     clearTreeSelection(node.children);
   }
 }
 
-PrimeStage::TreeNode* findTreeNode(std::vector<PrimeStage::TreeNode>& nodes,
-                                   std::span<const uint32_t> path) {
-  std::vector<PrimeStage::TreeNode>* current = &nodes;
-  PrimeStage::TreeNode* node = nullptr;
+AssetTreeNode* findTreeNode(std::vector<AssetTreeNode>& nodes, std::span<const uint32_t> path) {
+  std::vector<AssetTreeNode>* current = &nodes;
+  AssetTreeNode* node = nullptr;
   for (uint32_t index : path) {
     if (index >= current->size()) {
       return nullptr;
@@ -88,6 +101,11 @@ void initializeState(DemoState& state) {
   state.dropdownItems = {"Preview", "Edit", "Export", "Publish"};
   state.tabLabels = {"Overview", "Assets", "Settings"};
   state.listItems = {"Alpha", "Beta", "Gamma", "Delta"};
+  state.tableRows = {
+      {"icons.png", "Texture", "512 KB"},
+      {"theme.ogg", "Audio", "3.1 MB"},
+      {"ui.vert", "Shader", "14 KB"},
+  };
 
   state.tree = {
       {"Assets",
@@ -237,14 +255,12 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     dropdown.options = dropdownViews;
     choice.createDropdown(dropdown);
 
-    std::vector<std::string_view> listViews;
-    listViews.reserve(app.state.listItems.size());
-    for (const std::string& item : app.state.listItems) {
-      listViews.push_back(item);
-    }
-
     PrimeStage::ListSpec list;
-    list.items = listViews;
+    PrimeStage::ListModelAdapter listModel = PrimeStage::makeListModel(
+        app.state.listItems,
+        [](std::string const& item) -> std::string_view { return item; },
+        [](std::string const& item) -> PrimeStage::WidgetIdentityId { return PrimeStage::widgetIdentityId(item); });
+    listModel.bind(list);
     list.selectedIndex = app.state.listSelectedIndex;
     list.callbacks.onSelect = [&app](PrimeStage::ListRowInfo const& info) {
       app.state.listSelectedIndex = info.rowIndex;
@@ -262,11 +278,23 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
         {"Type"},
         {"Size"},
     };
-    table.rows = {
-        {"icons.png", "Texture", "512 KB"},
-        {"theme.ogg", "Audio", "3.1 MB"},
-        {"ui.vert", "Shader", "14 KB"},
-    };
+    PrimeStage::TableModelAdapter tableModel = PrimeStage::makeTableModel(
+        app.state.tableRows,
+        table.columns.size(),
+        [](AssetRow const& row, size_t columnIndex) -> std::string_view {
+          switch (columnIndex) {
+            case 0:
+              return row.name;
+            case 1:
+              return row.type;
+            case 2:
+              return row.size;
+            default:
+              return {};
+          }
+        },
+        [](AssetRow const& row) -> PrimeStage::WidgetIdentityId { return PrimeStage::widgetIdentityId(row.name); });
+    tableModel.bindRows(table);
     table.callbacks.onSelect = [&app](PrimeStage::TableRowInfo const& info) {
       app.state.tableSelectedRow = info.rowIndex;
       app.ui.lifecycle().requestRebuild();
@@ -274,16 +302,25 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     data.createTable(table);
 
     PrimeStage::TreeViewSpec tree;
-    tree.nodes = app.state.tree;
+    PrimeStage::TreeModelAdapter treeModel = PrimeStage::makeTreeModel(
+        app.state.tree,
+        [](AssetTreeNode const& node) -> std::string_view { return node.label; },
+        [](AssetTreeNode const& node) -> std::vector<AssetTreeNode> const& { return node.children; },
+        [](AssetTreeNode const& node) { return node.expanded; },
+        [](AssetTreeNode const& node) { return node.selected; },
+        [](AssetTreeNode const& node) -> PrimeStage::WidgetIdentityId {
+          return PrimeStage::widgetIdentityId(node.label);
+        });
+    treeModel.bind(tree);
     tree.callbacks.onSelect = [&app](PrimeStage::TreeViewRowInfo const& info) {
       clearTreeSelection(app.state.tree);
-      if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
+      if (AssetTreeNode* node = findTreeNode(app.state.tree, info.path)) {
         node->selected = true;
       }
       app.ui.lifecycle().requestRebuild();
     };
     tree.callbacks.onExpandedChanged = [&app](PrimeStage::TreeViewRowInfo const& info, bool expanded) {
-      if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
+      if (AssetTreeNode* node = findTreeNode(app.state.tree, info.path)) {
         node->expanded = expanded;
       }
       app.ui.lifecycle().requestRebuild();

@@ -97,6 +97,28 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::UiNode::actionHandle()`
 - `PrimeStage::UiNode::lowLevelNodeId()` (advanced/low-level escape hatch)
 
+## Collection Model Adapters
+
+- `PrimeStage::ListModelAdapter`
+  - `items()`
+  - `keys()`
+  - `keyForRow(...)`
+  - `bind(ListSpec&)`
+- `PrimeStage::makeListModel(...)`
+- `PrimeStage::TableModelAdapter`
+  - `rows()`
+  - `columnCount()`
+  - `keys()`
+  - `keyForRow(...)`
+  - `bindRows(TableSpec&)`
+- `PrimeStage::makeTableModel(...)`
+- `PrimeStage::TreeModelAdapter`
+  - `nodes()`
+  - `keys()`
+  - `keyForRow(...)`
+  - `bind(TreeViewSpec&)`
+- `PrimeStage::makeTreeModel(...)`
+
 ## UiNode Widget Builders
 
 Fluent helpers:

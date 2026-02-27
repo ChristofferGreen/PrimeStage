@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [61] Add domain-model adapters for collection widgets.
-  - support typed row/item models for list/table/tree with adapters and key extractors
-  - avoid repeated conversion to `std::vector<std::string_view>` in app code
-  - acceptance: collection examples bind model containers directly
-
 - ☐ [62] Replace full-rebuild app pattern with incremental invalidation defaults.
   - runtime should automatically schedule minimal recomposition/layout/paint from state changes
   - remove explicit `requestRebuild` spam in normal callbacks
@@ -121,6 +116,20 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [61] Add domain-model adapters for collection widgets.
+  - added `ListModelAdapter`/`TableModelAdapter`/`TreeModelAdapter` and
+    `makeListModel(...)`/`makeTableModel(...)`/`makeTreeModel(...)` in
+    `include/PrimeStage/Ui.h`
+  - adapters support typed model extraction for list rows, table rows/cells, and tree nodes with
+    optional key extractors plus spec bind helpers (`bind`, `bindRows`, `bind`)
+  - migrated `examples/primestage_widgets.cpp` collection sections to bind list/table/tree domain
+    containers directly through adapters (no manual `std::vector<std::string_view>` conversion loops)
+  - expanded regression coverage in `tests/unit/test_api_ergonomics.cpp` for adapter behavior,
+    key extraction, and canonical example guardrails
+  - documented adapter usage in `docs/minimal-api-reference.md`,
+    `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and
+    `docs/example-app-consumer-checklist.md`
 
 - ☑ [60] Introduce typed widget handles and remove `NodeId` from app-facing APIs.
   - added typed handles (`WidgetFocusHandle`, `WidgetVisibilityHandle`, `WidgetActionHandle`) to
