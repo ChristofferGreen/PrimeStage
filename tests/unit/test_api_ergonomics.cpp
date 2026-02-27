@@ -3388,6 +3388,57 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   CHECK(example.find("selectable.state = &app.state.selectableText") == std::string::npos);
 }
 
+TEST_CASE("PrimeStage collection entrypoints are split into dedicated translation units") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(corePath));
+  REQUIRE(std::filesystem::exists(collectionsPath));
+  REQUIRE(std::filesystem::exists(internalsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream coreInput(corePath);
+  REQUIRE(coreInput.good());
+  std::string core((std::istreambuf_iterator<char>(coreInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!core.empty());
+  CHECK(core.find("UiNode UiNode::createList(ListSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
+        std::string::npos);
+  CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
+
+  std::ifstream collectionsInput(collectionsPath);
+  REQUIRE(collectionsInput.good());
+  std::string collections((std::istreambuf_iterator<char>(collectionsInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!collections.empty());
+  CHECK(collections.find("UiNode UiNode::createList(ListSpec const& specInput)") != std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
+        std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
+        std::string::npos);
+  CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
+
+  std::ifstream internalsInput(internalsPath);
+  REQUIRE(internalsInput.good());
+  std::string internals((std::istreambuf_iterator<char>(internalsInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!internals.empty());
+  CHECK(internals.find("ListSpec normalizeListSpec(ListSpec const& specInput);") !=
+        std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("◐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.") !=
+        std::string::npos);
+  CHECK(todo.find("[119] Continue collection widget extraction from `src/PrimeStage.cpp`.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage LowLevel appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();

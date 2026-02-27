@@ -26,10 +26,20 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.
+- ◐ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.
   - extract per-widget build/interaction paths (`TextField`, `TreeView`, `Table`, `List`, etc.)
     into dedicated translation units to reduce blast radius and review complexity
   - preserve existing public API surface and behavior contracts while improving internal module boundaries
+  - vertical slice shipped: moved `List` collection entrypoints into `src/PrimeStageCollections.cpp`
+    with shared list-spec normalization routed through `PrimeStage::Internal::normalizeListSpec(...)`
+
+- ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
+  - move `Table` build/interaction runtime into a dedicated collection translation unit
+  - move `TreeView` build/interaction runtime into a dedicated tree translation unit
+
+- ☐ [120] Continue interactive widget extraction from `src/PrimeStage.cpp`.
+  - move `TextField`/`SelectableText` build and interaction runtime into dedicated text translation units
+  - extract shared text interaction patch helpers into focused internal modules
 
 - ☐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
   - centralize shared patch/focus/callback helper state used across widget implementations
