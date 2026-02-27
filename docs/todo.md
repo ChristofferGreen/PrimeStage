@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [103] Link advanced onboarding docs to dependency policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/dependency-resolution-policy.md` so advanced integration
+    examples review dependency pinning/reproducibility rules before adding new
+    external dependencies
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    dependency policy link and guardrail phrasing, preventing undocumented
+    advanced dependency-resolution drift
+
 - ☑ [102] Link advanced onboarding docs to ownership/lifetime policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/data-ownership-lifetime.md` so advanced callback/interop
