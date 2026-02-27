@@ -110,6 +110,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageBooleanWidgets.cpp
   src/PrimeStageCollections.cpp
   src/PrimeStageDropdown.cpp
+  src/PrimeStageLayoutPrimitives.cpp
   src/PrimeStageProgress.cpp
   src/PrimeStageSlider.cpp
   src/PrimeStageTabs.cpp

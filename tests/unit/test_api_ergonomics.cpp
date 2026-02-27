@@ -3467,6 +3467,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path buttonPath = repoRoot / "src" / "PrimeStageButton.cpp";
+  std::filesystem::path layoutPath = repoRoot / "src" / "PrimeStageLayoutPrimitives.cpp";
   std::filesystem::path booleanPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path sliderPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
@@ -3474,9 +3475,11 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
   REQUIRE(std::filesystem::exists(buttonPath));
+  REQUIRE(std::filesystem::exists(layoutPath));
   REQUIRE(std::filesystem::exists(booleanPath));
   REQUIRE(std::filesystem::exists(sliderPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
@@ -3484,6 +3487,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(internalsPath));
+  REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(todoPath));
 
   std::ifstream coreInput(corePath);
@@ -3515,6 +3519,11 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createButton(ButtonSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createButton(std::string_view label,") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createDivider(DividerSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size)") ==
+        std::string::npos);
+  CHECK(core.find("UiNode UiNode::createSpacer(SpacerSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createSpacer(SizeSpec const& size)") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3533,6 +3542,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput)") !=
         std::string::npos);
+  CHECK(core.find("DividerSpec normalizeDividerSpec(DividerSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput)") !=
+        std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
 
@@ -3546,6 +3559,22 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(buttonSource.find("UiNode UiNode::createButton(std::string_view label,") !=
         std::string::npos);
   CHECK(buttonSource.find("Internal::normalizeButtonSpec(specInput)") != std::string::npos);
+
+  std::ifstream layoutInput(layoutPath);
+  REQUIRE(layoutInput.good());
+  std::string layoutSource((std::istreambuf_iterator<char>(layoutInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!layoutSource.empty());
+  CHECK(layoutSource.find("UiNode UiNode::createDivider(DividerSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(layoutSource.find("UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size)") !=
+        std::string::npos);
+  CHECK(layoutSource.find("UiNode UiNode::createSpacer(SpacerSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(layoutSource.find("UiNode UiNode::createSpacer(SizeSpec const& size)") !=
+        std::string::npos);
+  CHECK(layoutSource.find("Internal::normalizeDividerSpec(specInput)") != std::string::npos);
+  CHECK(layoutSource.find("Internal::normalizeSpacerSpec(specInput)") != std::string::npos);
 
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
@@ -3647,10 +3676,20 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("DividerSpec normalizeDividerSpec(DividerSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
         std::string::npos);
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("src/PrimeStageLayoutPrimitives.cpp") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());

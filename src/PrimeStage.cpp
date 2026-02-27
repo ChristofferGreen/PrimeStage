@@ -1364,6 +1364,18 @@ ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput) {
   return spec;
 }
 
+DividerSpec normalizeDividerSpec(DividerSpec const& specInput) {
+  DividerSpec spec = specInput;
+  sanitize_size_spec(spec.size, "DividerSpec.size");
+  return spec;
+}
+
+SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput) {
+  SpacerSpec spec = specInput;
+  sanitize_size_spec(spec.size, "SpacerSpec.size");
+  return spec;
+}
+
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = specInput;
   sanitize_size_spec(spec.size, "ScrollViewSpec.size");
@@ -2776,58 +2788,6 @@ UiNode UiNode::createTextLine(std::string_view text,
 }
 
 
-
-UiNode UiNode::createDivider(DividerSpec const& specInput) {
-  DividerSpec spec = specInput;
-  sanitize_size_spec(spec.size, "DividerSpec.size");
-
-  Rect rect = resolve_rect(spec.size);
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::None,
-                                          PrimeFrame::Insets{},
-                                          0.0f,
-                                          false,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  add_rect_primitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
-  DividerSpec spec;
-  spec.rectStyle = rectStyle;
-  spec.size = size;
-  return createDivider(spec);
-}
-
-UiNode UiNode::createSpacer(SpacerSpec const& specInput) {
-  SpacerSpec spec = specInput;
-  sanitize_size_spec(spec.size, "SpacerSpec.size");
-
-  Rect rect = resolve_rect(spec.size);
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::None,
-                                          PrimeFrame::Insets{},
-                                          0.0f,
-                                          false,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createSpacer(SizeSpec const& size) {
-  SpacerSpec spec;
-  spec.size = size;
-  return createSpacer(spec);
-}
 
 UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   TextFieldSpec spec = specInput;
