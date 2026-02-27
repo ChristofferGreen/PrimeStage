@@ -3180,6 +3180,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path sliderCppPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path tableCppPath = repoRoot / "src" / "PrimeStageTable.cpp";
+  std::filesystem::path treeViewCppPath = repoRoot / "src" / "PrimeStageTreeView.cpp";
   std::filesystem::path containersCppPath = repoRoot / "src" / "PrimeStageContainers.cpp";
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelCppPath = repoRoot / "src" / "PrimeStageLabel.cpp";
@@ -3198,6 +3199,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(sliderCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(tableCppPath));
+  REQUIRE(std::filesystem::exists(treeViewCppPath));
   REQUIRE(std::filesystem::exists(containersCppPath));
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(labelCppPath));
@@ -3274,6 +3276,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string tableCpp((std::istreambuf_iterator<char>(tableInput)),
                        std::istreambuf_iterator<char>());
   REQUIRE(!tableCpp.empty());
+  std::ifstream treeViewInput(treeViewCppPath);
+  REQUIRE(treeViewInput.good());
+  std::string treeViewCpp((std::istreambuf_iterator<char>(treeViewInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!treeViewCpp.empty());
   std::ifstream containersInput(containersCppPath);
   REQUIRE(containersInput.good());
   std::string containersCpp((std::istreambuf_iterator<char>(containersInput)),
@@ -3315,8 +3322,9 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
                           std::istreambuf_iterator<char>());
   REQUIRE(!textLineCpp.empty());
   std::string combinedSource =
-      sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + tableCpp + dropdownCpp + progressCpp + tabsCpp +
-      textSelectionOverlayCpp + textLineCpp + labelCpp + paragraphCpp + containersCpp;
+      sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + tableCpp + treeViewCpp +
+      dropdownCpp + progressCpp + tabsCpp + textSelectionOverlayCpp + textLineCpp + labelCpp +
+      paragraphCpp + containersCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3568,6 +3576,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path sliderPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path tablePath = repoRoot / "src" / "PrimeStageTable.cpp";
+  std::filesystem::path treePath = repoRoot / "src" / "PrimeStageTreeView.cpp";
   std::filesystem::path containersPath = repoRoot / "src" / "PrimeStageContainers.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelPath = repoRoot / "src" / "PrimeStageLabel.cpp";
@@ -3590,6 +3599,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(sliderPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
   REQUIRE(std::filesystem::exists(tablePath));
+  REQUIRE(std::filesystem::exists(treePath));
   REQUIRE(std::filesystem::exists(containersPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(labelPath));
@@ -3865,12 +3875,13 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(collections.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") !=
         std::string::npos);
-  CHECK(collections.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") != std::string::npos);
-  CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
+  CHECK(collections.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") ==
+        std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
         std::string::npos);
   CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeTableSpec(specInput)") == std::string::npos);
-  CHECK(collections.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
+  CHECK(collections.find("Internal::normalizeTreeViewSpec(spec)") == std::string::npos);
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
 
   std::ifstream tableInput(tablePath);
@@ -3882,6 +3893,17 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(table.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
         std::string::npos);
   CHECK(table.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
+
+  std::ifstream treeInput(treePath);
+  REQUIRE(treeInput.good());
+  std::string tree((std::istreambuf_iterator<char>(treeInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!tree.empty());
+  CHECK(tree.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") != std::string::npos);
+  CHECK(tree.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
+        std::string::npos);
+  CHECK(tree.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
+  CHECK(tree.find("flatten_tree(") != std::string::npos);
 
   std::ifstream dropdownInput(dropdownPath);
   REQUIRE(dropdownInput.good());
@@ -3987,6 +4009,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageLowLevel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTable.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageTreeView.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextField.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);

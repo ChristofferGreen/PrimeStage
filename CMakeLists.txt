@@ -118,6 +118,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageLowLevel.cpp
   src/PrimeStageSlider.cpp
   src/PrimeStageTable.cpp
+  src/PrimeStageTreeView.cpp
   src/PrimeStageTabs.cpp
   src/PrimeStageTextField.cpp
   src/PrimeStageSelectableText.cpp

@@ -92,12 +92,16 @@ Release Exit Criteria (for API-quality milestone):
     reconciler runtime (`LowLevel::appendNodeOnEvent/...`, `NodeCallbackHandle`,
     `WidgetIdentityReconciler`) into `src/PrimeStageLowLevel.cpp`
 
-- ◐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
+- ☑ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
   - move `TreeView` build/interaction runtime into a dedicated tree translation unit
   - vertical slice shipped: moved `createTable(TableSpec)` and
     `createTable(columns, rows, selectedRow, size)` runtime into
     `src/PrimeStageTable.cpp`, keeping list/tree runtime in
+    `src/PrimeStageCollections.cpp`
+  - vertical slice shipped: moved `createTreeView(TreeViewSpec)` and
+    `createTreeView(nodes, size)` runtime plus tree-specific helper seams
+    into `src/PrimeStageTreeView.cpp`, keeping list/scroll runtime in
     `src/PrimeStageCollections.cpp`
 
 - ☐ [120] Continue interactive widget extraction from `src/PrimeStage.cpp`.
