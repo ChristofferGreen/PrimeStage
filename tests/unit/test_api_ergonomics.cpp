@@ -3967,6 +3967,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(tree.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(tree.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
+  CHECK(tree.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(tree.find("Internal::makeParentNode(runtime)") != std::string::npos);
+  CHECK(tree.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
+  CHECK(tree.find("Internal::addDisabledScrimOverlay(runtime,") != std::string::npos);
   CHECK(tree.find("flatten_tree(") != std::string::npos);
 
   std::ifstream dropdownInput(dropdownPath);
