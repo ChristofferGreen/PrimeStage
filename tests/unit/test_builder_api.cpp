@@ -1,6 +1,9 @@
 #include "PrimeStage/Ui.h"
 
+#include "PrimeFrame/Events.h"
 #include "PrimeFrame/Frame.h"
+#include "PrimeFrame/Focus.h"
+#include "PrimeFrame/Layout.h"
 
 #include "third_party/doctest.h"
 
@@ -30,6 +33,16 @@ bool hasChild(PrimeFrame::Frame const& frame,
     }
   }
   return false;
+}
+
+PrimeFrame::LayoutOutput layoutFrame(PrimeFrame::Frame& frame) {
+  PrimeFrame::LayoutOutput layout;
+  PrimeFrame::LayoutEngine engine;
+  PrimeFrame::LayoutOptions options;
+  options.rootWidth = 640.0f;
+  options.rootHeight = 360.0f;
+  engine.layout(frame, layout, options);
+  return layout;
 }
 
 } // namespace
@@ -117,4 +130,60 @@ TEST_CASE("PrimeStage builder API handles non-materialized defaults") {
   PrimeStage::ScrollView scrollView = root.createScrollView(scrollSpec);
   CHECK(scrollView.root.nodeId() == root.nodeId());
   CHECK_FALSE(scrollView.content.nodeId().isValid());
+}
+
+TEST_CASE("PrimeStage declarative helpers support nested composition ergonomics") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  int clickCount = 0;
+  PrimeFrame::NodeId columnId{};
+  PrimeFrame::NodeId rowId{};
+  PrimeFrame::NodeId buttonId{};
+  PrimeFrame::NodeId spacerId{};
+  PrimeFrame::NodeId windowContentId{};
+
+  root.column([&](PrimeStage::UiNode& column) {
+    columnId = column.nodeId();
+    column.label("Declarative");
+    rowId = column.row([&](PrimeStage::UiNode& row) {
+      buttonId = row.button("Apply", [&]() { clickCount += 1; }).nodeId();
+      spacerId = row.spacer(-8.0f).nodeId();
+    }).nodeId();
+
+    PrimeStage::WindowSpec windowSpec;
+    windowSpec.title = "Panel";
+    windowSpec.width = 220.0f;
+    windowSpec.height = 140.0f;
+    column.window(windowSpec, [&](PrimeStage::Window& window) {
+      windowContentId = window.content.label("Window content").nodeId();
+    });
+  });
+
+  CHECK(hasChild(frame, root.nodeId(), columnId));
+  CHECK(hasChild(frame, columnId, rowId));
+  CHECK(hasChild(frame, rowId, buttonId));
+  CHECK(frame.getNode(windowContentId) != nullptr);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::LayoutOut const* buttonOut = layout.get(buttonId);
+  REQUIRE(buttonOut != nullptr);
+  PrimeFrame::Event down;
+  down.type = PrimeFrame::EventType::PointerDown;
+  down.pointerId = 1;
+  down.x = buttonOut->absX + buttonOut->absW * 0.5f;
+  down.y = buttonOut->absY + buttonOut->absH * 0.5f;
+  PrimeFrame::Event up = down;
+  up.type = PrimeFrame::EventType::PointerUp;
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(down, frame, layout, &focus);
+  router.dispatch(up, frame, layout, &focus);
+  CHECK(clickCount == 1);
+
+  // Diagnostic path: declarative helper invalid spacer height should clamp safely.
+  PrimeFrame::LayoutOut const* spacerOut = layout.get(spacerId);
+  REQUIRE(spacerOut != nullptr);
+  CHECK(spacerOut->absH >= 0.0f);
 }

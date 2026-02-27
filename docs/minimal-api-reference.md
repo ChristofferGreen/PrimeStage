@@ -66,6 +66,19 @@ Fluent helpers:
 - `with(lambda)` for inline post-create node configuration.
 - `createX(spec, lambda)` overloads for nested composition across container, widget, `ScrollView`, and `Window` builders.
 
+Declarative helpers:
+- `column(...)`
+- `row(...)`
+- `overlay(...)`
+- `panel(...)`
+- `label(text)`
+- `paragraph(text, maxWidth)`
+- `textLine(text)`
+- `divider(height)`
+- `spacer(height)`
+- `button(text, onClick)`
+- `window(spec, lambda)`
+
 Container/base:
 - `createVerticalStack(...)`
 - `createHorizontalStack(...)`

@@ -325,6 +325,17 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
                        std::istreambuf_iterator<char>());
   REQUIRE(!uiHeader.empty());
   CHECK(uiHeader.find("UiNode with(Fn&& fn)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode column()") != std::string::npos);
+  CHECK(uiHeader.find("UiNode row()") != std::string::npos);
+  CHECK(uiHeader.find("UiNode overlay()") != std::string::npos);
+  CHECK(uiHeader.find("UiNode panel()") != std::string::npos);
+  CHECK(uiHeader.find("UiNode label(std::string_view text)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode paragraph(std::string_view text, float maxWidth = 0.0f)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode textLine(std::string_view text)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode button(std::string_view text, std::function<void()> onClick = {})") !=
+        std::string::npos);
+  CHECK(uiHeader.find("Window window(WindowSpec const& spec)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createPanel(PanelSpec const& spec, Fn&& fn)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createButton(ButtonSpec const& spec, Fn&& fn)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createButton(std::string_view label,") != std::string::npos);
@@ -351,6 +362,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   REQUIRE(!apiRef.empty());
   CHECK(apiRef.find("Fluent helpers") != std::string::npos);
   CHECK(apiRef.find("createX(spec, lambda)") != std::string::npos);
+  CHECK(apiRef.find("Declarative helpers") != std::string::npos);
+  CHECK(apiRef.find("column(...)") != std::string::npos);
+  CHECK(apiRef.find("row(...)") != std::string::npos);
+  CHECK(apiRef.find("window(spec, lambda)") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -359,6 +374,9 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   REQUIRE(!design.empty());
   CHECK(design.find("createX(spec, fn)") != std::string::npos);
   CHECK(design.find("createWindow(spec, fn)") != std::string::npos);
+  CHECK(design.find("column(...)") != std::string::npos);
+  CHECK(design.find("row(...)") != std::string::npos);
+  CHECK(design.find("window(spec, fn)") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -367,6 +385,7 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   REQUIRE(!guidelines.empty());
   CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
   CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
+  CHECK(guidelines.find("Declarative Composition Helpers") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage examples stay canonical API consumers") {
@@ -396,6 +415,12 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("HostKey::Escape") != std::string::npos);
   CHECK(widgetsSource.find("scrollDirectionSign") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::App ui;") != std::string::npos);
+  CHECK(widgetsSource.find("root.column(") != std::string::npos);
+  CHECK(widgetsSource.find("columns.column(") != std::string::npos);
+  CHECK(widgetsSource.find("actions.row(") != std::string::npos);
+  CHECK(widgetsSource.find("root.window(") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::LabelSpec") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::TextLineSpec") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.runRebuildIfNeeded") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToTarget") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToPng") != std::string::npos);

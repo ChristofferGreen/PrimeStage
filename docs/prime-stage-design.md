@@ -137,6 +137,11 @@ after invoking `fn(createdNode)`. For composed return types, `createScrollView(s
 `ScrollView` (`root` + `content`), and `createWindow(spec, fn)` passes a `Window` (`root`,
 `titleBar`, `content`, `resizeHandleId`).
 
+For low-ceremony composition, `UiNode` also exposes declarative helpers:
+- `column(...)`, `row(...)`, `overlay(...)`, `panel(...)`
+- `label(text)`, `paragraph(text, maxWidth)`, `textLine(text)`
+- `divider(height)`, `spacer(height)`, `button(text, onClick)`, `window(spec, fn)`
+
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
 All widget specs use `std::optional` for optional fields.
 Shared spec bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) centralize

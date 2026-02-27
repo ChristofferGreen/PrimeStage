@@ -2,6 +2,7 @@
 
 #include "PrimeFrame/Frame.h"
 
+#include <concepts>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -906,6 +907,101 @@ public:
     return *this;
   }
 
+  UiNode column() { return createVerticalStack(StackSpec{}); }
+  UiNode column(StackSpec const& spec) { return createVerticalStack(spec); }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode column(Fn&& fn) {
+    return createVerticalStack(StackSpec{}, std::forward<Fn>(fn));
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode column(StackSpec const& spec, Fn&& fn) {
+    return createVerticalStack(spec, std::forward<Fn>(fn));
+  }
+
+  UiNode row() { return createHorizontalStack(StackSpec{}); }
+  UiNode row(StackSpec const& spec) { return createHorizontalStack(spec); }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode row(Fn&& fn) {
+    return createHorizontalStack(StackSpec{}, std::forward<Fn>(fn));
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode row(StackSpec const& spec, Fn&& fn) {
+    return createHorizontalStack(spec, std::forward<Fn>(fn));
+  }
+
+  UiNode overlay() { return createOverlay(StackSpec{}); }
+  UiNode overlay(StackSpec const& spec) { return createOverlay(spec); }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode overlay(Fn&& fn) {
+    return createOverlay(StackSpec{}, std::forward<Fn>(fn));
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode overlay(StackSpec const& spec, Fn&& fn) {
+    return createOverlay(spec, std::forward<Fn>(fn));
+  }
+
+  UiNode panel() { return createPanel(PanelSpec{}); }
+  UiNode panel(PanelSpec const& spec) { return createPanel(spec); }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode panel(Fn&& fn) {
+    return createPanel(PanelSpec{}, std::forward<Fn>(fn));
+  }
+  template <typename Fn>
+    requires std::invocable<Fn, UiNode&>
+  UiNode panel(PanelSpec const& spec, Fn&& fn) {
+    return createPanel(spec, std::forward<Fn>(fn));
+  }
+
+  UiNode label(std::string_view text) {
+    LabelSpec spec;
+    spec.text = text;
+    return createLabel(spec);
+  }
+
+  UiNode paragraph(std::string_view text, float maxWidth = 0.0f) {
+    ParagraphSpec spec;
+    spec.text = text;
+    spec.maxWidth = maxWidth;
+    return createParagraph(spec);
+  }
+
+  UiNode textLine(std::string_view text) {
+    TextLineSpec spec;
+    spec.text = text;
+    return createTextLine(spec);
+  }
+
+  UiNode divider(float height = 1.0f) {
+    DividerSpec spec;
+    spec.size.preferredHeight = height;
+    spec.size.stretchX = 1.0f;
+    return createDivider(spec);
+  }
+
+  UiNode spacer(float height) {
+    SpacerSpec spec;
+    spec.size.preferredHeight = height;
+    return createSpacer(spec);
+  }
+
+  UiNode button(std::string_view text, std::function<void()> onClick = {}) {
+    ButtonSpec spec;
+    spec.label = text;
+    spec.callbacks.onClick = std::move(onClick);
+    return createButton(spec);
+  }
+
+  Window window(WindowSpec const& spec);
+  template <typename Fn>
+  Window window(WindowSpec const& spec, Fn&& fn);
+
   UiNode createVerticalStack(StackSpec const& spec);
   UiNode createHorizontalStack(StackSpec const& spec);
   UiNode createOverlay(StackSpec const& spec);
@@ -1137,6 +1233,15 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& spec, Fn&& fn) {
   ScrollView view = createScrollView(spec);
   std::forward<Fn>(fn)(view);
   return view;
+}
+
+inline Window UiNode::window(WindowSpec const& spec) {
+  return createWindow(spec);
+}
+
+template <typename Fn>
+Window UiNode::window(WindowSpec const& spec, Fn&& fn) {
+  return createWindow(spec, std::forward<Fn>(fn));
 }
 
 template <typename Fn>

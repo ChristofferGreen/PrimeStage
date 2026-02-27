@@ -13,6 +13,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
 5. Use `PrimeStage::WidgetIdentityReconciler` for focus restoration across rebuilds.
 6. Avoid raw numeric key codes in example app logic; use `PrimeStage::KeyCode`/`HostKey`.
 7. Avoid app-level `node->callbacks = ...` and ad-hoc callback composition helpers.
+8. Prefer declarative composition helpers (`column`, `row`, `window`, `label`, `button`) over
+   per-node spec boilerplate in canonical examples.
 
 ## Advanced Exceptions
 

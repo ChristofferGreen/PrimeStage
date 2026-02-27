@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [54] Add a declarative UI composition API.
-  - support nested composition with strongly-typed builders (for example `ui.column([...])`, `ui.row([...])`, `ui.window(...)`)
-  - eliminate repetitive `Spec` object zero-init + field mutation for common cases
-  - acceptance: canonical widget gallery can be expressed without manual `Spec` variable ceremony for every node
-
 - ☐ [55] Add first-class state/binding primitives.
   - provide `State<T>`/`Signal`-style primitives for value ownership and mutation tracking
   - allow widgets to bind directly to values (`bind(value)`) with default two-way behavior where appropriate
@@ -156,6 +151,12 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [54] Add a declarative UI composition API.
+  - delivered via declarative `UiNode` helpers in `include/PrimeStage/Ui.h` (`column`, `row`,
+    `overlay`, `panel`, `label`, `paragraph`, `textLine`, `divider`, `spacer`, `button`,
+    `window`), canonical gallery migration in `examples/primestage_widgets.cpp`, and regression
+    coverage updates in `tests/unit/test_builder_api.cpp` + `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [53] Ship a high-level `App` API that hides `PrimeFrame` internals.
   - delivered via `include/PrimeStage/App.h` + `src/App.cpp` (high-level app shell for rebuild/layout/router/focus/input/render lifecycle), canonical migration in `examples/primestage_widgets.cpp`, and regression coverage updates in `tests/unit/test_app_runtime.cpp`, `tests/unit/test_api_ergonomics.cpp`, and `tests/cmake/find_package_smoke/main.cpp`

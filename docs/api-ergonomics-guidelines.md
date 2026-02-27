@@ -149,6 +149,15 @@ root.createButton(apply);
 - `createScrollView(spec, fn)` and `createWindow(spec, fn)` pass typed builder payloads
   (`ScrollView`/`Window`) so composition can target `content` and title/chrome nodes directly.
 
+## Declarative Composition Helpers
+- Prefer `column(...)`/`row(...)`/`overlay(...)`/`panel(...)` for nested composition in canonical
+  app code.
+- Prefer `label(text)`, `paragraph(text, maxWidth)`, and `textLine(text)` for default text nodes
+  when style overrides are unnecessary.
+- Use `button(text, onClick)` for default button construction when advanced styling is not needed.
+- Use `window(spec, fn)` in declarative code paths to compose title/content slots without manual
+  `createWindow` ceremony.
+
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
   to `PrimeFrame::Event`.

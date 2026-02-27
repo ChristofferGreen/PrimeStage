@@ -47,17 +47,10 @@ PrimeStage::UiNode createSection(PrimeStage::UiNode parent, std::string_view tit
   PrimeStage::StackSpec sectionSpec;
   sectionSpec.size.stretchX = 1.0f;
   sectionSpec.gap = 8.0f;
-  PrimeStage::UiNode section = parent.createVerticalStack(sectionSpec);
-
-  PrimeStage::LabelSpec heading;
-  heading.text = title;
-  section.createLabel(heading);
-
-  PrimeStage::DividerSpec divider;
-  divider.size.preferredHeight = 1.0f;
-  divider.size.stretchX = 1.0f;
-  section.createDivider(divider);
-  return section;
+  return parent.column(sectionSpec, [&](PrimeStage::UiNode& section) {
+    section.label(title);
+    section.divider();
+  });
 }
 
 void clearTreeSelection(std::vector<PrimeStage::TreeNode>& nodes) {
@@ -134,7 +127,6 @@ void initializeState(DemoState& state) {
 }
 
 void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
-
   PrimeStage::StackSpec pageSpec;
   pageSpec.size.stretchX = 1.0f;
   pageSpec.size.stretchY = 1.0f;
@@ -143,44 +135,29 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   pageSpec.padding.right = 14.0f;
   pageSpec.padding.bottom = 12.0f;
   pageSpec.gap = 10.0f;
-  PrimeStage::UiNode page = root.createVerticalStack(pageSpec);
-
-  PrimeStage::LabelSpec title;
-  title.text = "PrimeStage Widgets";
-  page.createLabel(title);
-
-  PrimeStage::ParagraphSpec intro;
-  intro.text = "A compact gallery showing each widget with mostly default API usage.";
-  intro.maxWidth = 780.0f;
-  page.createParagraph(intro);
+  PrimeStage::UiNode page = root.column(pageSpec);
+  page.label("PrimeStage Widgets");
+  page.paragraph("A compact gallery showing each widget with mostly default API usage.", 780.0f);
 
   PrimeStage::StackSpec columnsSpec;
   columnsSpec.size.stretchX = 1.0f;
   columnsSpec.size.stretchY = 1.0f;
   columnsSpec.gap = 14.0f;
-  PrimeStage::UiNode columns = page.createHorizontalStack(columnsSpec);
+  PrimeStage::UiNode columns = page.row(columnsSpec);
 
   PrimeStage::StackSpec columnSpec;
   columnSpec.size.stretchX = 1.0f;
   columnSpec.gap = 10.0f;
-  PrimeStage::UiNode leftColumn = columns.createVerticalStack(columnSpec);
-  PrimeStage::UiNode rightColumn = columns.createVerticalStack(columnSpec);
+  PrimeStage::UiNode leftColumn = columns.column(columnSpec);
+  PrimeStage::UiNode rightColumn = columns.column(columnSpec);
 
   PrimeStage::UiNode basic = createSection(leftColumn, "Basic");
   {
-    PrimeStage::TextLineSpec line;
-    line.text = "TextLine";
-    basic.createTextLine(line);
-
-    PrimeStage::LabelSpec label;
-    label.text = "Label widget";
-    basic.createLabel(label);
-
-    PrimeStage::ParagraphSpec paragraph;
-    paragraph.text =
-        "Paragraph widget wraps text naturally based on width constraints provided by layout.";
-    paragraph.maxWidth = 360.0f;
-    basic.createParagraph(paragraph);
+    basic.textLine("TextLine");
+    basic.label("Label widget");
+    basic.paragraph(
+        "Paragraph widget wraps text naturally based on width constraints provided by layout.",
+        360.0f);
 
     PrimeStage::PanelSpec panel;
     panel.size.preferredWidth = 220.0f;
@@ -188,34 +165,20 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     panel.layout = PrimeFrame::LayoutType::VerticalStack;
     panel.padding.left = 6.0f;
     panel.padding.top = 6.0f;
-    PrimeStage::UiNode panelNode = basic.createPanel(panel);
-    PrimeStage::LabelSpec panelLabel;
-    panelLabel.text = "Panel widget";
-    panelNode.createLabel(panelLabel);
-
-    PrimeStage::DividerSpec divider;
-    divider.size.preferredHeight = 1.0f;
-    divider.size.stretchX = 1.0f;
-    basic.createDivider(divider);
-
-    PrimeStage::SpacerSpec spacer;
-    spacer.size.preferredHeight = 4.0f;
-    basic.createSpacer(spacer);
+    basic.panel(panel, [](PrimeStage::UiNode& panelNode) { panelNode.label("Panel widget"); });
+    basic.divider();
+    basic.spacer(4.0f);
   }
 
   PrimeStage::UiNode actions = createSection(leftColumn, "Buttons, Toggle, Checkbox");
   {
     PrimeStage::StackSpec rowSpec;
     rowSpec.gap = 12.0f;
-    PrimeStage::UiNode row = actions.createHorizontalStack(rowSpec);
-
-    PrimeStage::ButtonSpec button;
-    button.label = "Button";
-    button.callbacks.onClick = [&app]() {
+    PrimeStage::UiNode row = actions.row(rowSpec);
+    row.button("Button", [&app]() {
       app.state.clickCount += 1;
       app.ui.lifecycle().requestRebuild();
-    };
-    row.createButton(button);
+    });
 
     PrimeStage::ToggleSpec toggle;
     toggle.state = &app.state.toggle;
@@ -232,10 +195,8 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     };
     row.createCheckbox(checkbox);
 
-    PrimeStage::TextLineSpec summary;
     std::string summaryText = "Clicks: " + std::to_string(app.state.clickCount);
-    summary.text = summaryText;
-    actions.createTextLine(summary);
+    actions.textLine(summaryText);
   }
 
   PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
@@ -413,15 +374,9 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     contentPanel.layout = PrimeFrame::LayoutType::VerticalStack;
     contentPanel.padding.left = 12.0f;
     contentPanel.padding.top = 10.0f;
-    PrimeStage::UiNode scrollContent = scrollView.content.createPanel(contentPanel);
-
-    PrimeStage::LabelSpec scrollLabel;
-    scrollLabel.text = "ScrollView content area";
-    scrollContent.createLabel(scrollLabel);
-
-    PrimeStage::SpacerSpec tallSpacer;
-    tallSpacer.size.preferredHeight = 120.0f;
-    scrollContent.createSpacer(tallSpacer);
+    PrimeStage::UiNode scrollContent = scrollView.content.panel(contentPanel);
+    scrollContent.label("ScrollView content area");
+    scrollContent.spacer(120.0f);
   }
 
   PrimeStage::WindowSpec windowSpec;
@@ -430,11 +385,8 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   windowSpec.positionY = 450.0f;
   windowSpec.width = 220.0f;
   windowSpec.height = 150.0f;
-  PrimeStage::Window window = root.createWindow(windowSpec);
-
-  PrimeStage::LabelSpec windowLabel;
-  windowLabel.text = "Window content";
-  window.content.createLabel(windowLabel);
+  root.window(windowSpec,
+              [](PrimeStage::Window& window) { window.content.label("Window content"); });
 }
 
 void runRebuildIfNeeded(DemoApp& app) {
