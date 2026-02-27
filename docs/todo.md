@@ -114,6 +114,19 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [78] Fix `AppActionInvocation::actionId` lifetime safety.
+  - `AppActionInvocation::actionId` in `include/PrimeStage/App.h` now uses owned
+    `std::string` storage instead of `std::string_view` so callbacks can safely
+    persist invocation payloads after `invokeAction(...)` returns
+  - `src/App.cpp` now moves the copied action id into invocation payload storage
+    before callback dispatch
+  - added regression coverage in `tests/unit/test_app_runtime.cpp`:
+    `App action invocation retains action id after callback lifetime ends`
+    (covers callback-time action unregister + post-dispatch payload checks)
+  - expanded docs/guardrails in `docs/minimal-api-reference.md`,
+    `docs/api-ergonomics-guidelines.md`, `tests/unit/test_api_ergonomics.cpp`,
+    and `AGENTS.md` to document and enforce the owned action-id contract
+
 - ☑ [72] Add full end-to-end ergonomics regression tests.
   - added dedicated suite `tests/unit/test_end_to_end_ergonomics.cpp` covering
     canonical high-level `PrimeStage::App` flows across mouse, keyboard, and

@@ -40,7 +40,7 @@ constexpr bool operator==(AppShortcut const& lhs, AppShortcut const& rhs) {
 }
 
 struct AppActionInvocation {
-  std::string_view actionId;
+  std::string actionId;
   AppActionSource source = AppActionSource::Programmatic;
   std::optional<AppShortcut> shortcut;
 };

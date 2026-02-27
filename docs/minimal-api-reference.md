@@ -74,6 +74,8 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::AppActionCallback`
 - app-level command routing links shortcut, widget callback, and programmatic invocation through
   shared action ids.
+- `AppActionInvocation::actionId` is an owned `std::string` so callbacks can persist/copy
+  invocation payloads safely after dispatch returns.
 
 ## Platform Services
 

@@ -62,6 +62,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - For `TextFieldSpec` / `SelectableTextSpec`, prefer owned-default state (`spec.ownedState`) in canonical examples and reserve raw `state` pointers for explicit compatibility/advanced control paths.
 - For `PrimeStage::App`-based host loops, prefer `connectHostServices(...)` + `applyPlatformServices(...)` for text widgets instead of per-widget clipboard/cursor host lambdas.
 - For keyboard shortcuts and cross-widget commands in canonical host loops, prefer `PrimeStage::App` action routing (`registerAction`, `bindShortcut`, `makeActionCallback`) over ad-hoc raw key event branching.
+- Keep `AppActionInvocation` callback payload lifetimes safe: `actionId` should remain owned data, not a borrowed transient view.
 - For `createWindow(WindowSpec)` usage, keep window geometry in app-owned durable state and treat move/resize callbacks as stateless deltas that drive runtime rebuild/layout requests.
 - Keep `docs/minimal-api-reference.md` aligned with shipped public headers (`PrimeStage.h`, `Ui.h`, `AppRuntime.h`, `InputBridge.h`, `Render.h`) whenever API symbols change.
 - For templated ergonomic entry points (`bind(...)`, `makeListModel(...)`, `makeTableModel(...)`, `makeTreeModel(...)`), keep compile-time validators and static-assert diagnostics concise, actionable, and linked to `docs/minimal-api-reference.md`.

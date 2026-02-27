@@ -293,6 +293,21 @@ TEST_CASE("App action routing validates bindings and repeat policy") {
   CHECK_FALSE(app.invokeAction("demo.repeat"));
 }
 
+TEST_CASE("App action invocation retains action id after callback lifetime ends") {
+  PrimeStage::App app;
+
+  PrimeStage::AppActionInvocation saved{};
+  CHECK(app.registerAction("demo.persist", [&](PrimeStage::AppActionInvocation const& invocation) {
+    saved = invocation;
+    CHECK(app.unregisterAction("demo.persist"));
+  }));
+
+  CHECK(app.invokeAction("demo.persist"));
+  CHECK(saved.actionId == "demo.persist");
+  CHECK(saved.source == PrimeStage::AppActionSource::Programmatic);
+  CHECK_FALSE(saved.shortcut.has_value());
+}
+
 TEST_CASE("App bridges host input events through the owned input bridge state") {
   PrimeStage::App app;
 

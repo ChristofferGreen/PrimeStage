@@ -205,7 +205,7 @@ bool App::invokeAction(std::string_view actionId,
   std::string actionIdCopy = action->id;
   AppActionCallback callback = action->callback;
   AppActionInvocation invocation;
-  invocation.actionId = actionIdCopy;
+  invocation.actionId = std::move(actionIdCopy);
   invocation.source = source;
   invocation.shortcut = shortcut;
   callback(invocation);

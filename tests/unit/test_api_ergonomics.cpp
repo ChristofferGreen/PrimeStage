@@ -1196,6 +1196,7 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(appHeader.find("enum class AppActionSource") != std::string::npos);
   CHECK(appHeader.find("struct AppShortcut") != std::string::npos);
   CHECK(appHeader.find("struct AppActionInvocation") != std::string::npos);
+  CHECK(appHeader.find("std::string actionId;") != std::string::npos);
   CHECK(appHeader.find("using AppActionCallback = std::function<void(AppActionInvocation const&)>;") !=
         std::string::npos);
   CHECK(appHeader.find("bool registerAction(std::string_view actionId, AppActionCallback callback);") !=
@@ -1216,6 +1217,7 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(guidelines.find("scrollDirectionSign") != std::string::npos);
   CHECK(guidelines.find("registerAction(...)") != std::string::npos);
   CHECK(guidelines.find("bindShortcut(...)") != std::string::npos);
+  CHECK(guidelines.find("AppActionInvocation::actionId") != std::string::npos);
 
   std::ifstream apiRefInput(apiRefPath);
   REQUIRE(apiRefInput.good());
@@ -1225,6 +1227,7 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(apiRef.find("registerAction(...)") != std::string::npos);
   CHECK(apiRef.find("bindShortcut(...)") != std::string::npos);
   CHECK(apiRef.find("makeActionCallback(...)") != std::string::npos);
+  CHECK(apiRef.find("AppActionInvocation::actionId") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
