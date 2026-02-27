@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [109] Require canonical-first fallback text in checklist section.
+  - updated `docs/advanced-escape-hatches.md` guardrails with explicit
+    checklist-section phrasing that keeps canonical-first fallback visible
+    (`if canonical tier coverage is sufficient, do not add a new escape hatch`)
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require that
+    checklist-section canonical-first phrasing in advanced onboarding docs,
+    preventing regressions where canonical fallback guidance only appears in
+    earlier sections
+
 - ☑ [108] Include advanced escape-hatch doc in its own update checklist.
   - updated `docs/advanced-escape-hatches.md` checklist so escape-hatch
     additions explicitly include updating `docs/advanced-escape-hatches.md`
