@@ -1272,6 +1272,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/minimal-api-reference.md") != std::string::npos);
   CHECK(advancedEscape.find("Review high-level symbol contracts in `docs/minimal-api-reference.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/api-evolution-policy.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review API compatibility and deprecation rules in `docs/api-evolution-policy.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1724,6 +1727,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/minimal-api-reference.md") != std::string::npos);
   CHECK(advanced.find("Review high-level symbol contracts in `docs/minimal-api-reference.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/api-evolution-policy.md") != std::string::npos);
+  CHECK(advanced.find("Review API compatibility and deprecation rules in `docs/api-evolution-policy.md`") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);

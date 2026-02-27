@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [99] Link advanced onboarding docs to API evolution policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/api-evolution-policy.md` so advanced public-facing API
+    changes review compatibility/deprecation rules first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    API evolution policy link and guardrail phrasing, preventing undocumented
+    advanced API compatibility drift
+
 - ☑ [98] Link advanced onboarding docs to minimal API reference policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/minimal-api-reference.md` so advanced escape-hatch API

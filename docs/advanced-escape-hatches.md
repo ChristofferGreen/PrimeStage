@@ -75,6 +75,8 @@ Use only for explicit interop, not canonical app flow.
   `docs/widget-spec-defaults-audit.md` before introducing advanced per-widget overrides.
 - Review high-level symbol contracts in `docs/minimal-api-reference.md` before exposing new
   advanced escape-hatch API paths.
+- Review API compatibility and deprecation rules in `docs/api-evolution-policy.md` before adding
+  advanced public-facing API surface.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:
