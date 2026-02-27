@@ -1303,11 +1303,13 @@ InternalFocusStyle resolveFocusStyle(PrimeFrame::Frame& frame,
                                      PrimeFrame::RectStyleToken fallbackB,
                                      PrimeFrame::RectStyleToken fallbackC,
                                      PrimeFrame::RectStyleToken fallbackD,
-                                     PrimeFrame::RectStyleToken fallbackE) {
+                                     PrimeFrame::RectStyleToken fallbackE,
+                                     std::optional<PrimeFrame::RectStyleOverride> fallbackOverride) {
   ResolvedFocusStyle resolved = resolve_focus_style(frame,
                                                     focusStyle,
                                                     focusStyleOverride,
-                                                    {fallbackA, fallbackB, fallbackC, fallbackD, fallbackE});
+                                                    {fallbackA, fallbackB, fallbackC, fallbackD, fallbackE},
+                                                    fallbackOverride);
   return InternalFocusStyle{resolved.token, resolved.overrideStyle};
 }
 

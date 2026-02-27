@@ -19,6 +19,7 @@ struct InternalFocusStyle {
 ListSpec normalizeListSpec(ListSpec const& specInput);
 TableSpec normalizeTableSpec(TableSpec const& specInput);
 TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);
+ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();
@@ -36,7 +37,9 @@ InternalFocusStyle resolveFocusStyle(PrimeFrame::Frame& frame,
                                      PrimeFrame::RectStyleToken fallbackB,
                                      PrimeFrame::RectStyleToken fallbackC,
                                      PrimeFrame::RectStyleToken fallbackD,
-                                     PrimeFrame::RectStyleToken fallbackE);
+                                     PrimeFrame::RectStyleToken fallbackE,
+                                     std::optional<PrimeFrame::RectStyleOverride> fallbackOverride =
+                                         std::nullopt);
 void attachFocusOverlay(PrimeFrame::Frame& frame,
                         PrimeFrame::NodeId nodeId,
                         InternalRect const& rect,
