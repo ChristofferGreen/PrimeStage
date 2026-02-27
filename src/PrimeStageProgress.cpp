@@ -21,6 +21,13 @@ constexpr int KeyEnd = keyCodeInt(KeyCode::End);
 UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   ProgressBarSpec spec = Internal::normalizeProgressBarSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -46,13 +53,9 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   panel.visible = spec.visible;
   UiNode bar = createPanel(panel);
   if (!spec.visible) {
-    return UiNode(frame(), bar.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, bar.nodeId(), runtime.allowAbsolute);
   }
-  if (PrimeFrame::Node* node = frame().getNode(bar.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, bar.nodeId());
 
   auto computeFillWidth = [boundsW = bounds.width, minFillW = spec.minFillWidth](float value) {
     float clamped = std::clamp(value, 0.0f, 1.0f);
@@ -72,7 +75,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
 
   PrimeFrame::NodeId fillNodeId{};
   if (fillW > 0.0f || needsPatchState) {
-    fillNodeId = Internal::createRectNode(frame(),
+    fillNodeId = Internal::createRectNode(runtimeFrame,
                                           bar.nodeId(),
                                           Internal::InternalRect{0.0f, 0.0f, fillW, bounds.height},
                                           spec.fillStyle,
@@ -80,7 +83,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
                                           false,
                                           spec.visible);
   }
-  auto applyProgressVisual = [framePtr = &frame(),
+  auto applyProgressVisual = [framePtr = &runtimeFrame,
                               fillNodeId,
                               boundsH = bounds.height,
                               fillBaseOverride = spec.fillStyleOverride,
@@ -185,13 +188,13 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
       }
       return false;
     };
-    if (PrimeFrame::Node* node = frame().getNode(bar.nodeId())) {
-      node->callbacks = frame().addCallback(std::move(callback));
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(bar.nodeId())) {
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
     }
   }
 
   if (spec.visible && enabled) {
-    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                           spec.focusStyle,
                                                                           spec.focusStyleOverride,
                                                                           spec.trackStyle,
@@ -200,21 +203,19 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
                                                                           0,
                                                                           0,
                                                                           spec.trackStyleOverride);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  bar.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       bar.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), bar.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, bar.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createProgressBar(Binding<float> binding) {

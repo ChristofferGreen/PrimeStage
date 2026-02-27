@@ -127,6 +127,11 @@ Release Exit Criteria (for API-quality milestone):
     (`createButton`, `createToggle`, `createCheckbox`) so callback wiring,
     focusability setup, and focus/scrim overlays route through
     `WidgetRuntimeContext`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageSlider.cpp`, `src/PrimeStageDropdown.cpp`, and
+    `src/PrimeStageProgress.cpp` (`createSlider`, `createDropdown`,
+    `createProgressBar`) so interaction roots, callback registration frame
+    access, and focus/scrim overlays route through `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

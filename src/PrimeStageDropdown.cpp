@@ -28,6 +28,13 @@ bool isPointerInside(PrimeFrame::Event const& event) {
 UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   DropdownSpec spec = Internal::normalizeDropdownSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   int optionCount = static_cast<int>(spec.options.size());
   int selectedIndex = spec.selectedIndex;
@@ -37,7 +44,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   }
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
-  float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f) {
@@ -49,12 +56,14 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
     float labelWidth = 0.0f;
     if (optionCount > 0) {
       for (std::string_view option : spec.options) {
-        labelWidth = std::max(labelWidth, Internal::estimateTextWidth(frame(), spec.textStyle, option));
+        labelWidth =
+            std::max(labelWidth, Internal::estimateTextWidth(runtimeFrame, spec.textStyle, option));
       }
     } else if (!selectedLabel.empty()) {
-      labelWidth = Internal::estimateTextWidth(frame(), spec.textStyle, selectedLabel);
+      labelWidth = Internal::estimateTextWidth(runtimeFrame, spec.textStyle, selectedLabel);
     }
-    float indicatorWidth = Internal::estimateTextWidth(frame(), spec.indicatorStyle, spec.indicator);
+    float indicatorWidth =
+        Internal::estimateTextWidth(runtimeFrame, spec.indicatorStyle, spec.indicator);
     float gap = selectedLabel.empty() ? 0.0f : spec.indicatorGap;
     bounds.width = spec.paddingX * 2.0f + labelWidth + gap + indicatorWidth;
   }
@@ -103,15 +112,11 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   dropdown.createTextLine(indicatorText);
 
   if (!spec.visible) {
-    return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, dropdown.nodeId(), runtime.allowAbsolute);
   }
 
-  PrimeFrame::Node* dropdownNode = frame().getNode(dropdown.nodeId());
-  if (dropdownNode) {
-    dropdownNode->focusable = enabled;
-    dropdownNode->hitTestVisible = enabled;
-    dropdownNode->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, dropdown.nodeId());
+  PrimeFrame::Node* dropdownNode = runtimeFrame.getNode(dropdown.nodeId());
   if (dropdownNode && enabled) {
     struct DropdownInteractionState {
       bool pressed = false;
@@ -191,11 +196,11 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
       }
       return false;
     };
-    dropdownNode->callbacks = frame().addCallback(std::move(callback));
+    dropdownNode->callbacks = runtimeFrame.addCallback(std::move(callback));
   }
 
   if (spec.visible && enabled) {
-    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                           spec.focusStyle,
                                                                           spec.focusStyleOverride,
                                                                           spec.backgroundStyle,
@@ -204,21 +209,19 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
                                                                           0,
                                                                           0,
                                                                           spec.backgroundStyleOverride);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  dropdown.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       dropdown.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, dropdown.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createDropdown(std::vector<std::string_view> options, Binding<int> binding) {

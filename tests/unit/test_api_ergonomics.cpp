@@ -3896,6 +3896,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(sliderSource.find("UiNode UiNode::createSlider(Binding<float> binding, bool vertical)") !=
         std::string::npos);
   CHECK(sliderSource.find("Internal::normalizeSliderSpec(specInput)") != std::string::npos);
+  CHECK(sliderSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(sliderSource.find("Internal::configureInteractiveRoot(runtime, slider.nodeId()") !=
+        std::string::npos);
+  CHECK(sliderSource.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
 
   std::ifstream collectionsInput(collectionsPath);
   REQUIRE(collectionsInput.good());
@@ -3952,6 +3956,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(dropdown.find("UiNode UiNode::createDropdown(std::vector<std::string_view> options, Binding<int> binding)") !=
         std::string::npos);
   CHECK(dropdown.find("Internal::normalizeDropdownSpec(specInput)") != std::string::npos);
+  CHECK(dropdown.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(dropdown.find("Internal::configureInteractiveRoot(runtime, dropdown.nodeId()") !=
+        std::string::npos);
+  CHECK(dropdown.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
 
   std::ifstream progressInput(progressPath);
   REQUIRE(progressInput.good());
@@ -3963,6 +3971,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(progress.find("UiNode UiNode::createProgressBar(Binding<float> binding)") !=
         std::string::npos);
   CHECK(progress.find("Internal::normalizeProgressBarSpec(specInput)") != std::string::npos);
+  CHECK(progress.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(progress.find("Internal::configureInteractiveRoot(runtime, bar.nodeId()") !=
+        std::string::npos);
+  CHECK(progress.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
   CHECK(progress.find("Internal::sliderValueFromEvent(event, false, 0.0f)") != std::string::npos);
 
   std::ifstream tabsInput(tabsPath);

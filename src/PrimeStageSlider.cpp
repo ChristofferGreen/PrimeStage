@@ -41,6 +41,13 @@ PrimeFrame::PrimitiveId addRectPrimitiveWithRect(PrimeFrame::Frame& frame,
 UiNode UiNode::createSlider(SliderSpec const& specInput) {
   SliderSpec spec = Internal::normalizeSliderSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -67,7 +74,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   panel.visible = spec.visible;
   UiNode slider = createPanel(panel);
   if (!spec.visible) {
-    return UiNode(frame(), slider.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, slider.nodeId(), runtime.allowAbsolute);
   }
 
   float t = std::clamp(spec.value, 0.0f, 1.0f);
@@ -127,25 +134,25 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
     }
   };
 
-  PrimeFrame::PrimitiveId fillPrim = addRectPrimitiveWithRect(frame(),
+  PrimeFrame::PrimitiveId fillPrim = addRectPrimitiveWithRect(runtimeFrame,
                                                               slider.nodeId(),
                                                               Rect{0.0f, 0.0f, 0.0f, 0.0f},
                                                               spec.fillStyle,
                                                               spec.fillStyleOverride);
-  PrimeFrame::PrimitiveId thumbPrim = addRectPrimitiveWithRect(frame(),
+  PrimeFrame::PrimitiveId thumbPrim = addRectPrimitiveWithRect(runtimeFrame,
                                                                slider.nodeId(),
                                                                Rect{0.0f, 0.0f, 0.0f, 0.0f},
                                                                spec.thumbStyle,
                                                                spec.thumbStyleOverride);
   PrimeFrame::PrimitiveId trackPrim = 0;
   bool trackPrimValid = false;
-  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(slider.nodeId())) {
     if (!node->primitives.empty()) {
       trackPrim = node->primitives.front();
       trackPrimValid = true;
     }
   }
-  applyGeometry(frame(),
+  applyGeometry(runtimeFrame,
                 fillPrim,
                 thumbPrim,
                 t,
@@ -154,7 +161,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                 spec.fillStyleOverride,
                 spec.thumbStyleOverride);
   if (trackPrimValid) {
-    if (PrimeFrame::Primitive* prim = frame().getPrimitive(trackPrim)) {
+    if (PrimeFrame::Primitive* prim = runtimeFrame.getPrimitive(trackPrim)) {
       prim->rect.overrideStyle = spec.trackStyleOverride;
     }
   }
@@ -167,11 +174,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                            spec.callbacks.onDragStart ||
                            spec.callbacks.onDragEnd);
 
-  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, slider.nodeId());
 
   if (wantsInteraction) {
     struct SliderInteractionState {
@@ -264,7 +267,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       return overrideStyle;
     };
 
-    auto applyTrackOverride = [framePtr = &frame(), state, buildTrackOverride]() {
+    auto applyTrackOverride = [framePtr = &runtimeFrame, state, buildTrackOverride]() {
       if (!state->trackPrimValid) {
         return;
       }
@@ -275,7 +278,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
 
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
-                        framePtr = &frame(),
+                        framePtr = &runtimeFrame,
                         state,
                         applyGeometry,
                         updateFromEvent,
@@ -367,14 +370,14 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       }
       return false;
     };
-    PrimeFrame::CallbackId callbackId = frame().addCallback(std::move(callback));
-    if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
+    PrimeFrame::CallbackId callbackId = runtimeFrame.addCallback(std::move(callback));
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(slider.nodeId())) {
       node->callbacks = callbackId;
     }
   }
 
   if (enabled) {
-    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                           spec.focusStyle,
                                                                           spec.focusStyleOverride,
                                                                           spec.thumbStyle,
@@ -383,21 +386,19 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                                                                           0,
                                                                           0,
                                                                           spec.thumbStyleOverride);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  slider.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       slider.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), slider.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, slider.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createSlider(float value,
