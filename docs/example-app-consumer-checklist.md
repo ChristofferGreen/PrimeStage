@@ -22,7 +22,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
 11. Avoid manual `requestRebuild`/`requestLayout`/`requestFrame` calls for ordinary widget
     interactions in canonical examples; rely on `PrimeStage::App` default event-driven scheduling.
 12. Keep `examples/primestage_modern_api.cpp` as the strict default canonical example:
-    no low-level PrimeFrame/PrimeHost internals and complexity constrained by CI thresholds.
+    no low-level PrimeFrame/PrimeHost internals and complexity constrained by
+    `docs/api-ergonomics-scorecard.md` CI thresholds.
 13. Route keyboard shortcuts through `PrimeStage::App` action APIs
     (`registerAction`, `bindShortcut`, `invokeAction`) rather than raw key-switch plumbing.
 14. Prefer `form(...)` and `formField(...)` for settings-like pages instead of hand-built

@@ -13,7 +13,9 @@
 #include <iterator>
 #include <cmath>
 #include <regex>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -93,6 +95,82 @@ float contrastRatio(PrimeFrame::Color const& lhs, PrimeFrame::Color const& rhs) 
   float hi = std::max(lhsLum, rhsLum);
   float lo = std::min(lhsLum, rhsLum);
   return (hi + 0.05f) / (lo + 0.05f);
+}
+
+struct ExampleErgonomicsMetrics {
+  size_t nonEmptyCodeLines = 0u;
+  size_t widgetInstantiationCalls = 0u;
+  float averageLinesPerWidget = 0.0f;
+};
+
+std::string extractFunctionBody(std::string const& source, std::string_view signature) {
+  size_t signaturePos = source.find(signature);
+  if (signaturePos == std::string::npos) {
+    return {};
+  }
+  size_t bodyOpen = source.find('{', signaturePos);
+  if (bodyOpen == std::string::npos) {
+    return {};
+  }
+
+  size_t depth = 0u;
+  size_t bodyStart = bodyOpen + 1u;
+  for (size_t i = bodyOpen; i < source.size(); ++i) {
+    if (source[i] == '{') {
+      ++depth;
+      continue;
+    }
+    if (source[i] == '}') {
+      if (depth == 0u) {
+        return {};
+      }
+      --depth;
+      if (depth == 0u) {
+        return source.substr(bodyStart, i - bodyStart);
+      }
+    }
+  }
+  return {};
+}
+
+size_t countNonEmptyCodeLines(std::string const& source) {
+  std::istringstream stream(source);
+  std::string line;
+  size_t count = 0u;
+  while (std::getline(stream, line)) {
+    size_t begin = line.find_first_not_of(" \t\r");
+    if (begin == std::string::npos) {
+      continue;
+    }
+    if (line.compare(begin, 2u, "//") == 0) {
+      continue;
+    }
+    ++count;
+  }
+  return count;
+}
+
+size_t countWidgetInstantiationCalls(std::string const& source) {
+  static std::regex const WidgetCallPattern(
+      R"(\.(?:create(?:Button|Checkbox|Divider|Dropdown|HorizontalStack|Label|List|Overlay|Panel|Paragraph|ProgressBar|ScrollView|SelectableText|Slider|Spacer|Table|Tabs|TextField|TextLine|Toggle|TreeView|VerticalStack|Window)|button|checkbox|column|divider|dropdown|form|formField|label|overlay|panel|paragraph|progressBar|row|slider|spacer|tabs|textLine|toggle|window)\s*\()",
+      std::regex::ECMAScript);
+  return static_cast<size_t>(
+      std::distance(std::sregex_iterator(source.begin(), source.end(), WidgetCallPattern),
+                    std::sregex_iterator()));
+}
+
+ExampleErgonomicsMetrics measureExampleErgonomics(std::string const& source,
+                                                  std::string_view functionSignature) {
+  ExampleErgonomicsMetrics metrics;
+  std::string body = extractFunctionBody(source, functionSignature);
+  metrics.nonEmptyCodeLines = countNonEmptyCodeLines(body);
+  metrics.widgetInstantiationCalls = countWidgetInstantiationCalls(body);
+  if (metrics.widgetInstantiationCalls > 0u) {
+    metrics.averageLinesPerWidget =
+        static_cast<float>(metrics.nonEmptyCodeLines) /
+        static_cast<float>(metrics.widgetInstantiationCalls);
+  }
+  return metrics;
 }
 
 } // namespace
@@ -851,6 +929,86 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   REQUIRE(modernPos != std::string::npos);
   REQUIRE(widgetsPos != std::string::npos);
   CHECK(modernPos < widgetsPos);
+}
+
+TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {
+  constexpr size_t ModernUiBodyLineBudget = 70u;
+  constexpr size_t WidgetsUiBodyLineBudget = 220u;
+  constexpr float MaxAverageLinesPerWidget = 6.0f;
+  constexpr size_t ModernMinWidgetCalls = 10u;
+  constexpr size_t WidgetsMinWidgetCalls = 35u;
+
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path scorecardPath = repoRoot / "docs" / "api-ergonomics-scorecard.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path checklistPath =
+      repoRoot / "docs" / "example-app-consumer-checklist.md";
+  std::filesystem::path modernExamplePath = repoRoot / "examples" / "primestage_modern_api.cpp";
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  REQUIRE(std::filesystem::exists(scorecardPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(checklistPath));
+  REQUIRE(std::filesystem::exists(modernExamplePath));
+  REQUIRE(std::filesystem::exists(widgetsExamplePath));
+
+  std::ifstream scorecardInput(scorecardPath);
+  REQUIRE(scorecardInput.good());
+  std::string scorecard((std::istreambuf_iterator<char>(scorecardInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!scorecard.empty());
+  CHECK(scorecard.find("Canonical UI LOC (modern)") != std::string::npos);
+  CHECK(scorecard.find("Canonical UI LOC (widgets)") != std::string::npos);
+  CHECK(scorecard.find("Average lines per widget instantiation (modern)") != std::string::npos);
+  CHECK(scorecard.find("Average lines per widget instantiation (widgets)") != std::string::npos);
+  CHECK(scorecard.find("Required spec fields per standard widget") != std::string::npos);
+  CHECK(scorecard.find("`<= 70`") != std::string::npos);
+  CHECK(scorecard.find("`<= 220`") != std::string::npos);
+  CHECK(scorecard.find("`<= 6.0`") != std::string::npos);
+  CHECK(scorecard.find("`>= 10`") != std::string::npos);
+  CHECK(scorecard.find("`>= 35`") != std::string::npos);
+  CHECK(scorecard.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
+  CHECK(scorecard.find("tests/unit/test_builder_api.cpp") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/api-ergonomics-scorecard.md") != std::string::npos);
+
+  std::ifstream checklistInput(checklistPath);
+  REQUIRE(checklistInput.good());
+  std::string checklist((std::istreambuf_iterator<char>(checklistInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!checklist.empty());
+  CHECK(checklist.find("docs/api-ergonomics-scorecard.md") != std::string::npos);
+
+  std::ifstream modernInput(modernExamplePath);
+  REQUIRE(modernInput.good());
+  std::string modernSource((std::istreambuf_iterator<char>(modernInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!modernSource.empty());
+
+  std::ifstream widgetsInput(widgetsExamplePath);
+  REQUIRE(widgetsInput.good());
+  std::string widgetsSource((std::istreambuf_iterator<char>(widgetsInput)),
+                            std::istreambuf_iterator<char>());
+  REQUIRE(!widgetsSource.empty());
+
+  ExampleErgonomicsMetrics modernMetrics =
+      measureExampleErgonomics(modernSource,
+                               "void buildUi(PrimeStage::UiNode root, DemoState& state)");
+  ExampleErgonomicsMetrics widgetsMetrics =
+      measureExampleErgonomics(widgetsSource,
+                               "void rebuildUi(PrimeStage::UiNode root, DemoApp& app)");
+
+  CHECK(modernMetrics.nonEmptyCodeLines <= ModernUiBodyLineBudget);
+  CHECK(widgetsMetrics.nonEmptyCodeLines <= WidgetsUiBodyLineBudget);
+  CHECK(modernMetrics.widgetInstantiationCalls >= ModernMinWidgetCalls);
+  CHECK(widgetsMetrics.widgetInstantiationCalls >= WidgetsMinWidgetCalls);
+  CHECK(modernMetrics.averageLinesPerWidget <= MaxAverageLinesPerWidget);
+  CHECK(widgetsMetrics.averageLinesPerWidget <= MaxAverageLinesPerWidget);
 }
 
 TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics") {

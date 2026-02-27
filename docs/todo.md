@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [67] Add explicit API ergonomics scorecard and measurable thresholds.
-  - define objective targets (example LOC, average lines per widget instantiation, number of required fields per standard widget)
-  - track scorecard in CI/presubmit to prevent regression
-  - acceptance: canonical examples meet targets and fail CI when thresholds regress
-
 - ☐ [68] Harden default behavior consistency matrix.
   - define per-widget defaults for focusability, keyboard activation, pointer semantics, and accessibility role
   - verify matrix via automated tests and docs tables
@@ -91,6 +86,19 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [67] Add explicit API ergonomics scorecard and measurable thresholds.
+  - added `docs/api-ergonomics-scorecard.md` with explicit thresholds for canonical UI LOC,
+    average lines per widget instantiation, widget-call coverage floors, and required spec-field
+    assignments for standard widgets
+  - enforced scorecard thresholds in CI/presubmit through
+    `tests/unit/test_api_ergonomics.cpp` using source-derived metrics from
+    `examples/primestage_modern_api.cpp` and `examples/primestage_widgets.cpp`
+  - expanded default-spec fallback coverage in `tests/unit/test_builder_api.cpp` to verify
+    standard widgets are baseline-instantiable with zero required spec-field assignments
+  - linked scorecard policy into contributor and canonical-example docs
+    (`AGENTS.md`, `docs/api-ergonomics-guidelines.md`, and
+    `docs/example-app-consumer-checklist.md`)
 
 - ☑ [66] Add built-in form API for common input workflows.
   - added `FormSpec` and `FormFieldSpec` plus declarative `UiNode` primitives

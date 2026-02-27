@@ -44,6 +44,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep examples as canonical PrimeStage API consumers; direct PrimeFrame integrations must be explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and aligned with `docs/example-app-consumer-checklist.md`.
 - For canonical example composition, prefer intrinsic widget defaults plus `size.maxWidth` container/text constraints over repeated per-widget `preferredWidth` micromanagement.
 - For settings-like canonical UI flows, prefer `UiNode::form(...)` + `UiNode::formField(...)` over manual row/column label-control-help assembly.
+- Keep canonical API ergonomics within `docs/api-ergonomics-scorecard.md` thresholds; update scorecard docs and enforcing tests together when intentionally changing budgets.
 - For `PrimeStage::App`-based host loops, prefer `connectHostServices(...)` + `applyPlatformServices(...)` for text widgets instead of per-widget clipboard/cursor host lambdas.
 - For keyboard shortcuts and cross-widget commands in canonical host loops, prefer `PrimeStage::App` action routing (`registerAction`, `bindShortcut`, `makeActionCallback`) over ad-hoc raw key event branching.
 - For `createWindow(WindowSpec)` usage, keep window geometry in app-owned durable state and treat move/resize callbacks as stateless deltas that drive runtime rebuild/layout requests.

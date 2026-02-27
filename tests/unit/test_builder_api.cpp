@@ -126,12 +126,69 @@ TEST_CASE("PrimeStage builder API materializes default widget fallbacks") {
   CHECK(field.nodeId() != root.nodeId());
   CHECK(frame.getNode(field.nodeId()) != nullptr);
 
+  PrimeStage::SelectableTextSpec selectableSpec;
+  PrimeStage::UiNode selectable = root.createSelectableText(selectableSpec);
+  CHECK(selectable.nodeId() != root.nodeId());
+  CHECK(frame.getNode(selectable.nodeId()) != nullptr);
+
+  PrimeStage::ToggleSpec toggleSpec;
+  PrimeStage::UiNode toggle = root.createToggle(toggleSpec);
+  CHECK(toggle.nodeId() != root.nodeId());
+  CHECK(frame.getNode(toggle.nodeId()) != nullptr);
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  PrimeStage::UiNode checkbox = root.createCheckbox(checkboxSpec);
+  CHECK(checkbox.nodeId() != root.nodeId());
+  CHECK(frame.getNode(checkbox.nodeId()) != nullptr);
+
+  PrimeStage::SliderSpec sliderSpec;
+  PrimeStage::UiNode slider = root.createSlider(sliderSpec);
+  CHECK(slider.nodeId() != root.nodeId());
+  CHECK(frame.getNode(slider.nodeId()) != nullptr);
+
+  PrimeStage::ProgressBarSpec progressSpec;
+  PrimeStage::UiNode progress = root.createProgressBar(progressSpec);
+  CHECK(progress.nodeId() != root.nodeId());
+  CHECK(frame.getNode(progress.nodeId()) != nullptr);
+
+  PrimeStage::TabsSpec tabsSpec;
+  PrimeStage::UiNode tabs = root.createTabs(tabsSpec);
+  CHECK(tabs.nodeId() != root.nodeId());
+  CHECK(frame.getNode(tabs.nodeId()) != nullptr);
+
+  PrimeStage::DropdownSpec dropdownSpec;
+  PrimeStage::UiNode dropdown = root.createDropdown(dropdownSpec);
+  CHECK(dropdown.nodeId() != root.nodeId());
+  CHECK(frame.getNode(dropdown.nodeId()) != nullptr);
+
+  PrimeStage::ListSpec listSpec;
+  PrimeStage::UiNode list = root.createList(listSpec);
+  CHECK(list.nodeId() != root.nodeId());
+  CHECK(frame.getNode(list.nodeId()) != nullptr);
+
+  PrimeStage::TableSpec tableSpec;
+  PrimeStage::UiNode table = root.createTable(tableSpec);
+  CHECK(table.nodeId() != root.nodeId());
+  CHECK(frame.getNode(table.nodeId()) != nullptr);
+
+  PrimeStage::TreeViewSpec treeSpec;
+  PrimeStage::UiNode tree = root.createTreeView(treeSpec);
+  CHECK(tree.nodeId() != root.nodeId());
+  CHECK(frame.getNode(tree.nodeId()) != nullptr);
+
   PrimeStage::ScrollViewSpec scrollSpec;
   PrimeStage::ScrollView scrollView = root.createScrollView(scrollSpec);
   CHECK(scrollView.root.nodeId() != root.nodeId());
   CHECK(scrollView.content.nodeId().isValid());
   CHECK(frame.getNode(scrollView.root.nodeId()) != nullptr);
   CHECK(frame.getNode(scrollView.content.nodeId()) != nullptr);
+
+  PrimeStage::WindowSpec windowSpec;
+  PrimeStage::Window window = root.createWindow(windowSpec);
+  CHECK(window.root.nodeId() != root.nodeId());
+  CHECK(window.content.nodeId().isValid());
+  CHECK(frame.getNode(window.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(window.content.nodeId()) != nullptr);
 }
 
 TEST_CASE("PrimeStage declarative helpers support nested composition ergonomics") {
