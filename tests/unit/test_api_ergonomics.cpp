@@ -706,6 +706,17 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("template <typename T>\nstruct State") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct Binding") != std::string::npos);
   CHECK(uiHeader.find("Binding<T> bind(State<T>& state)") != std::string::npos);
+  CHECK(uiHeader.find("Binding<T> bind(State<T> const&)") != std::string::npos);
+  CHECK(uiHeader.find("Binding<T> bind(State<T>&&)") != std::string::npos);
+  CHECK(uiHeader.find("PrimeStage::bind(...) requires an lvalue PrimeStage::State<T> with stable lifetime.") !=
+        std::string::npos);
+  CHECK(uiHeader.find("PrimeStage::makeListModel label extractor must be callable as labelOf(item)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("PrimeStage::makeTableModel cell extractor must be callable as cellOf(row, columnIndex)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("PrimeStage::makeTreeModel children extractor must be callable as childrenOf(node)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("See docs/minimal-api-reference.md") != std::string::npos);
   CHECK(uiHeader.find("std::function<void()> onActivate;") != std::string::npos);
   CHECK(uiHeader.find("std::function<void(bool)> onChange;") != std::string::npos);
   CHECK(uiHeader.find("std::function<void(int)> onSelect;") != std::string::npos);
@@ -746,6 +757,11 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("Semantic Callback Surface") != std::string::npos);
   CHECK(apiRef.find("Typed Widget Handles") != std::string::npos);
   CHECK(apiRef.find("Collection Model Adapters") != std::string::npos);
+  CHECK(apiRef.find("Compile-time Diagnostics") != std::string::npos);
+  CHECK(apiRef.find("`PrimeStage::bind(...)` requires an lvalue") != std::string::npos);
+  CHECK(apiRef.find("`PrimeStage::makeListModel(...)` validates") != std::string::npos);
+  CHECK(apiRef.find("`PrimeStage::makeTableModel(...)` validates") != std::string::npos);
+  CHECK(apiRef.find("`PrimeStage::makeTreeModel(...)` validates") != std::string::npos);
   CHECK(apiRef.find("makeListModel(...)") != std::string::npos);
   CHECK(apiRef.find("makeTableModel(...)") != std::string::npos);
   CHECK(apiRef.find("makeTreeModel(...)") != std::string::npos);
@@ -788,6 +804,8 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
                          std::istreambuf_iterator<char>());
   REQUIRE(!guidelines.empty());
   CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
+  CHECK(guidelines.find("Current Gaps") != std::string::npos);
+  CHECK(guidelines.find("- none.") != std::string::npos);
   CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
   CHECK(guidelines.find("Declarative Composition Helpers") != std::string::npos);
   CHECK(guidelines.find("form(...)") != std::string::npos);
@@ -2993,6 +3011,8 @@ TEST_CASE("PrimeStage widget-spec defaults audit is documented and mapped to min
                      std::istreambuf_iterator<char>());
   REQUIRE(!agents.empty());
   CHECK(agents.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
+  CHECK(agents.find("templated ergonomic entry points (`bind(...)`, `makeListModel(...)`, `makeTableModel(...)`, `makeTreeModel(...)`)") !=
+        std::string::npos);
 }
 
 TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {

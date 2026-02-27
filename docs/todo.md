@@ -26,10 +26,7 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [77] Improve compile-time ergonomics and diagnostics.
-  - add `constexpr` validation helpers and clearer static assertions for common misuse
-  - ensure error messages are actionable and reference high-level API docs
-  - acceptance: common mistakes produce concise diagnostics without deep template noise
+_No open items._
 
 
 ## P2 (Foundational Cleanup / Backlog)
@@ -41,6 +38,22 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
+
+- ☑ [77] Improve compile-time ergonomics and diagnostics.
+  - added `constexpr` validation helpers in `include/PrimeStage/Ui.h` for
+    common high-level API misuse:
+    `bind(...)` state ownership shape, list/table/tree model extractor signatures,
+    and model key extractor return type contracts
+  - wired clearer static assertions for `makeListModel(...)`, `makeTableModel(...)`,
+    and `makeTreeModel(...)` so failures explain expected extractor signatures and
+    point directly to `docs/minimal-api-reference.md`
+  - added compile-time regression assertions in
+    `tests/unit/test_end_to_end_ergonomics.cpp` covering positive and negative
+    validator outcomes for list/table/tree adapters and key extractors
+  - expanded documentation/regression guardrails in
+    `docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`,
+    `AGENTS.md`, and `tests/unit/test_api_ergonomics.cpp` so diagnostics guidance
+    stays aligned with shipped API surfaces
 
 - ☑ [76] Add structured widget-spec defaults audit.
   - added `docs/widget-spec-defaults-audit.md` with:

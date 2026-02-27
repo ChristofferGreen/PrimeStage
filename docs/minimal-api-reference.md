@@ -141,6 +141,17 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `bind(TreeViewSpec&)`
 - `PrimeStage::makeTreeModel(...)`
 
+## Compile-time Diagnostics
+
+- `PrimeStage::bind(...)` requires an lvalue `PrimeStage::State<T>` with stable lifetime.
+- `PrimeStage::makeListModel(...)` validates `labelOf(item)` and `keyOf(item)` extractor signatures
+  at compile time.
+- `PrimeStage::makeTableModel(...)` validates `cellOf(row, columnIndex)` and `keyOf(row)`
+  extractor signatures at compile time.
+- `PrimeStage::makeTreeModel(...)` validates `labelOf(node)`, `childrenOf(node)`,
+  `expandedOf(node)`, `selectedOf(node)`, and `keyOf(node)` extractors at compile time.
+- Diagnostics for these APIs include links back to this reference for quick remediation.
+
 ## UiNode Widget Builders
 
 Fluent helpers:

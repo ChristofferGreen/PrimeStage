@@ -70,12 +70,58 @@ concept SupportsDeclarativeConvenienceErgonomics = requires(Node node,
   { node.progressBar(PrimeStage::bind(floatState)) } -> std::same_as<Node>;
 };
 
+struct ErgonomicsTreeNode {
+  std::string label;
+  std::vector<ErgonomicsTreeNode> children;
+  bool expanded = false;
+  bool selected = false;
+  int key = 0;
+};
+
+using IntRows = std::vector<int>;
+using TreeNodes = std::vector<ErgonomicsTreeNode>;
+
 }  // namespace
 
 static_assert(SupportsDeclarativeConvenienceErgonomics<PrimeStage::UiNode>);
 static_assert(!std::is_invocable_v<decltype(&PrimeStage::UiNode::toggle),
                                    PrimeStage::UiNode&,
                                    PrimeStage::Binding<int>>);
+static_assert(PrimeStage::detail::HasValidListModelLabelExtractor<
+              IntRows,
+              decltype([](int value) { return std::to_string(value); })>);
+static_assert(!PrimeStage::detail::HasValidListModelLabelExtractor<
+              IntRows,
+              decltype([](int value, int fallback) { return std::to_string(value + fallback); })>);
+static_assert(PrimeStage::detail::HasValidTableModelCellExtractor<
+              IntRows,
+              decltype([](int row, size_t column) { return std::to_string(row + static_cast<int>(column)); })>);
+static_assert(!PrimeStage::detail::HasValidTableModelCellExtractor<
+              IntRows,
+              decltype([](int row) { return std::to_string(row); })>);
+static_assert(PrimeStage::detail::HasValidModelKeyExtractor<
+              int const&,
+              decltype([](int row) { return row; })>);
+static_assert(!PrimeStage::detail::HasValidModelKeyExtractor<
+              int const&,
+              decltype([](int row) { return std::vector<int>{row}; })>);
+static_assert(PrimeStage::detail::HasValidTreeModelLabelExtractor<
+              TreeNodes,
+              decltype([](ErgonomicsTreeNode const& node) { return node.label; })>);
+static_assert(PrimeStage::detail::HasValidTreeChildrenExtractor<
+              TreeNodes,
+              decltype([](ErgonomicsTreeNode const& node) -> std::vector<ErgonomicsTreeNode> const& {
+                return node.children;
+              })>);
+static_assert(!PrimeStage::detail::HasValidTreeChildrenExtractor<
+              TreeNodes,
+              decltype([](ErgonomicsTreeNode const&) { return 7; })>);
+static_assert(PrimeStage::detail::HasValidTreeExpandedExtractor<
+              TreeNodes,
+              decltype([](ErgonomicsTreeNode const& node) { return node.expanded; })>);
+static_assert(!PrimeStage::detail::HasValidTreeSelectedExtractor<
+              TreeNodes,
+              decltype([](ErgonomicsTreeNode const& node) { return std::span<const ErgonomicsTreeNode>(node.children); })>);
 
 TEST_CASE("PrimeStage end-to-end ergonomics high-level app flow handles mouse keyboard and text input") {
   PrimeStage::App app;

@@ -311,4 +311,4 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Additional compile-time ergonomics diagnostics (`[77]`).
+- none.

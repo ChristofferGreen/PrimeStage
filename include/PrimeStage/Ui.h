@@ -460,6 +460,24 @@ struct State {
   T value{};
 };
 
+namespace detail {
+
+template <typename>
+inline constexpr bool AlwaysFalse = false;
+
+template <typename T>
+struct IsStateType : std::false_type {
+};
+
+template <typename Value>
+struct IsStateType<State<Value>> : std::true_type {
+};
+
+template <typename T>
+inline constexpr bool IsStateTypeV = IsStateType<std::remove_cvref_t<T>>::value;
+
+} // namespace detail
+
 template <typename T>
 struct Binding {
   State<T>* state = nullptr;
@@ -468,6 +486,26 @@ struct Binding {
 template <typename T>
 Binding<T> bind(State<T>& state) {
   return Binding<T>{&state};
+}
+
+template <typename T>
+Binding<T> bind(State<T> const&) {
+  static_assert(detail::AlwaysFalse<T>,
+                "PrimeStage::bind(...) requires a mutable PrimeStage::State<T>& because widgets update bound values during interaction. See docs/minimal-api-reference.md");
+}
+
+template <typename T>
+Binding<T> bind(State<T>&&) {
+  static_assert(detail::AlwaysFalse<T>,
+                "PrimeStage::bind(...) requires an lvalue PrimeStage::State<T> with stable lifetime. Keep State<T> in app-owned state and call bind(state). See docs/minimal-api-reference.md");
+}
+
+template <typename Value>
+void bind(Value&&)
+  requires (!detail::IsStateTypeV<Value>)
+{
+  static_assert(detail::AlwaysFalse<std::remove_cvref_t<Value>>,
+                "PrimeStage::bind(...) expects PrimeStage::State<T>&. For plain values, declare PrimeStage::State<T> first and then call bind(state). See docs/minimal-api-reference.md");
 }
 
 struct ToggleCallbacks {
@@ -907,8 +945,102 @@ private:
 
 namespace detail {
 
-template <typename>
-inline constexpr bool AlwaysFalse = false;
+template <typename KeyValue>
+inline constexpr bool IsSupportedModelKeyValue =
+    std::is_same_v<std::decay_t<KeyValue>, WidgetIdentityId> ||
+    std::is_integral_v<std::decay_t<KeyValue>> ||
+    std::is_convertible_v<KeyValue, std::string_view>;
+
+template <typename ItemRange, typename LabelFn>
+inline constexpr bool HasValidListModelLabelExtractor =
+    requires(LabelFn&& labelOf, std::ranges::range_reference_t<ItemRange const> item) {
+      { std::invoke(std::forward<LabelFn>(labelOf), item) } -> std::convertible_to<std::string_view>;
+    };
+
+template <typename ModelReference, typename KeyFn>
+inline constexpr bool HasInvocableModelKeyExtractor = requires(KeyFn&& keyOf, ModelReference model) {
+  std::invoke(std::forward<KeyFn>(keyOf), model);
+};
+
+template <typename ModelReference, typename KeyFn>
+inline constexpr bool HasValidModelKeyExtractor =
+    std::is_same_v<std::decay_t<KeyFn>, std::nullptr_t> ||
+    (HasInvocableModelKeyExtractor<ModelReference, KeyFn> &&
+     IsSupportedModelKeyValue<std::invoke_result_t<KeyFn, ModelReference>>);
+
+template <typename RowRange, typename CellFn>
+inline constexpr bool HasValidTableModelCellExtractor =
+    requires(CellFn&& cellOf, std::ranges::range_reference_t<RowRange const> row, size_t columnIndex) {
+      { std::invoke(std::forward<CellFn>(cellOf), row, columnIndex) }
+      -> std::convertible_to<std::string_view>;
+    };
+
+template <typename NodeRange, typename LabelFn>
+inline constexpr bool HasValidTreeModelLabelExtractor =
+    requires(LabelFn&& labelOf, std::ranges::range_reference_t<NodeRange const> node) {
+      { std::invoke(std::forward<LabelFn>(labelOf), node) } -> std::convertible_to<std::string_view>;
+    };
+
+template <typename NodeRange, typename ChildrenFn>
+inline constexpr bool HasValidTreeChildrenExtractor =
+    requires(ChildrenFn&& childrenOf, std::ranges::range_reference_t<NodeRange const> node) {
+      requires std::ranges::input_range<std::remove_cvref_t<
+          std::invoke_result_t<ChildrenFn, std::ranges::range_reference_t<NodeRange const>>>>;
+    };
+
+template <typename NodeRange, typename ExpandedFn>
+inline constexpr bool HasValidTreeExpandedExtractor =
+    requires(ExpandedFn&& expandedOf, std::ranges::range_reference_t<NodeRange const> node) {
+      { std::invoke(std::forward<ExpandedFn>(expandedOf), node) } -> std::convertible_to<bool>;
+    };
+
+template <typename NodeRange, typename SelectedFn>
+inline constexpr bool HasValidTreeSelectedExtractor =
+    requires(SelectedFn&& selectedOf, std::ranges::range_reference_t<NodeRange const> node) {
+      { std::invoke(std::forward<SelectedFn>(selectedOf), node) } -> std::convertible_to<bool>;
+    };
+
+template <typename ItemRange, typename LabelFn>
+consteval void validateListModelLabelExtractor() {
+  static_assert(HasValidListModelLabelExtractor<ItemRange, LabelFn>,
+                "PrimeStage::makeListModel label extractor must be callable as labelOf(item) and return a std::string_view-convertible value. See docs/minimal-api-reference.md");
+}
+
+template <typename ModelReference, typename KeyFn>
+consteval void validateModelKeyExtractor() {
+  static_assert(HasValidModelKeyExtractor<ModelReference, KeyFn>,
+                "PrimeStage model key extractor must be callable as keyOf(item) and return WidgetIdentityId, an integral key, or a std::string_view-convertible key. See docs/minimal-api-reference.md");
+}
+
+template <typename RowRange, typename CellFn>
+consteval void validateTableModelCellExtractor() {
+  static_assert(HasValidTableModelCellExtractor<RowRange, CellFn>,
+                "PrimeStage::makeTableModel cell extractor must be callable as cellOf(row, columnIndex) and return a std::string_view-convertible value. See docs/minimal-api-reference.md");
+}
+
+template <typename NodeRange, typename LabelFn>
+consteval void validateTreeModelLabelExtractor() {
+  static_assert(HasValidTreeModelLabelExtractor<NodeRange, LabelFn>,
+                "PrimeStage::makeTreeModel label extractor must be callable as labelOf(node) and return a std::string_view-convertible value. See docs/minimal-api-reference.md");
+}
+
+template <typename NodeRange, typename ChildrenFn>
+consteval void validateTreeChildrenExtractor() {
+  static_assert(HasValidTreeChildrenExtractor<NodeRange, ChildrenFn>,
+                "PrimeStage::makeTreeModel children extractor must be callable as childrenOf(node) and return an input range. See docs/minimal-api-reference.md");
+}
+
+template <typename NodeRange, typename ExpandedFn>
+consteval void validateTreeExpandedExtractor() {
+  static_assert(HasValidTreeExpandedExtractor<NodeRange, ExpandedFn>,
+                "PrimeStage::makeTreeModel expanded extractor must be callable as expandedOf(node) and return a bool-convertible value. See docs/minimal-api-reference.md");
+}
+
+template <typename NodeRange, typename SelectedFn>
+consteval void validateTreeSelectedExtractor() {
+  static_assert(HasValidTreeSelectedExtractor<NodeRange, SelectedFn>,
+                "PrimeStage::makeTreeModel selected extractor must be callable as selectedOf(node) and return a bool-convertible value. See docs/minimal-api-reference.md");
+}
 
 template <typename Value>
 std::string toOwnedString(Value&& value) {
@@ -967,6 +1099,10 @@ struct NeverSelected {
 
 template <std::ranges::input_range ItemRange, typename LabelFn, typename KeyFn>
 ListModelAdapter makeListModel(ItemRange const& items, LabelFn&& labelOf, KeyFn&& keyOf) {
+  using ItemReference = std::ranges::range_reference_t<ItemRange const>;
+  detail::validateListModelLabelExtractor<ItemRange, LabelFn>();
+  detail::validateModelKeyExtractor<ItemReference, KeyFn>();
+
   ListModelAdapter adapter;
   for (auto const& item : items) {
     adapter.ownedItems_.push_back(detail::toOwnedString(std::invoke(labelOf, item)));
@@ -986,6 +1122,10 @@ TableModelAdapter makeTableModel(RowRange const& rows,
                                  size_t columnCount,
                                  CellFn&& cellOf,
                                  KeyFn&& keyOf) {
+  using RowReference = std::ranges::range_reference_t<RowRange const>;
+  detail::validateTableModelCellExtractor<RowRange, CellFn>();
+  detail::validateModelKeyExtractor<RowReference, KeyFn>();
+
   TableModelAdapter adapter;
   adapter.columnCount_ = columnCount;
   for (auto const& row : rows) {
@@ -1018,6 +1158,13 @@ TreeModelAdapter makeTreeModel(NodeRange const& nodes,
                                ExpandedFn&& expandedOf,
                                SelectedFn&& selectedOf,
                                KeyFn&& keyOf) {
+  using NodeReference = std::ranges::range_reference_t<NodeRange const>;
+  detail::validateTreeModelLabelExtractor<NodeRange, LabelFn>();
+  detail::validateTreeChildrenExtractor<NodeRange, ChildrenFn>();
+  detail::validateTreeExpandedExtractor<NodeRange, ExpandedFn>();
+  detail::validateTreeSelectedExtractor<NodeRange, SelectedFn>();
+  detail::validateModelKeyExtractor<NodeReference, KeyFn>();
+
   TreeModelAdapter adapter;
 
   auto makeNode = [&](this auto& self, auto const& nodeValue) -> TreeNode {
