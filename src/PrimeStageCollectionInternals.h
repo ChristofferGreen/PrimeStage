@@ -29,6 +29,7 @@ float defaultCollectionHeight();
 float estimateTextWidth(PrimeFrame::Frame& frame,
                         PrimeFrame::TextStyleToken token,
                         std::string_view text);
+float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);
 float resolveLineHeight(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token);
 InternalFocusStyle resolveFocusStyle(PrimeFrame::Frame& frame,
                                      PrimeFrame::RectStyleToken focusStyle,

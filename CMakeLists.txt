@@ -107,6 +107,7 @@ endfunction()
 set(PRIMESTAGE_SOURCES
   src/App.cpp
   src/PrimeStageCollections.cpp
+  src/PrimeStageProgress.cpp
   src/PrimeStage.cpp
   src/Render.cpp
 )

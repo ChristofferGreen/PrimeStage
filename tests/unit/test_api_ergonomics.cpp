@@ -1551,11 +1551,13 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path examplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(progressCppPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
@@ -1566,12 +1568,18 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
+  std::ifstream progressInput(progressCppPath);
+  REQUIRE(progressInput.good());
+  std::string progress((std::istreambuf_iterator<char>(progressInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!progress.empty());
+  std::string combinedSource = source + progress;
   CHECK(source.find("patchTextFieldVisuals") != std::string::npos);
   CHECK(source.find("TextFieldPatchState") != std::string::npos);
   CHECK(source.find("notify_state = [&]()") != std::string::npos);
   CHECK(source.find("applyToggleVisual") != std::string::npos);
   CHECK(source.find("applyCheckboxVisual") != std::string::npos);
-  CHECK(source.find("applyProgressVisual") != std::string::npos);
+  CHECK(combinedSource.find("applyProgressVisual") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -3123,12 +3131,14 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
   REQUIRE(std::filesystem::exists(matrixPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
+  REQUIRE(std::filesystem::exists(progressCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
 
   std::ifstream matrixInput(matrixPath);
@@ -3177,7 +3187,12 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
                              std::istreambuf_iterator<char>());
   REQUIRE(!collectionsCpp.empty());
-  std::string combinedSource = sourceCpp + collectionsCpp;
+  std::ifstream progressInput(progressCppPath);
+  REQUIRE(progressInput.good());
+  std::string progressCpp((std::istreambuf_iterator<char>(progressInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!progressCpp.empty());
+  std::string combinedSource = sourceCpp + collectionsCpp + progressCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3193,7 +3208,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   CHECK(combinedSource.find("AccessibilityRole::Table") != std::string::npos);
   CHECK(combinedSource.find("AccessibilityRole::Tree") != std::string::npos);
   CHECK(combinedSource.find("AccessibilityRole::Group") != std::string::npos);
-  CHECK(sourceCpp.find("bool needsPatchState = enabled ||") != std::string::npos);
+  CHECK(combinedSource.find("bool needsPatchState = enabled ||") != std::string::npos);
   CHECK(combinedSource.find("LowLevel::appendNodeOnEvent(frame(),") != std::string::npos);
   CHECK(combinedSource.find("tableRoot.nodeId()") != std::string::npos);
 
@@ -3409,10 +3424,12 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
   REQUIRE(std::filesystem::exists(collectionsPath));
+  REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(todoPath));
 
@@ -3427,9 +3444,15 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput)") ==
+        std::string::npos);
+  CHECK(core.find("UiNode UiNode::createProgressBar(Binding<float> binding)") ==
+        std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3453,6 +3476,18 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(collections.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
 
+  std::ifstream progressInput(progressPath);
+  REQUIRE(progressInput.good());
+  std::string progress((std::istreambuf_iterator<char>(progressInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!progress.empty());
+  CHECK(progress.find("UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(progress.find("UiNode UiNode::createProgressBar(Binding<float> binding)") !=
+        std::string::npos);
+  CHECK(progress.find("Internal::normalizeProgressBarSpec(specInput)") != std::string::npos);
+  CHECK(progress.find("Internal::sliderValueFromEvent(event, false, 0.0f)") != std::string::npos);
+
   std::ifstream internalsInput(internalsPath);
   REQUIRE(internalsInput.good());
   std::string internals((std::istreambuf_iterator<char>(internalsInput)),
@@ -3464,7 +3499,11 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
         std::string::npos);
 
   std::ifstream todoInput(todoPath);
