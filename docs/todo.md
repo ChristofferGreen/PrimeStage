@@ -218,7 +218,8 @@ Release Exit Criteria (for API-quality milestone):
   - add review checklist/tests to prevent examples from reintroducing callback/focus workarounds
   - delivered via canonical-consumer checklist doc `docs/example-app-consumer-checklist.md`, advanced-exception inline markers in `examples/primestage_widgets.cpp`, docs/guidance alignment in `README.md`, `docs/prime-stage-design.md`, and `AGENTS.md`, and regression guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [7] Implement window builder (stateless) + callback wiring.
+- ☑ [7] Implement window builder (stateless) + callback wiring.
+  - delivered via `WindowSpec`/`WindowCallbacks`/`Window` API additions and `UiNode::createWindow(...)` in `include/PrimeStage/Ui.h` + `src/PrimeStage.cpp` (stateless move/resize/focus callback wiring), regression coverage in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`, and guidance updates in `docs/prime-stage-design.md`, `docs/api-ergonomics-guidelines.md`, and `AGENTS.md`
 
 - ☐ [10] Final pass: validate naming rules, add minimal API docs, and run tests.
 

@@ -105,6 +105,8 @@ void afterLayout(App& app) {
 - Keep callbacks side-effect-light: update state and mark the app for rebuild/layout.
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
 - For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
+- For window composition via `createWindow(WindowSpec)`, treat move/resize callbacks as stateless
+  delta signals; update app-owned window geometry and request rebuild/layout from your runtime.
 
 ### Callback Threading/Reentrancy Contract
 - Callback execution is synchronous on the event-dispatch thread.

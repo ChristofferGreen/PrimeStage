@@ -677,6 +677,47 @@ struct ScrollViewSpec {
   SizeSpec size;
 };
 
+struct WindowCallbacks {
+  std::function<void()> onFocusRequested;
+  std::function<void(bool)> onFocusChanged;
+  std::function<void()> onMoveStarted;
+  std::function<void(float, float)> onMoved;
+  std::function<void()> onMoveEnded;
+  std::function<void()> onResizeStarted;
+  std::function<void(float, float)> onResized;
+  std::function<void()> onResizeEnded;
+};
+
+struct WindowSpec {
+  AccessibilitySemantics accessibility{};
+  std::string_view title;
+  float positionX = 0.0f;
+  float positionY = 0.0f;
+  float width = 360.0f;
+  float height = 240.0f;
+  float minWidth = 160.0f;
+  float minHeight = 120.0f;
+  float titleBarHeight = 30.0f;
+  float contentPadding = 10.0f;
+  float resizeHandleSize = 14.0f;
+  bool movable = true;
+  bool resizable = true;
+  bool focusable = true;
+  int tabIndex = -1;
+  bool visible = true;
+  WindowCallbacks callbacks{};
+  PrimeFrame::RectStyleToken frameStyle = 0;
+  PrimeFrame::RectStyleOverride frameStyleOverride{};
+  PrimeFrame::RectStyleToken titleBarStyle = 0;
+  PrimeFrame::RectStyleOverride titleBarStyleOverride{};
+  PrimeFrame::TextStyleToken titleTextStyle = 0;
+  PrimeFrame::TextStyleOverride titleTextStyleOverride{};
+  PrimeFrame::RectStyleToken contentStyle = 0;
+  PrimeFrame::RectStyleOverride contentStyleOverride{};
+  PrimeFrame::RectStyleToken resizeHandleStyle = 0;
+  PrimeFrame::RectStyleOverride resizeHandleStyleOverride{};
+};
+
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
                              float trackHeight,
                              float thumbHeight,
@@ -732,6 +773,7 @@ private:
 };
 
 struct ScrollView;
+struct Window;
 
 class UiNode {
 public:
@@ -799,6 +841,7 @@ public:
   UiNode createTable(TableSpec const& spec);
   UiNode createTreeView(TreeViewSpec const& spec);
   ScrollView createScrollView(ScrollViewSpec const& spec);
+  Window createWindow(WindowSpec const& spec);
 
 private:
   std::reference_wrapper<PrimeFrame::Frame> frame_;
@@ -809,6 +852,13 @@ private:
 struct ScrollView {
   UiNode root;
   UiNode content;
+};
+
+struct Window {
+  UiNode root;
+  UiNode titleBar;
+  UiNode content;
+  PrimeFrame::NodeId resizeHandleId{};
 };
 
 } // namespace PrimeStage

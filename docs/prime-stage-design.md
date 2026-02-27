@@ -185,6 +185,16 @@ Window roots are just top-level nodes with a title bar and content slot.
 Z-order is determined by input order or explicit `zOrder` fields from ground truth.
 Window chrome is composed explicitly via widgets or helper builders, not auto-generated implicitly.
 
+Current helper API:
+- `UiNode::createWindow(WindowSpec const& spec)` returns a `Window` with `root`, `titleBar`,
+  and `content` nodes.
+- Pointer interactions are callback-driven and stateless:
+  - `WindowCallbacks::onMoved(deltaX, deltaY)`
+  - `WindowCallbacks::onResized(deltaWidth, deltaHeight)`
+  - `WindowCallbacks::onFocusRequested()` / `onFocusChanged(bool)`
+- PrimeStage reports interaction deltas; app/runtime code owns durable window geometry state and
+  requests rebuild/layout via frame lifecycle helpers.
+
 ## Focus Animation
 Focus is represented as a dedicated rect node that can be patched each frame.
 When focus changes, the rect morphs to the new target bounds via simple interpolation.

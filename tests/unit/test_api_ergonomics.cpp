@@ -295,6 +295,67 @@ TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
   CHECK(design.find("## Open Questions") == std::string::npos);
 }
 
+TEST_CASE("PrimeStage window builder API is stateless and callback-driven") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(uiHeaderPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream uiHeaderInput(uiHeaderPath);
+  REQUIRE(uiHeaderInput.good());
+  std::string uiHeader((std::istreambuf_iterator<char>(uiHeaderInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!uiHeader.empty());
+  CHECK(uiHeader.find("struct WindowCallbacks") != std::string::npos);
+  CHECK(uiHeader.find("struct WindowSpec") != std::string::npos);
+  CHECK(uiHeader.find("Window createWindow(WindowSpec const& spec);") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void(float, float)> onMoved;") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void(float, float)> onResized;") != std::string::npos);
+
+  std::ifstream sourceCppInput(sourceCppPath);
+  REQUIRE(sourceCppInput.good());
+  std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sourceCpp.empty());
+  CHECK(sourceCpp.find("Window UiNode::createWindow(WindowSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(sourceCpp.find("callbacks.onMoved") != std::string::npos);
+  CHECK(sourceCpp.find("callbacks.onResized") != std::string::npos);
+  CHECK(sourceCpp.find("callbacks.onFocusRequested") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("createWindow(WindowSpec const& spec)") != std::string::npos);
+  CHECK(design.find("onMoved(deltaX, deltaY)") != std::string::npos);
+  CHECK(design.find("onResized(deltaWidth, deltaHeight)") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("createWindow(WindowSpec)") != std::string::npos);
+  CHECK(guidelines.find("stateless") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("createWindow(WindowSpec)") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage README and design docs match shipped workflow and API names") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

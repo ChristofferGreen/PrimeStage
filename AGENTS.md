@@ -39,3 +39,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep FetchContent dependency defaults pinned to immutable commits and update `docs/dependency-resolution-policy.md` whenever `*_GIT_TAG` values change.
 - Keep input/focus fuzz/property tests deterministic (fixed RNG seeds + explicit regression corpus) so failures are reproducible.
 - Keep examples as canonical PrimeStage API consumers; direct PrimeFrame integrations must be explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and aligned with `docs/example-app-consumer-checklist.md`.
+- For `createWindow(WindowSpec)` usage, keep window geometry in app-owned durable state and treat move/resize callbacks as stateless deltas that drive runtime rebuild/layout requests.

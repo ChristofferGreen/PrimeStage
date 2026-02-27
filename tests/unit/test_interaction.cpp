@@ -6,6 +6,7 @@
 #include "third_party/doctest.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 static PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame, float width, float height) {
@@ -1286,4 +1287,155 @@ TEST_CASE("PrimeStage table callbacks keep row text alive for short-lived source
   REQUIRE(clickedCells.size() == 2u);
   CHECK(clickedCells[0] == "Alpha");
   CHECK(clickedCells[1] == "One");
+}
+
+TEST_CASE("PrimeStage window builder clamps geometry and emits slots") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 640.0f, 480.0f);
+
+  PrimeStage::WindowSpec spec;
+  spec.title = "Inspector";
+  spec.positionX = 32.0f;
+  spec.positionY = 24.0f;
+  spec.width = 120.0f;
+  spec.height = 80.0f;
+  spec.minWidth = 220.0f;
+  spec.minHeight = 140.0f;
+  spec.titleBarHeight = 24.0f;
+  spec.contentPadding = 8.0f;
+  spec.resizeHandleSize = -4.0f;
+  spec.tabIndex = -9;
+  spec.frameStyle = 701u;
+  spec.titleBarStyle = 702u;
+  spec.contentStyle = 703u;
+
+  PrimeStage::Window window = root.createWindow(spec);
+
+  PrimeFrame::Node const* windowNode = frame.getNode(window.root.nodeId());
+  PrimeFrame::Node const* titleNode = frame.getNode(window.titleBar.nodeId());
+  PrimeFrame::Node const* contentNode = frame.getNode(window.content.nodeId());
+  REQUIRE(windowNode != nullptr);
+  REQUIRE(titleNode != nullptr);
+  REQUIRE(contentNode != nullptr);
+
+  REQUIRE(windowNode->sizeHint.width.preferred.has_value());
+  REQUIRE(windowNode->sizeHint.height.preferred.has_value());
+  CHECK(windowNode->localX == doctest::Approx(32.0f));
+  CHECK(windowNode->localY == doctest::Approx(24.0f));
+  CHECK(windowNode->sizeHint.width.preferred.value() == doctest::Approx(220.0f));
+  CHECK(windowNode->sizeHint.height.preferred.value() == doctest::Approx(140.0f));
+  CHECK(windowNode->tabIndex == -1);
+
+  REQUIRE(titleNode->sizeHint.height.preferred.has_value());
+  CHECK(titleNode->sizeHint.height.preferred.value() == doctest::Approx(24.0f));
+  CHECK(contentNode->localY == doctest::Approx(24.0f));
+  REQUIRE(contentNode->sizeHint.height.preferred.has_value());
+  CHECK(contentNode->sizeHint.height.preferred.value() == doctest::Approx(116.0f));
+  CHECK_FALSE(window.resizeHandleId.isValid());
+}
+
+TEST_CASE("PrimeStage window builder wires focus move and resize callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 640.0f, 480.0f);
+
+  int focusRequests = 0;
+  int focusChanges = 0;
+  int moveStart = 0;
+  int moveEnd = 0;
+  int resizeStart = 0;
+  int resizeEnd = 0;
+  std::vector<std::pair<float, float>> moveDeltas;
+  std::vector<std::pair<float, float>> resizeDeltas;
+
+  PrimeStage::WindowSpec spec;
+  spec.title = "Main";
+  spec.positionX = 50.0f;
+  spec.positionY = 40.0f;
+  spec.width = 260.0f;
+  spec.height = 180.0f;
+  spec.titleBarHeight = 28.0f;
+  spec.resizeHandleSize = 16.0f;
+  spec.frameStyle = 711u;
+  spec.titleBarStyle = 712u;
+  spec.contentStyle = 713u;
+  spec.resizeHandleStyle = 714u;
+  spec.callbacks.onFocusRequested = [&]() { focusRequests += 1; };
+  spec.callbacks.onFocusChanged = [&](bool focused) { focusChanges += focused ? 1 : -1; };
+  spec.callbacks.onMoveStarted = [&]() { moveStart += 1; };
+  spec.callbacks.onMoved = [&](float deltaX, float deltaY) {
+    moveDeltas.push_back({deltaX, deltaY});
+  };
+  spec.callbacks.onMoveEnded = [&]() { moveEnd += 1; };
+  spec.callbacks.onResizeStarted = [&]() { resizeStart += 1; };
+  spec.callbacks.onResized = [&](float deltaWidth, float deltaHeight) {
+    resizeDeltas.push_back({deltaWidth, deltaHeight});
+  };
+  spec.callbacks.onResizeEnded = [&]() { resizeEnd += 1; };
+
+  PrimeStage::Window window = root.createWindow(spec);
+  REQUIRE(window.resizeHandleId.isValid());
+
+  PrimeFrame::Node const* windowNode = frame.getNode(window.root.nodeId());
+  REQUIRE(windowNode != nullptr);
+  REQUIRE(windowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  PrimeFrame::Callback const* windowCallbacks = frame.getCallback(windowNode->callbacks);
+  REQUIRE(windowCallbacks != nullptr);
+  REQUIRE(windowCallbacks->onFocus);
+  REQUIRE(windowCallbacks->onBlur);
+  windowCallbacks->onFocus();
+  windowCallbacks->onBlur();
+  CHECK(focusChanges == 0);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 640.0f, 480.0f);
+  PrimeFrame::LayoutOut const* titleOut = layout.get(window.titleBar.nodeId());
+  PrimeFrame::LayoutOut const* resizeOut = layout.get(window.resizeHandleId);
+  REQUIRE(titleOut != nullptr);
+  REQUIRE(resizeOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  router.setDragThreshold(0.0f);
+  PrimeFrame::FocusManager focus;
+
+  float titleX = titleOut->absX + titleOut->absW * 0.5f;
+  float titleY = titleOut->absY + titleOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, titleX, titleY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDrag, 1, titleX + 18.0f, titleY + 11.0f),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, titleX + 18.0f, titleY + 11.0f),
+                  frame,
+                  layout,
+                  &focus);
+
+  float resizeX = resizeOut->absX + resizeOut->absW * 0.5f;
+  float resizeY = resizeOut->absY + resizeOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, resizeX, resizeY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDrag, 2, resizeX + 14.0f, resizeY + 9.0f),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, resizeX + 14.0f, resizeY + 9.0f),
+                  frame,
+                  layout,
+                  &focus);
+
+  CHECK(focusRequests >= 2);
+  CHECK(moveStart == 1);
+  CHECK(moveEnd == 1);
+  REQUIRE(moveDeltas.size() == 1u);
+  CHECK(moveDeltas[0].first == doctest::Approx(18.0f));
+  CHECK(moveDeltas[0].second == doctest::Approx(11.0f));
+
+  CHECK(resizeStart == 1);
+  CHECK(resizeEnd == 1);
+  REQUIRE(resizeDeltas.size() == 1u);
+  CHECK(resizeDeltas[0].first == doctest::Approx(14.0f));
+  CHECK(resizeDeltas[0].second == doctest::Approx(9.0f));
 }
