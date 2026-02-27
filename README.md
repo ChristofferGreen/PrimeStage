@@ -96,3 +96,4 @@ diagnostics.
 - `docs/performance-benchmarks.md`
 - `docs/visual-test-harness.md`
 - `docs/cmake-packaging.md`
+- `docs/example-app-consumer-checklist.md`

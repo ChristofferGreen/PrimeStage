@@ -213,9 +213,10 @@ Release Exit Criteria (for API-quality milestone):
   - include regression corpus for previously observed focus/callback bugs
   - delivered via deterministic property/fuzz suite `tests/unit/test_state_machine_fuzz.cpp` (seeded mixed-event generation + invariant checks + regression corpus), test-target wiring in `CMakeLists.txt`, source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`, and reproducibility guidance in `AGENTS.md`
 
-- ☐ [50] Make example apps canonical API consumers.
+- ☑ [50] Make example apps canonical API consumers.
   - ensure examples avoid direct `PrimeFrame` internals except where explicitly documented as advanced
   - add review checklist/tests to prevent examples from reintroducing callback/focus workarounds
+  - delivered via canonical-consumer checklist doc `docs/example-app-consumer-checklist.md`, advanced-exception inline markers in `examples/primestage_widgets.cpp`, docs/guidance alignment in `README.md`, `docs/prime-stage-design.md`, and `AGENTS.md`, and regression guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [7] Implement window builder (stateless) + callback wiring.
 

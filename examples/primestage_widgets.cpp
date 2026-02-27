@@ -137,6 +137,8 @@ struct DemoApp {
   PrimeStage::InputBridgeState inputBridge{};
 };
 
+// Advanced PrimeFrame integration (documented exception): theme token/palette bootstrap
+// currently requires direct PrimeFrame::Theme access in host-owned example apps.
 void applyDemoTheme(PrimeFrame::Frame& frame, PrimeStage::RenderOptions& renderOptions) {
   PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
   if (!theme) {
@@ -367,6 +369,8 @@ void rebuildUi(DemoApp& app) {
   app.router.clearAllCaptures();
   applyDemoTheme(app.frame, app.renderOptions);
 
+  // Advanced PrimeFrame integration (documented exception): root-node creation and
+  // layout bootstrap are owned by the host-loop runtime in this example app.
   PrimeFrame::NodeId rootId = app.frame.createNode();
   app.frame.addRoot(rootId);
   if (PrimeFrame::Node* rootNode = app.frame.getNode(rootId)) {
@@ -850,6 +854,8 @@ void updateLayoutIfNeeded(DemoApp& app) {
     uint32_t heightPx = app.renderHeight > 0u ? app.renderHeight : app.surfaceHeight;
     options.rootWidth = static_cast<float>(widthPx) / scale;
     options.rootHeight = static_cast<float>(heightPx) / scale;
+    // Advanced PrimeFrame integration (documented exception): explicit layout and
+    // focus reconciliation is orchestrated at host-loop boundaries.
     app.layoutEngine.layout(app.frame, app.layout, options);
     app.focus.updateAfterRebuild(app.frame, app.layout);
 
@@ -865,6 +871,8 @@ void updateLayoutIfNeeded(DemoApp& app) {
 
 bool dispatchFrameEvent(DemoApp& app, PrimeFrame::Event const& event) {
   updateLayoutIfNeeded(app);
+  // Advanced PrimeFrame integration (documented exception): low-level router dispatch
+  // remains a host-loop concern before PrimeStage provides a full app runtime wrapper.
   return app.router.dispatch(event, app.frame, app.layout, &app.focus);
 }
 

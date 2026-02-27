@@ -38,3 +38,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep runtime version reporting (`getVersion()` / `getVersionString()`) derived from CMake project metadata via generated version headers; avoid hard-coded version literals in source/tests.
 - Keep FetchContent dependency defaults pinned to immutable commits and update `docs/dependency-resolution-policy.md` whenever `*_GIT_TAG` values change.
 - Keep input/focus fuzz/property tests deterministic (fixed RNG seeds + explicit regression corpus) so failures are reproducible.
+- Keep examples as canonical PrimeStage API consumers; direct PrimeFrame integrations must be explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and aligned with `docs/example-app-consumer-checklist.md`.

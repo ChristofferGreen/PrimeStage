@@ -166,43 +166,77 @@ TEST_CASE("PrimeStage text field without state is non-editable by default") {
   CHECK_FALSE(focus.focusedNode().isValid());
 }
 
-TEST_CASE("PrimeStage widgets example uses widget callbacks without PrimeFrame callback plumbing") {
+TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
-  std::filesystem::path examplePath = repoRoot / "examples" / "primestage_widgets.cpp";
-  REQUIRE(std::filesystem::exists(examplePath));
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  std::filesystem::path basicExamplePath = repoRoot / "examples" / "primestage_example.cpp";
+  std::filesystem::path checklistPath =
+      repoRoot / "docs" / "example-app-consumer-checklist.md";
+  REQUIRE(std::filesystem::exists(widgetsExamplePath));
+  REQUIRE(std::filesystem::exists(basicExamplePath));
+  REQUIRE(std::filesystem::exists(checklistPath));
 
-  std::ifstream input(examplePath);
-  REQUIRE(input.good());
-  std::string source((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-  REQUIRE(!source.empty());
+  std::ifstream widgetsInput(widgetsExamplePath);
+  REQUIRE(widgetsInput.good());
+  std::string widgetsSource((std::istreambuf_iterator<char>(widgetsInput)),
+                            std::istreambuf_iterator<char>());
+  REQUIRE(!widgetsSource.empty());
 
-  CHECK(source.find("tabsSpec.callbacks.onTabChanged") != std::string::npos);
-  CHECK(source.find("dropdownSpec.callbacks.onOpened") != std::string::npos);
-  CHECK(source.find("dropdownSpec.callbacks.onSelected") != std::string::npos);
-  CHECK(source.find("widgetIdentity.registerNode") != std::string::npos);
-  CHECK(source.find("widgetIdentity.restoreFocus") != std::string::npos);
-  CHECK(source.find("bridgeHostInputEvent") != std::string::npos);
-  CHECK(source.find("HostKey::Escape") != std::string::npos);
-  CHECK(source.find("scrollDirectionSign") != std::string::npos);
-  CHECK(source.find("PrimeStage::FrameLifecycle") != std::string::npos);
-  CHECK(source.find("runRebuildIfNeeded(app)") != std::string::npos);
-  CHECK(source.find("app.runtime.requestRebuild()") != std::string::npos);
-  CHECK(source.find("app.runtime.framePending()") != std::string::npos);
+  CHECK(widgetsSource.find("tabsSpec.callbacks.onTabChanged") != std::string::npos);
+  CHECK(widgetsSource.find("dropdownSpec.callbacks.onOpened") != std::string::npos);
+  CHECK(widgetsSource.find("dropdownSpec.callbacks.onSelected") != std::string::npos);
+  CHECK(widgetsSource.find("widgetIdentity.registerNode") != std::string::npos);
+  CHECK(widgetsSource.find("widgetIdentity.restoreFocus") != std::string::npos);
+  CHECK(widgetsSource.find("bridgeHostInputEvent") != std::string::npos);
+  CHECK(widgetsSource.find("HostKey::Escape") != std::string::npos);
+  CHECK(widgetsSource.find("scrollDirectionSign") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::FrameLifecycle") != std::string::npos);
+  CHECK(widgetsSource.find("runRebuildIfNeeded(app)") != std::string::npos);
+  CHECK(widgetsSource.find("app.runtime.requestRebuild()") != std::string::npos);
+  CHECK(widgetsSource.find("app.runtime.framePending()") != std::string::npos);
+  CHECK(widgetsSource.find("Advanced PrimeFrame integration (documented exception):") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("theme token/palette bootstrap") != std::string::npos);
+  CHECK(widgetsSource.find("root-node creation and") != std::string::npos);
+  CHECK(widgetsSource.find("explicit layout and") != std::string::npos);
+  CHECK(widgetsSource.find("low-level router dispatch") != std::string::npos);
 
   // App-level widget usage should not rely on raw PrimeFrame callback mutation.
-  CHECK(source.find("appendNodeEventCallback") == std::string::npos);
-  CHECK(source.find("node->callbacks =") == std::string::npos);
-  CHECK(source.find("PrimeFrame::Callback callback") == std::string::npos);
-  CHECK(source.find("RestoreFocusTarget") == std::string::npos);
-  CHECK(source.find("std::get_if<PrimeHost::PointerEvent>") == std::string::npos);
-  CHECK(source.find("std::get_if<PrimeHost::KeyEvent>") == std::string::npos);
-  CHECK(source.find("KeyEscape") == std::string::npos);
-  CHECK(source.find("0x28") == std::string::npos);
-  CHECK(source.find("0x50") == std::string::npos);
-  CHECK(source.find("needsRebuild") == std::string::npos);
-  CHECK(source.find("needsLayout") == std::string::npos);
-  CHECK(source.find("needsFrame") == std::string::npos);
+  CHECK(widgetsSource.find("appendNodeEventCallback") == std::string::npos);
+  CHECK(widgetsSource.find("node->callbacks =") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeFrame::Callback callback") == std::string::npos);
+  CHECK(widgetsSource.find("RestoreFocusTarget") == std::string::npos);
+  CHECK(widgetsSource.find("std::get_if<PrimeHost::PointerEvent>") == std::string::npos);
+  CHECK(widgetsSource.find("std::get_if<PrimeHost::KeyEvent>") == std::string::npos);
+  CHECK(widgetsSource.find("KeyEscape") == std::string::npos);
+  CHECK(widgetsSource.find("0x28") == std::string::npos);
+  CHECK(widgetsSource.find("0x50") == std::string::npos);
+  CHECK(widgetsSource.find("needsRebuild") == std::string::npos);
+  CHECK(widgetsSource.find("needsLayout") == std::string::npos);
+  CHECK(widgetsSource.find("needsFrame") == std::string::npos);
+
+  std::ifstream basicExampleInput(basicExamplePath);
+  REQUIRE(basicExampleInput.good());
+  std::string basicExample((std::istreambuf_iterator<char>(basicExampleInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!basicExample.empty());
+  CHECK(basicExample.find("#include \"PrimeFrame/") == std::string::npos);
+  CHECK(basicExample.find("PrimeStage::getVersionString") != std::string::npos);
+
+  std::ifstream checklistInput(checklistPath);
+  REQUIRE(checklistInput.good());
+  std::string checklist((std::istreambuf_iterator<char>(checklistInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!checklist.empty());
+  CHECK(checklist.find("Canonical Rules") != std::string::npos);
+  CHECK(checklist.find("bridgeHostInputEvent") != std::string::npos);
+  CHECK(checklist.find("FrameLifecycle") != std::string::npos);
+  CHECK(checklist.find("WidgetIdentityReconciler") != std::string::npos);
+  CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
+  CHECK(checklist.find("Advanced PrimeFrame integration (documented exception):") !=
+        std::string::npos);
+  CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics") {
@@ -283,6 +317,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
   CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
   CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+  CHECK(readme.find("docs/example-app-consumer-checklist.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -295,6 +330,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(design.find("## Focus Behavior (Current)") != std::string::npos);
   CHECK(design.find("Focusable by default") != std::string::npos);
   CHECK(design.find("docs/api-evolution-policy.md") != std::string::npos);
+  CHECK(design.find("docs/example-app-consumer-checklist.md") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage API evolution policy defines semver deprecation and migration notes") {

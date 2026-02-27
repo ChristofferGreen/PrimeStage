@@ -65,6 +65,8 @@ Examples:
 
 Application code should provide callback behavior at spec level and avoid direct `PrimeFrame::Callback`
 table mutation for standard widget usage.
+Canonical example-app usage and documented advanced exceptions are tracked in
+`docs/example-app-consumer-checklist.md`.
 For advanced extension points, use PrimeStage callback composition helpers:
 - `appendNodeOnEvent(...)`
 - `appendNodeOnFocus(...)`
