@@ -1263,6 +1263,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/api-ergonomics-guidelines.md") != std::string::npos);
   CHECK(advancedEscape.find("Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/default-widget-behavior-matrix.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review default interaction/visual behavior expectations in") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1706,6 +1709,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
   CHECK(advanced.find("examples/canonical/*.cpp") != std::string::npos);
   CHECK(advanced.find("docs/api-ergonomics-guidelines.md") != std::string::npos);
   CHECK(advanced.find("Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/default-widget-behavior-matrix.md") != std::string::npos);
+  CHECK(advanced.find("Review default interaction/visual behavior expectations in") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);

@@ -69,6 +69,8 @@ Use only for explicit interop, not canonical app flow.
   or changing advanced integrations.
 - Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md` before
   expanding advanced usage.
+- Review default interaction/visual behavior expectations in
+  `docs/default-widget-behavior-matrix.md` before changing advanced visual behavior.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:

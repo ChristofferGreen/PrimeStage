@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [96] Link advanced onboarding docs to default-visual behavior policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/default-widget-behavior-matrix.md` so advanced visual
+    behavior changes review default interaction/visual expectations first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    default-behavior matrix link and guardrail phrasing, preventing advanced
+    visual changes from drifting away from documented defaults
+
 - ☑ [95] Link advanced onboarding docs to API ergonomics policy guardrails.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     pre-change handoff to `docs/api-ergonomics-guidelines.md` so advanced
