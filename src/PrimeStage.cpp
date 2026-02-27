@@ -1376,6 +1376,12 @@ SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput) {
   return spec;
 }
 
+TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput) {
+  TextLineSpec spec = specInput;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
+  return spec;
+}
+
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = specInput;
   sanitize_size_spec(spec.size, "ScrollViewSpec.size");
@@ -2704,89 +2710,6 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) 
 
   return column;
 }
-
-
-UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
-  TextLineSpec spec = specInput;
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
-  PrimeFrame::TextStyleToken token = spec.textStyle;
-  float lineHeight = resolve_line_height(frame(), token);
-  Rect bounds = resolve_rect(spec.size);
-  if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f &&
-      !spec.text.empty()) {
-    float textWidth = estimate_text_width(frame(), token, spec.text);
-    if (bounds.width <= 0.0f) {
-      bounds.width = textWidth;
-    }
-    if (bounds.height <= 0.0f) {
-      bounds.height = lineHeight;
-    }
-  }
-  float containerHeight = bounds.height > 0.0f ? bounds.height : lineHeight;
-  float textY = (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
-
-  float textWidth = estimate_text_width(frame(), token, spec.text);
-  float containerWidth = bounds.width;
-  bool manualAlign = spec.align != PrimeFrame::TextAlign::Start &&
-                     containerWidth > 0.0f &&
-                     textWidth > 0.0f;
-
-  PrimeFrame::NodeId lineId;
-  if (manualAlign) {
-    float offset = 0.0f;
-    if (spec.align == PrimeFrame::TextAlign::Center) {
-      offset = (containerWidth - textWidth) * 0.5f;
-    } else if (spec.align == PrimeFrame::TextAlign::End) {
-      offset = containerWidth - textWidth;
-    }
-    float x = offset;
-    if (x < 0.0f) {
-      x = 0.0f;
-    }
-    Rect textRect{x, textY, textWidth, lineHeight};
-    lineId = create_text_node(frame(),
-                              id_,
-                              textRect,
-                              spec.text,
-                              token,
-                              spec.textStyleOverride,
-                              PrimeFrame::TextAlign::Start,
-                              PrimeFrame::WrapMode::None,
-                              textWidth,
-                              spec.visible);
-  } else {
-    float width = containerWidth > 0.0f ? containerWidth : textWidth;
-    Rect textRect{0.0f, textY, width, lineHeight};
-    lineId = create_text_node(frame(),
-                              id_,
-                              textRect,
-                              spec.text,
-                              token,
-                              spec.textStyleOverride,
-                              spec.align,
-                              PrimeFrame::WrapMode::None,
-                              width,
-                              spec.visible);
-  }
-  return UiNode(frame(), lineId, allowAbsolute_);
-}
-
-UiNode UiNode::createTextLine(std::string_view text,
-                              PrimeFrame::TextStyleToken textStyle,
-                              SizeSpec const& size,
-                              PrimeFrame::TextAlign align) {
-  TextLineSpec spec;
-  spec.text = text;
-  spec.textStyle = textStyle;
-  spec.align = align;
-  spec.size = size;
-  return createTextLine(spec);
-}
-
 
 
 UiNode UiNode::createTextField(TextFieldSpec const& specInput) {

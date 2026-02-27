@@ -63,6 +63,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createDivider(DividerSpec)` and
     `createSpacer(SpacerSpec)` runtime into `src/PrimeStageLayoutPrimitives.cpp`,
     with shared divider/spacer normalization routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createTextLine(TextLineSpec)` runtime into
+    `src/PrimeStageTextLine.cpp`, with shared text-line normalization routed via
+    `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
