@@ -795,6 +795,33 @@ void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor);
 // provide cross-thread synchronization. Direct reentrant invocation of the same
 // composed callback chain is suppressed at runtime to avoid recursive callback
 // loops.
+struct NodeCallbackTable {
+  std::function<bool(PrimeFrame::Event const&)> onEvent;
+  std::function<void()> onFocus;
+  std::function<void()> onBlur;
+};
+
+class NodeCallbackHandle {
+public:
+  NodeCallbackHandle() = default;
+  NodeCallbackHandle(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId, NodeCallbackTable callbackTable);
+  NodeCallbackHandle(NodeCallbackHandle const&) = delete;
+  NodeCallbackHandle& operator=(NodeCallbackHandle const&) = delete;
+  NodeCallbackHandle(NodeCallbackHandle&& other) noexcept;
+  NodeCallbackHandle& operator=(NodeCallbackHandle&& other) noexcept;
+  ~NodeCallbackHandle();
+
+  bool bind(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId, NodeCallbackTable callbackTable);
+  void reset();
+  bool active() const { return active_; }
+
+private:
+  PrimeFrame::Frame* frame_ = nullptr;
+  PrimeFrame::NodeId nodeId_{};
+  PrimeFrame::CallbackId previousCallbackId_ = PrimeFrame::InvalidCallbackId;
+  bool active_ = false;
+};
+
 bool appendNodeOnEvent(PrimeFrame::Frame& frame,
                        PrimeFrame::NodeId nodeId,
                        std::function<bool(PrimeFrame::Event const&)> onEvent);

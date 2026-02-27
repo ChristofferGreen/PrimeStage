@@ -241,7 +241,8 @@ Release Exit Criteria (for API-quality milestone):
 
 - ☑ [1] Establish core ids, enums, and shared widget specs.
   - delivered via `WidgetKind` + `widgetKindName(...)`, `WidgetIdentityId` + `widgetIdentityId(...)`, shared spec bases (`WidgetSpec`/`EnableableWidgetSpec`/`FocusableWidgetSpec`) and spec adoption in `include/PrimeStage/Ui.h`, reconciler id-overload support in `src/PrimeStage.cpp`, regression coverage in `tests/unit/test_api_ergonomics.cpp`, and docs alignment in `docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and `AGENTS.md`
-- ☐ [2] Define callback table + RAII callback handle.
+- ☑ [2] Define callback table + RAII callback handle.
+  - delivered via `NodeCallbackTable` + move-only `NodeCallbackHandle` API in `include/PrimeStage/Ui.h`, install/restore implementation in `src/PrimeStage.cpp`, RAII/move/teardown regression coverage in `tests/unit/test_api_ergonomics.cpp`, and callback-guidance updates in `docs/minimal-api-reference.md`, `docs/callback-reentrancy-threading.md`, `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and `AGENTS.md`
 - ☐ [3] Implement `UiNode` fluent builder for `Frame` authoring.
 - ☐ [4] Implement widget creation helpers (panel, label, divider, spacer).
 - ☐ [5] Implement interactive widgets (button, edit box, toggle, checkbox, slider).

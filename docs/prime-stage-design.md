@@ -75,6 +75,8 @@ For advanced extension points, use PrimeStage callback composition helpers:
 - `appendNodeOnEvent(...)`
 - `appendNodeOnFocus(...)`
 - `appendNodeOnBlur(...)`
+For scoped callback-table replacement on a node, use `NodeCallbackTable` with
+`NodeCallbackHandle` to restore previous callback wiring automatically.
 Callback reentrancy/threading guarantees are documented in
 `docs/callback-reentrancy-threading.md`.
 Data ownership/lifetime guarantees for `std::string_view` specs and callback captures are

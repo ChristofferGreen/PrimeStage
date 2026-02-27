@@ -1447,6 +1447,80 @@ void report_callback_reentry(char const* callbackName) {
 #endif
 }
 
+NodeCallbackHandle::NodeCallbackHandle(PrimeFrame::Frame& frame,
+                                       PrimeFrame::NodeId nodeId,
+                                       NodeCallbackTable callbackTable) {
+  bind(frame, nodeId, std::move(callbackTable));
+}
+
+NodeCallbackHandle::NodeCallbackHandle(NodeCallbackHandle&& other) noexcept
+    : frame_(other.frame_),
+      nodeId_(other.nodeId_),
+      previousCallbackId_(other.previousCallbackId_),
+      active_(other.active_) {
+  other.frame_ = nullptr;
+  other.nodeId_ = PrimeFrame::NodeId{};
+  other.previousCallbackId_ = PrimeFrame::InvalidCallbackId;
+  other.active_ = false;
+}
+
+NodeCallbackHandle& NodeCallbackHandle::operator=(NodeCallbackHandle&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  reset();
+  frame_ = other.frame_;
+  nodeId_ = other.nodeId_;
+  previousCallbackId_ = other.previousCallbackId_;
+  active_ = other.active_;
+  other.frame_ = nullptr;
+  other.nodeId_ = PrimeFrame::NodeId{};
+  other.previousCallbackId_ = PrimeFrame::InvalidCallbackId;
+  other.active_ = false;
+  return *this;
+}
+
+NodeCallbackHandle::~NodeCallbackHandle() {
+  reset();
+}
+
+bool NodeCallbackHandle::bind(PrimeFrame::Frame& frame,
+                              PrimeFrame::NodeId nodeId,
+                              NodeCallbackTable callbackTable) {
+  reset();
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return false;
+  }
+  previousCallbackId_ = node->callbacks;
+  PrimeFrame::Callback callback;
+  callback.onEvent = std::move(callbackTable.onEvent);
+  callback.onFocus = std::move(callbackTable.onFocus);
+  callback.onBlur = std::move(callbackTable.onBlur);
+  node->callbacks = frame.addCallback(std::move(callback));
+  frame_ = &frame;
+  nodeId_ = nodeId;
+  active_ = true;
+  return true;
+}
+
+void NodeCallbackHandle::reset() {
+  if (!active_ || !frame_) {
+    frame_ = nullptr;
+    nodeId_ = PrimeFrame::NodeId{};
+    previousCallbackId_ = PrimeFrame::InvalidCallbackId;
+    active_ = false;
+    return;
+  }
+  if (PrimeFrame::Node* node = frame_->getNode(nodeId_)) {
+    node->callbacks = previousCallbackId_;
+  }
+  frame_ = nullptr;
+  nodeId_ = PrimeFrame::NodeId{};
+  previousCallbackId_ = PrimeFrame::InvalidCallbackId;
+  active_ = false;
+}
+
 static PrimeFrame::Callback* ensureNodeCallback(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId) {
   PrimeFrame::Node* node = frame.getNode(nodeId);
   if (!node) {

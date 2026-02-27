@@ -594,11 +594,13 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
       repoRoot / "docs" / "callback-reentrancy-threading.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
   REQUIRE(std::filesystem::exists(callbackDocPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
 
@@ -613,6 +615,7 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   CHECK(callbackDoc.find("appendNodeOnEvent") != std::string::npos);
   CHECK(callbackDoc.find("appendNodeOnFocus") != std::string::npos);
   CHECK(callbackDoc.find("appendNodeOnBlur") != std::string::npos);
+  CHECK(callbackDoc.find("NodeCallbackHandle") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -628,6 +631,15 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
                      std::istreambuf_iterator<char>());
   REQUIRE(!design.empty());
   CHECK(design.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+  CHECK(design.find("NodeCallbackHandle") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("NodeCallbackTable") != std::string::npos);
+  CHECK(apiRef.find("NodeCallbackHandle") != std::string::npos);
 
   std::ifstream uiHeaderInput(uiHeaderPath);
   REQUIRE(uiHeaderInput.good());
@@ -635,6 +647,8 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
                        std::istreambuf_iterator<char>());
   REQUIRE(!uiHeader.empty());
   CHECK(uiHeader.find("Direct reentrant invocation of the same") != std::string::npos);
+  CHECK(uiHeader.find("struct NodeCallbackTable") != std::string::npos);
+  CHECK(uiHeader.find("class NodeCallbackHandle") != std::string::npos);
 
   std::ifstream sourceCppInput(sourceCppPath);
   REQUIRE(sourceCppInput.good());
@@ -643,6 +657,8 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   REQUIRE(!sourceCpp.empty());
   CHECK(sourceCpp.find("CallbackReentryScope") != std::string::npos);
   CHECK(sourceCpp.find("reentrant %s invocation suppressed") != std::string::npos);
+  CHECK(sourceCpp.find("NodeCallbackHandle::bind") != std::string::npos);
+  CHECK(sourceCpp.find("NodeCallbackHandle::reset") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wired") {
@@ -1601,6 +1617,91 @@ TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing cal
   CHECK(callback->onEvent(handledByPrevious));
   CHECK(appendedCalls == 2);
   CHECK(previousCalls == 1);
+}
+
+TEST_CASE("PrimeStage NodeCallbackHandle installs callbacks and restores previous table") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId nodeId = frame.createNode();
+  frame.addRoot(nodeId);
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  REQUIRE(node != nullptr);
+
+  int previousEventCalls = 0;
+  int previousFocusCalls = 0;
+  PrimeFrame::Callback previous;
+  previous.onEvent = [&](PrimeFrame::Event const&) -> bool {
+    previousEventCalls += 1;
+    return false;
+  };
+  previous.onFocus = [&]() { previousFocusCalls += 1; };
+  node->callbacks = frame.addCallback(std::move(previous));
+  PrimeFrame::CallbackId previousId = node->callbacks;
+
+  int handleEventCalls = 0;
+  int handleFocusCalls = 0;
+  {
+    PrimeStage::NodeCallbackTable table;
+    table.onEvent = [&](PrimeFrame::Event const&) -> bool {
+      handleEventCalls += 1;
+      return true;
+    };
+    table.onFocus = [&]() { handleFocusCalls += 1; };
+
+    PrimeStage::NodeCallbackHandle handle(frame, nodeId, std::move(table));
+    CHECK(handle.active());
+    CHECK(node->callbacks != previousId);
+
+    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+    REQUIRE(callback != nullptr);
+    REQUIRE(callback->onEvent);
+    REQUIRE(callback->onFocus);
+
+    PrimeFrame::Event event;
+    event.type = PrimeFrame::EventType::KeyDown;
+    event.key = 55;
+    CHECK(callback->onEvent(event));
+    callback->onFocus();
+  }
+
+  CHECK(node->callbacks == previousId);
+  CHECK(handleEventCalls == 1);
+  CHECK(handleFocusCalls == 1);
+
+  PrimeFrame::Callback const* restored = frame.getCallback(node->callbacks);
+  REQUIRE(restored != nullptr);
+  REQUIRE(restored->onEvent);
+  REQUIRE(restored->onFocus);
+
+  PrimeFrame::Event after;
+  after.type = PrimeFrame::EventType::KeyDown;
+  after.key = 56;
+  CHECK_FALSE(restored->onEvent(after));
+  restored->onFocus();
+  CHECK(previousEventCalls == 1);
+  CHECK(previousFocusCalls == 1);
+}
+
+TEST_CASE("PrimeStage NodeCallbackHandle move and reset tolerate node destruction") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeFrame::NodeId childId = frame.createNode();
+  REQUIRE(frame.addChild(rootId, childId));
+
+  PrimeStage::NodeCallbackTable table;
+  table.onEvent = [](PrimeFrame::Event const&) -> bool { return true; };
+
+  PrimeStage::NodeCallbackHandle first;
+  CHECK(first.bind(frame, childId, std::move(table)));
+  CHECK(first.active());
+
+  PrimeStage::NodeCallbackHandle second(std::move(first));
+  CHECK_FALSE(first.active());
+  CHECK(second.active());
+
+  REQUIRE(frame.destroyNode(childId));
+  second.reset();
+  CHECK_FALSE(second.active());
 }
 
 TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks") {

@@ -111,6 +111,10 @@ Callback semantics:
   - `registerNode(...)`
   - `findNode(...)`
   - `restoreFocus(...)`
+- `PrimeStage::NodeCallbackTable`
+- `PrimeStage::NodeCallbackHandle`
+  - `bind(...)`
+  - `reset()`
 
 ## Render Surface APIs
 
