@@ -1,3 +1,5 @@
+// Advanced PrimeFrame integration (documented exception): this sample intentionally demonstrates
+// advanced host/runtime interop through PrimeHost and PrimeFrame integration points.
 #include "PrimeHost/PrimeHost.h"
 #include "PrimeStage/App.h"
 #include "PrimeStage/PrimeStage.h"

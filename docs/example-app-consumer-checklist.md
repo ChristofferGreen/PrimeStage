@@ -33,8 +33,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
 
 ## Advanced Exceptions
 
-Direct PrimeFrame usage is allowed in examples only when the operation is explicitly marked as an
-advanced host/runtime integration concern and no PrimeStage wrapper currently exists.
+Direct PrimeFrame/PrimeHost usage is allowed in examples only when the operation is explicitly
+marked as an advanced host/runtime integration concern and no PrimeStage wrapper currently exists.
 
 Current documented advanced exceptions:
 - none for canonical examples; low-level runtime ownership belongs to `PrimeStage::App`.
@@ -49,7 +49,7 @@ For lifecycle scheduling exceptions, use
 ## Review Checklist
 
 - Confirm canonical rules above are followed.
-- Confirm any direct PrimeFrame internals are covered by the advanced-exception tag.
+- Confirm any direct PrimeFrame/PrimeHost internals are covered by the advanced-exception tag.
 - Confirm simple canonical examples (for example `examples/canonical/primestage_example.cpp`)
   avoid direct
   `PrimeFrame` headers and internals.

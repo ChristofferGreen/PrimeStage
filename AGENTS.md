@@ -49,7 +49,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep input/focus fuzz/property tests deterministic (fixed RNG seeds + explicit regression corpus) so failures are reproducible.
 - Keep examples split by tier: `examples/canonical` must stay high-level PrimeStage-only, while
   host/frame internals live in `examples/advanced`; any direct PrimeFrame integration must be
-  explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and
+  explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):`; this
+  tag also covers direct PrimeHost runtime integration in advanced examples, and
   aligned with `docs/example-app-consumer-checklist.md`.
 - Keep canonical examples free of manual lifecycle scheduling calls (`requestRebuild`,
   `requestLayout`, `requestFrame`) for ordinary interactions; advanced examples may use them only

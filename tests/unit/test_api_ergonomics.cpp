@@ -875,6 +875,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
       "Advanced PrimeFrame integration (documented exception):";
   constexpr size_t PrimeFrameTagLookbackLines = 24u;
   constexpr std::string_view PrimeFrameIncludeMarker = "#include \"PrimeFrame/";
+  constexpr std::string_view PrimeHostIncludeMarker = "#include \"PrimeHost/";
   constexpr std::string_view LifecycleOrchestrationTag =
       "Advanced lifecycle orchestration (documented exception):";
   constexpr size_t LifecycleTagLookbackLines = 24u;
@@ -908,6 +909,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   bool foundLifecycleOrchestrationExample = false;
   bool foundPrimeFrameIntegrationExample = false;
   bool foundPrimeFrameIncludeMarker = false;
+  bool foundPrimeHostIncludeMarker = false;
   for (std::filesystem::path const& advancedSourcePath : advancedSources) {
     std::ifstream advancedInput(advancedSourcePath);
     REQUIRE(advancedInput.good());
@@ -949,6 +951,14 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
                              PrimeFrameIntegrationTag,
                              PrimeFrameTagLookbackLines));
         }
+        if (advancedSourceLines[lineIndex].find(PrimeHostIncludeMarker) != std::string::npos) {
+          foundPrimeHostIncludeMarker = true;
+          INFO("advanced PrimeHost include marker line: " << (lineIndex + 1u));
+          CHECK(hasNearbyTag(advancedSourceLines,
+                             lineIndex,
+                             PrimeFrameIntegrationTag,
+                             PrimeFrameTagLookbackLines));
+        }
         if (advancedSourceLines[lineIndex].find("PrimeFrame::") == std::string::npos) {
           continue;
         }
@@ -960,6 +970,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(foundLifecycleOrchestrationExample);
   CHECK(foundPrimeFrameIntegrationExample);
   CHECK(foundPrimeFrameIncludeMarker);
+  CHECK(foundPrimeHostIncludeMarker);
 
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;
@@ -1179,6 +1190,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
         std::string::npos);
   CHECK(checklist.find("Advanced PrimeFrame integration (documented exception):") !=
         std::string::npos);
+  CHECK(checklist.find("PrimeFrame/PrimeHost") != std::string::npos);
   CHECK(checklist.find("Advanced lifecycle orchestration (documented exception):") !=
         std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);

@@ -138,6 +138,19 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [87] Enforce proximity of advanced PrimeHost include exception tags.
+  - tightened `tests/unit/test_api_ergonomics.cpp` to require advanced
+    `#include "PrimeHost/..."` markers to have a nearby inline exception tag
+    `Advanced PrimeFrame integration (documented exception):`
+  - added positive include-marker coverage guards and checklist string checks
+    so PrimeHost exception-policy wording is regression-tested
+  - added an inline advanced integration tag adjacent to the PrimeHost include
+    block in `examples/advanced/primestage_widgets.cpp`
+  - clarified exception policy wording in
+    `docs/example-app-consumer-checklist.md` and `AGENTS.md` so the existing
+    advanced integration tag is explicitly documented for PrimeFrame/PrimeHost
+    internals
+
 - ☑ [86] Enforce proximity of advanced PrimeFrame include exception tags.
   - tightened `tests/unit/test_api_ergonomics.cpp` to require advanced
     `#include "PrimeFrame/..."` markers to have a nearby inline exception tag
