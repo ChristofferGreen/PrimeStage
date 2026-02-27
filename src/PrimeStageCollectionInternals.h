@@ -22,6 +22,8 @@ TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);
 ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput);
 DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput);
 TabsSpec normalizeTabsSpec(TabsSpec const& specInput);
+ToggleSpec normalizeToggleSpec(ToggleSpec const& specInput);
+CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();

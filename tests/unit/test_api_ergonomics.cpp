@@ -1551,12 +1551,14 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path examplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(booleanCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -1568,17 +1570,22 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
+  std::ifstream booleanInput(booleanCppPath);
+  REQUIRE(booleanInput.good());
+  std::string booleanSource((std::istreambuf_iterator<char>(booleanInput)),
+                            std::istreambuf_iterator<char>());
+  REQUIRE(!booleanSource.empty());
   std::ifstream progressInput(progressCppPath);
   REQUIRE(progressInput.good());
   std::string progress((std::istreambuf_iterator<char>(progressInput)),
                        std::istreambuf_iterator<char>());
   REQUIRE(!progress.empty());
-  std::string combinedSource = source + progress;
+  std::string combinedSource = source + booleanSource + progress;
   CHECK(source.find("patchTextFieldVisuals") != std::string::npos);
   CHECK(source.find("TextFieldPatchState") != std::string::npos);
   CHECK(source.find("notify_state = [&]()") != std::string::npos);
-  CHECK(source.find("applyToggleVisual") != std::string::npos);
-  CHECK(source.find("applyCheckboxVisual") != std::string::npos);
+  CHECK(combinedSource.find("applyToggleVisual") != std::string::npos);
+  CHECK(combinedSource.find("applyCheckboxVisual") != std::string::npos);
   CHECK(combinedSource.find("applyProgressVisual") != std::string::npos);
 
   std::ifstream designInput(designPath);
@@ -3130,6 +3137,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
@@ -3139,6 +3147,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(booleanCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
@@ -3186,6 +3195,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
+  std::ifstream booleanInput(booleanCppPath);
+  REQUIRE(booleanInput.good());
+  std::string booleanCpp((std::istreambuf_iterator<char>(booleanInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!booleanCpp.empty());
   std::ifstream collectionsInput(collectionsCppPath);
   REQUIRE(collectionsInput.good());
   std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
@@ -3206,7 +3220,8 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string tabsCpp((std::istreambuf_iterator<char>(tabsInput)),
                       std::istreambuf_iterator<char>());
   REQUIRE(!tabsCpp.empty());
-  std::string combinedSource = sourceCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
+  std::string combinedSource =
+      sourceCpp + booleanCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3437,6 +3452,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path booleanPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
@@ -3444,6 +3460,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
+  REQUIRE(std::filesystem::exists(booleanPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(progressPath));
@@ -3473,6 +3490,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createTabs(TabsSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createToggle(ToggleSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createCheckbox(CheckboxSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3483,8 +3502,24 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("TabsSpec normalizeTabsSpec(TabsSpec const& specInput)") !=
         std::string::npos);
+  CHECK(core.find("ToggleSpec normalizeToggleSpec(ToggleSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput)") !=
+        std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
+
+  std::ifstream booleanInput(booleanPath);
+  REQUIRE(booleanInput.good());
+  std::string booleanSource((std::istreambuf_iterator<char>(booleanInput)),
+                            std::istreambuf_iterator<char>());
+  REQUIRE(!booleanSource.empty());
+  CHECK(booleanSource.find("UiNode UiNode::createToggle(ToggleSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(booleanSource.find("UiNode UiNode::createCheckbox(CheckboxSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(booleanSource.find("Internal::normalizeToggleSpec(specInput)") != std::string::npos);
+  CHECK(booleanSource.find("Internal::normalizeCheckboxSpec(specInput)") != std::string::npos);
 
   std::ifstream collectionsInput(collectionsPath);
   REQUIRE(collectionsInput.good());
@@ -3554,6 +3589,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("TabsSpec normalizeTabsSpec(TabsSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("ToggleSpec normalizeToggleSpec(ToggleSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
