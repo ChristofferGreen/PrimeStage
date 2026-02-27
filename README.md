@@ -72,6 +72,10 @@ Default quick start:
 ./build-debug/primestage_modern_api
 ```
 
+Onboarding guides:
+- `docs/5-minute-app.md` (recommended canonical path)
+- `docs/advanced-escape-hatches.md` (advanced host/frame escape hatches)
+
 ## Tests
 
 From a build dir:
@@ -120,6 +124,8 @@ diagnostics.
 - `docs/visual-test-harness.md`
 - `docs/cmake-packaging.md`
 - `docs/build-artifact-hygiene.md`
+- `docs/5-minute-app.md`
+- `docs/advanced-escape-hatches.md`
 - `docs/example-app-consumer-checklist.md`
 - `docs/widget-api-review-checklist.md`
 - `docs/minimal-api-reference.md`

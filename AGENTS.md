@@ -48,6 +48,9 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   host/frame internals live in `examples/advanced`; any direct PrimeFrame integration must be
   explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and
   aligned with `docs/example-app-consumer-checklist.md`.
+- Keep onboarding docs split and aligned with shipped examples: update
+  `docs/5-minute-app.md` for canonical-first guidance and
+  `docs/advanced-escape-hatches.md` for low-level paths whenever tier guidance changes.
 - For canonical example composition, prefer intrinsic widget defaults plus `size.maxWidth` container/text constraints over repeated per-widget `preferredWidth` micromanagement.
 - For settings-like canonical UI flows, prefer `UiNode::form(...)` + `UiNode::formField(...)` over manual row/column label-control-help assembly.
 - Keep canonical API ergonomics within `docs/api-ergonomics-scorecard.md` thresholds; update scorecard docs and enforcing tests together when intentionally changing budgets.

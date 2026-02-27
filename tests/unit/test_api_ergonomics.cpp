@@ -1402,6 +1402,8 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
   CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
   CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+  CHECK(readme.find("docs/5-minute-app.md") != std::string::npos);
+  CHECK(readme.find("docs/advanced-escape-hatches.md") != std::string::npos);
   CHECK(readme.find("docs/example-app-consumer-checklist.md") != std::string::npos);
   CHECK(readme.find("docs/widget-api-review-checklist.md") != std::string::npos);
   CHECK(readme.find("docs/minimal-api-reference.md") != std::string::npos);
@@ -1447,6 +1449,64 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(apiRef.find("createTreeView(nodes, size)") != std::string::npos);
   CHECK(apiRef.find("createScrollView(size, showVertical, showHorizontal)") != std::string::npos);
   CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path fiveMinutePath = repoRoot / "docs" / "5-minute-app.md";
+  std::filesystem::path advancedPath = repoRoot / "docs" / "advanced-escape-hatches.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  REQUIRE(std::filesystem::exists(fiveMinutePath));
+  REQUIRE(std::filesystem::exists(advancedPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+
+  std::ifstream fiveMinuteInput(fiveMinutePath);
+  REQUIRE(fiveMinuteInput.good());
+  std::string fiveMinute((std::istreambuf_iterator<char>(fiveMinuteInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!fiveMinute.empty());
+  CHECK(fiveMinute.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
+  CHECK(fiveMinute.find("PrimeStage::App") != std::string::npos);
+  CHECK(fiveMinute.find("runRebuildIfNeeded") != std::string::npos);
+  CHECK(fiveMinute.find("renderToPng") != std::string::npos);
+  CHECK(fiveMinute.find("docs/advanced-escape-hatches.md") != std::string::npos);
+  CHECK(fiveMinute.find("PrimeHost::Host") == std::string::npos);
+  CHECK(fiveMinute.find("PrimeFrame::LayoutEngine") == std::string::npos);
+  CHECK(fiveMinute.find("PrimeStage::LowLevel") == std::string::npos);
+
+  std::ifstream advancedInput(advancedPath);
+  REQUIRE(advancedInput.good());
+  std::string advanced((std::istreambuf_iterator<char>(advancedInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!advanced.empty());
+  CHECK(advanced.find("docs/5-minute-app.md") != std::string::npos);
+  CHECK(advanced.find("examples/advanced/primestage_widgets.cpp") != std::string::npos);
+  CHECK(advanced.find("examples/advanced/primestage_scene.cpp") != std::string::npos);
+  CHECK(advanced.find("PrimeHost::Host") != std::string::npos);
+  CHECK(advanced.find("PrimeFrame::LayoutEngine") != std::string::npos);
+  CHECK(advanced.find("PrimeStage::LowLevel") != std::string::npos);
+  CHECK(advanced.find("lowLevelNodeId") != std::string::npos);
+  CHECK(advanced.find("examples/canonical/*.cpp") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("docs/5-minute-app.md") != std::string::npos);
+  CHECK(readme.find("docs/advanced-escape-hatches.md") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/5-minute-app.md") != std::string::npos);
+  CHECK(guidelines.find("docs/advanced-escape-hatches.md") != std::string::npos);
+  CHECK(guidelines.find("[74]") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage widget API review checklist is documented and PR-gated") {

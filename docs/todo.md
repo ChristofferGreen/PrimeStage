@@ -26,11 +26,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [74] Add dedicated docs for "5-minute app" and "advanced escape hatches".
-  - include a concise getting-started API that maps directly to canonical sample code
-  - separately document when/why to drop to low-level APIs
-  - acceptance: docs clearly separate recommended vs advanced usage paths
-
 - ☐ [75] Add automated API surface linting.
   - detect and flag forbidden headers/types in canonical examples (`PrimeFrame/*`, raw `NodeId`, manual event translation)
   - enforce linting in CI for examples and docs snippets
@@ -56,6 +51,18 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
+
+- ☑ [74] Add dedicated docs for "5-minute app" and "advanced escape hatches".
+  - added dedicated onboarding docs:
+    `docs/5-minute-app.md` (canonical-first quick start) and
+    `docs/advanced-escape-hatches.md` (low-level/interop decision guide)
+  - documented direct mapping from onboarding steps to canonical sample source
+    (`examples/canonical/primestage_modern_api.cpp`) and explicit advanced references
+    (`examples/advanced/primestage_widgets.cpp`, `examples/advanced/primestage_scene.cpp`)
+  - updated documentation surfaces in `README.md`, `docs/api-ergonomics-guidelines.md`, and
+    `AGENTS.md` to keep recommended and advanced usage paths explicitly separated
+  - added regression guard coverage in `tests/unit/test_api_ergonomics.cpp` to enforce
+    onboarding-doc presence, canonical/advanced content separation, and README/guideline links
 
 - ☑ [73] Split examples into `canonical` and `advanced` tiers.
   - moved example sources into explicit tier directories:

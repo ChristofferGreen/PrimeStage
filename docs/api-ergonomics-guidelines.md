@@ -8,6 +8,8 @@ Ergonomics quality budgets and regression gates are tracked in `docs/api-ergonom
 Widget/control API merge requirements are tracked in `docs/widget-api-review-checklist.md`.
 End-to-end high-level input ergonomics regressions are gated in
 `tests/unit/test_end_to_end_ergonomics.cpp`.
+Onboarding split is documented in `docs/5-minute-app.md` (recommended canonical path) and
+`docs/advanced-escape-hatches.md` (advanced-only escape hatches).
 
 ## Responsibility Split
 PrimeStage responsibilities:
@@ -308,6 +310,5 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Onboarding docs for "5-minute app" and advanced escape hatches (`[74]`).
 - Automated API surface linting and defaults audit (`[75]`/`[76]`).
 - Additional compile-time ergonomics diagnostics (`[77]`).
