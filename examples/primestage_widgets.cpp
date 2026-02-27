@@ -30,8 +30,8 @@ struct DemoState {
   PrimeStage::CheckboxState checkbox{};
   PrimeStage::TabsState tabs{};
   PrimeStage::DropdownState dropdown{};
+  PrimeStage::SliderState slider{};
   PrimeStage::ProgressBarState progress{};
-  float sliderValue = 0.35f;
   int clickCount = 0;
   int listSelectedIndex = 1;
   int tableSelectedRow = -1;
@@ -114,7 +114,8 @@ void initializeState(DemoState& state) {
   state.textField.text = "Editable text field";
   state.toggle.on = true;
   state.checkbox.checked = false;
-  state.progress.value = state.sliderValue;
+  state.slider.value = 0.35f;
+  state.progress.value = state.slider.value;
   state.tabs.selectedIndex = 0;
   state.dropdown.selectedIndex = 0;
   state.selectableTextContent =
@@ -333,23 +334,13 @@ void rebuildUi(DemoApp& app) {
   PrimeStage::UiNode range = createSection(rightColumn, "Slider + Progress");
   {
     PrimeStage::SliderSpec slider;
-    slider.value = app.state.sliderValue;
+    slider.state = &app.state.slider;
     slider.size.preferredWidth = 280.0f;
-    slider.callbacks.onValueChanged = [&app](float value) {
-      app.state.sliderValue = value;
-      app.state.progress.value = value;
-      app.runtime.requestRebuild();
-    };
     range.createSlider(slider);
 
     PrimeStage::ProgressBarSpec progress;
     progress.state = &app.state.progress;
     progress.size.preferredWidth = 280.0f;
-    progress.callbacks.onValueChanged = [&app](float value) {
-      app.state.progress.value = value;
-      app.state.sliderValue = value;
-      app.runtime.requestRebuild();
-    };
     range.createProgressBar(progress);
   }
 

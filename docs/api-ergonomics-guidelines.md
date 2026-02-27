@@ -31,8 +31,8 @@ What app code should avoid:
   - pass value fields in specs (`on`, `checked`, `selectedIndex`) and handle callbacks to update app state.
   - use this when your app already has canonical domain state.
 - State-backed mode (uncontrolled convenience for common controls):
-  - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `TabsState*`, `DropdownState*`,
-    `ProgressBarState*`, `TextFieldState*`, `SelectableTextState*`).
+  - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`, `TabsState*`,
+    `DropdownState*`, `ProgressBarState*`, `TextFieldState*`, `SelectableTextState*`).
   - PrimeStage reads/writes those state objects directly during interaction; callbacks are optional.
   - use this to reduce callback-driven bookkeeping when the widget value does not need separate
     app-level mirroring.

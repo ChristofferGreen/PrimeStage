@@ -1311,13 +1311,15 @@ std::vector<WidgetVisualScenario> buildScenarioCatalog() {
           {InputStepType::PointerUp, 0.82f, 0.5f},
       },
       [](PrimeFrame::Frame&, PrimeStage::UiNode& root) {
+        static PrimeStage::SliderState state;
+        state = PrimeStage::SliderState{};
+        state.value = 0.20f;
         PrimeStage::SliderSpec spec;
-        spec.value = 0.20f;
+        spec.state = &state;
         spec.trackStyle = StyleTrack;
         spec.fillStyle = StyleFill;
         spec.thumbStyle = StyleKnob;
         spec.focusStyle = StyleFocus;
-        spec.callbacks.onValueChanged = [](float) {};
         spec.size.preferredWidth = 200.0f;
         spec.size.preferredHeight = 30.0f;
         return root.createSlider(spec).nodeId();

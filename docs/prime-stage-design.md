@@ -88,8 +88,8 @@ PrimeStage supports two widget value models for interactive controls:
   - widget value comes from spec fields (`on`, `checked`, `selectedIndex`).
   - app callbacks update canonical app state, then rebuild.
 - State-backed:
-  - widget value comes from state pointers (`ToggleState*`, `CheckboxState*`, `TabsState*`,
-    `DropdownState*`, `TextFieldState*`, `SelectableTextState*`).
+  - widget value comes from state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`,
+    `TabsState*`, `DropdownState*`, `TextFieldState*`, `SelectableTextState*`).
   - PrimeStage mutates those state objects during interaction; callbacks are optional.
 
 PrimeStage always owns transient per-frame interaction details (hover/pressed/drag bookkeeping).

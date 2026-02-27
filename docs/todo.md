@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [52] Remove callback-gated interaction from stateful controls.
-  - controls like slider/progress should remain interactive when state is provided, without requiring `onValueChanged` to enable pointer drag behavior
-  - make controlled/uncontrolled behavior consistent across button/toggle/checkbox/slider/progress/tabs/dropdown
-  - acceptance: examples can omit no-op callbacks while keeping default interaction behavior
-
 - ☐ [53] Ship a high-level `App` API that hides `PrimeFrame` internals.
   - provide a first-class app shell abstraction for host + frame + layout + routing lifecycle
   - remove direct `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` ownership from normal app code
@@ -166,6 +161,11 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [52] Remove callback-gated interaction from stateful controls.
+  - slider/progress remain interactive when state is provided, without requiring `onValueChanged`
+  - `SliderSpec` now supports state-backed mode (`SliderState*`) for controlled/uncontrolled parity with other controls
+  - delivered by slider state-backed interaction wiring in `src/PrimeStage.cpp`, API/docs updates in `include/PrimeStage/Ui.h` and docs, and regression coverage updates in `tests/unit/test_interaction.cpp`, `tests/unit/test_widget_visual_facility.cpp`, and `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [51] Guarantee zero-theme-setup readable defaults.
   - default widget rendering is legible without app-level palette or color configuration

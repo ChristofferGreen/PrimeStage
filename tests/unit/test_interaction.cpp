@@ -457,6 +457,84 @@ TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   }
 }
 
+TEST_CASE("PrimeStage slider state-backed interactions do not require callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 80.0f);
+
+  PrimeStage::SliderState sliderState;
+  sliderState.value = 0.20f;
+
+  PrimeStage::SliderSpec spec;
+  spec.state = &sliderState;
+  spec.value = 0.90f; // state-backed mode reads SliderState as source of truth
+  spec.trackStyle = 261u;
+  spec.fillStyle = 262u;
+  spec.thumbStyle = 263u;
+  spec.focusStyle = 264u;
+  spec.trackThickness = 8.0f;
+  spec.thumbSize = 0.0f;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 16.0f;
+
+  PrimeStage::UiNode slider = root.createSlider(spec);
+  PrimeFrame::Node const* sliderNode = frame.getNode(slider.nodeId());
+  REQUIRE(sliderNode != nullptr);
+  CHECK(sliderNode->callbacks != PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::Primitive const* fillPrimBefore =
+      findRectPrimitiveByTokenInSubtree(frame, slider.nodeId(), spec.fillStyle);
+  REQUIRE(fillPrimBefore != nullptr);
+  float widthBefore = fillPrimBefore->width;
+  CHECK(widthBefore == doctest::Approx(40.0f));
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 80.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(slider.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  router.setDragThreshold(0.0f);
+  float x80 = out->absX + out->absW * 0.80f;
+  float y = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x80, y), frame, layout);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x80, y), frame, layout);
+
+  CHECK(sliderState.value >= 0.79f);
+  PrimeFrame::Primitive const* fillPrimAfter =
+      findRectPrimitiveByTokenInSubtree(frame, slider.nodeId(), spec.fillStyle);
+  REQUIRE(fillPrimAfter != nullptr);
+  CHECK(fillPrimAfter->width > widthBefore);
+}
+
+TEST_CASE("PrimeStage disabled state-backed slider ignores pointer input") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 80.0f);
+
+  PrimeStage::SliderState sliderState;
+  sliderState.value = 0.45f;
+
+  PrimeStage::SliderSpec spec;
+  spec.state = &sliderState;
+  spec.enabled = false;
+  spec.trackStyle = 271u;
+  spec.fillStyle = 272u;
+  spec.thumbStyle = 273u;
+  spec.size.preferredWidth = 200.0f;
+  spec.size.preferredHeight = 16.0f;
+
+  PrimeStage::UiNode slider = root.createSlider(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 80.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(slider.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  float x90 = out->absX + out->absW * 0.90f;
+  float y = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x90, y), frame, layout);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x90, y), frame, layout);
+
+  CHECK(sliderState.value == doctest::Approx(0.45f));
+}
+
 TEST_CASE("PrimeStage button drag outside cancels click and resets style") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 100.0f);

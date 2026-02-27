@@ -4541,6 +4541,10 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "SliderSpec", "tabIndex");
   bool enabled = spec.enabled;
+  if (spec.state) {
+    spec.state->value = clamp_unit_interval(spec.state->value, "SliderState", "value");
+    spec.value = spec.state->value;
+  }
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -4661,9 +4665,10 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   }
 
   bool wantsInteraction = enabled &&
-                          (spec.callbacks.onValueChanged ||
-                          spec.callbacks.onDragStart ||
-                          spec.callbacks.onDragEnd);
+                          (spec.state != nullptr ||
+                           spec.callbacks.onValueChanged ||
+                           spec.callbacks.onDragStart ||
+                           spec.callbacks.onDragEnd);
   ResolvedFocusStyle focusStyle = resolve_focus_style(
       frame(),
       spec.focusStyle,
@@ -4687,7 +4692,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   }
 
   if (wantsInteraction) {
-    struct SliderState {
+    struct SliderInteractionState {
       bool active = false;
       bool hovered = false;
       bool trackPrimValid = false;
@@ -4698,7 +4703,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       float targetH = 0.0f;
       float value = 0.0f;
     };
-    auto state = std::make_shared<SliderState>();
+    auto state = std::make_shared<SliderInteractionState>();
     state->trackPrimValid = trackPrimValid;
     state->trackPrim = trackPrim;
     state->fillPrim = fillPrim;
@@ -4717,6 +4722,16 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       }
       float next = slider_value_from_event(event, vertical, thumbSize);
       state->value = std::clamp(next, 0.0f, 1.0f);
+    };
+    auto notify_value_changed = [state,
+                                 sliderState = spec.state,
+                                 onValueChanged = spec.callbacks.onValueChanged]() {
+      if (sliderState) {
+        sliderState->value = state->value;
+      }
+      if (onValueChanged) {
+        onValueChanged(state->value);
+      }
     };
     auto build_thumb_override = [state,
                                  base = spec.thumbStyleOverride,
@@ -4768,6 +4783,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                         state,
                         apply_geometry,
                         update_from_event,
+                        notify_value_changed,
                         build_fill_override,
                         build_thumb_override,
                         apply_track_override](PrimeFrame::Event const& event) -> bool {
@@ -4813,9 +4829,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
           if (callbacks.onDragStart) {
             callbacks.onDragStart();
           }
-          if (callbacks.onValueChanged) {
-            callbacks.onValueChanged(state->value);
-          }
+          notify_value_changed();
           return true;
         }
         case PrimeFrame::EventType::PointerDrag:
@@ -4832,9 +4846,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                          state->targetH,
                          build_fill_override(),
                          build_thumb_override());
-          if (callbacks.onValueChanged) {
-            callbacks.onValueChanged(state->value);
-          }
+          notify_value_changed();
           return true;
         }
         case PrimeFrame::EventType::PointerUp:
@@ -4851,9 +4863,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
                          state->targetH,
                          build_fill_override(),
                          build_thumb_override());
-          if (callbacks.onValueChanged) {
-            callbacks.onValueChanged(state->value);
-          }
+          notify_value_changed();
           if (callbacks.onDragEnd) {
             callbacks.onDragEnd();
           }

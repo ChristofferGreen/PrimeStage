@@ -482,7 +482,12 @@ struct SliderCallbacks {
   std::function<void()> onDragEnd;
 };
 
+struct SliderState {
+  float value = 0.0f;
+};
+
 struct SliderSpec : FocusableWidgetSpec {
+  SliderState* state = nullptr;
   float value = 0.0f;
   bool vertical = false;
   float trackThickness = 6.0f;
