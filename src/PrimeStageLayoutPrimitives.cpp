@@ -24,9 +24,12 @@ PrimeFrame::PrimitiveId addRectPrimitive(PrimeFrame::Frame& frame,
 
 UiNode UiNode::createDivider(DividerSpec const& specInput) {
   DividerSpec spec = Internal::normalizeDividerSpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
   Internal::InternalRect rect = Internal::resolveRect(spec.size);
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    rect,
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::None,
@@ -34,11 +37,11 @@ UiNode UiNode::createDivider(DividerSpec const& specInput) {
                                                    0.0f,
                                                    false,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  addRectPrimitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  addRectPrimitive(runtimeFrame, nodeId, spec.rectStyle, spec.rectStyleOverride);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
@@ -50,9 +53,12 @@ UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec cons
 
 UiNode UiNode::createSpacer(SpacerSpec const& specInput) {
   SpacerSpec spec = Internal::normalizeSpacerSpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
   Internal::InternalRect rect = Internal::resolveRect(spec.size);
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    rect,
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::None,
@@ -60,10 +66,10 @@ UiNode UiNode::createSpacer(SpacerSpec const& specInput) {
                                                    0.0f,
                                                    false,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createSpacer(SizeSpec const& size) {

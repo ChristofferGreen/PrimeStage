@@ -3749,6 +3749,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(layoutSource.find("Internal::normalizeDividerSpec(specInput)") != std::string::npos);
   CHECK(layoutSource.find("Internal::normalizeSpacerSpec(specInput)") != std::string::npos);
+  CHECK(layoutSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
 
   std::ifstream textLineInput(textLinePath);
   REQUIRE(textLineInput.good());
@@ -3850,6 +3851,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(containersSource.find("UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(containersSource.find("Internal::normalizePanelSpec(specInput)") != std::string::npos);
+  CHECK(containersSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
 
   std::ifstream textSelectionOverlayInput(textSelectionOverlayPath);
   REQUIRE(textSelectionOverlayInput.good());

@@ -23,8 +23,11 @@ PrimeFrame::PrimitiveId addRectPrimitive(PrimeFrame::Frame& frame,
 } // namespace
 
 UiNode UiNode::createVerticalStack(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    Internal::InternalRect{},
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::VerticalStack,
@@ -32,15 +35,18 @@ UiNode UiNode::createVerticalStack(StackSpec const& spec) {
                                                    spec.gap,
                                                    spec.clipChildren,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    Internal::InternalRect{},
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::HorizontalStack,
@@ -48,15 +54,18 @@ UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
                                                    spec.gap,
                                                    spec.clipChildren,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createOverlay(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    Internal::InternalRect{},
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::Overlay,
@@ -64,16 +73,19 @@ UiNode UiNode::createOverlay(StackSpec const& spec) {
                                                    spec.gap,
                                                    spec.clipChildren,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createPanel(PanelSpec const& specInput) {
   PanelSpec spec = Internal::normalizePanelSpec(specInput);
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    Internal::InternalRect{},
                                                    &spec.size,
                                                    spec.layout,
@@ -81,8 +93,8 @@ UiNode UiNode::createPanel(PanelSpec const& specInput) {
                                                    spec.gap,
                                                    spec.clipChildren,
                                                    spec.visible);
-  addRectPrimitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  addRectPrimitive(runtimeFrame, nodeId, spec.rectStyle, spec.rectStyleOverride);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
