@@ -87,6 +87,13 @@ static uint32_t next_word_boundary(std::string_view text, uint32_t cursor) {
 UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   SelectableTextSpec spec = Internal::normalizeSelectableTextSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   std::shared_ptr<SelectableTextState> stateOwner = spec.ownedState;
@@ -114,9 +121,9 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   }
 
   TextSelectionLayout layout =
-      buildTextSelectionLayout(frame(), spec.textStyle, text, maxWidth, spec.wrap);
+      buildTextSelectionLayout(runtimeFrame, spec.textStyle, text, maxWidth, spec.wrap);
   if (layout.lineHeight <= 0.0f) {
-    layout.lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+    layout.lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   }
   size_t lineCount = std::max<size_t>(1u, layout.lines.size());
   float textHeight = layout.lineHeight * static_cast<float>(lineCount);
@@ -148,7 +155,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
+    return UiNode(runtimeFrame, runtime.parentId, runtime.allowAbsolute);
   }
 
   StackSpec overlaySpec;
@@ -169,7 +176,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   overlay.setHitTestVisible(enabled);
 
   if (!spec.visible) {
-    return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, overlay.nodeId(), runtime.allowAbsolute);
   }
 
   uint32_t textSize = static_cast<uint32_t>(text.size());
@@ -230,7 +237,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
                         callbacks = spec.callbacks,
                         clipboard = spec.clipboard,
                         layoutPtr,
-                        framePtr = &frame(),
+                        framePtr = &runtimeFrame,
                         textStyle = spec.textStyle,
                         paddingX = spec.paddingX,
                         handleClipboardShortcuts = spec.handleClipboardShortcuts,
@@ -622,13 +629,13 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       }
     };
 
-    if (PrimeFrame::Node* node = frame().getNode(overlay.nodeId())) {
-      node->callbacks = frame().addCallback(std::move(callback));
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(overlay.nodeId())) {
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
     }
   }
 
   if (spec.visible && enabled) {
-    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                           spec.focusStyle,
                                                                           spec.focusStyleOverride,
                                                                           0,
@@ -636,24 +643,22 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
                                                                           0,
                                                                           0,
                                                                           0);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  overlay.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
-    if (PrimeFrame::Node* node = frame().getNode(overlay.nodeId())) {
+                                 focusStyle);
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(overlay.nodeId())) {
       node->focusable = false;
     }
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       overlay.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, overlay.nodeId(), runtime.allowAbsolute);
 }
 
 
