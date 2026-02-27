@@ -18,6 +18,13 @@ constexpr int TableKeyEnd = keyCodeInt(KeyCode::End);
 UiNode UiNode::createTable(TableSpec const& specInput) {
   TableSpec spec = Internal::normalizeTableSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect tableBounds = Internal::resolveRect(spec.size);
   size_t rowCount = spec.rows.size();
@@ -80,15 +87,9 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   tableRootSpec.gap = 0.0f;
   tableRootSpec.clipChildren = spec.clipChildren;
   tableRootSpec.visible = spec.visible;
-  UiNode parentNode(frame(), nodeId(), allowAbsolute());
+  UiNode parentNode = Internal::makeParentNode(runtime);
   UiNode tableRoot = parentNode.createOverlay(tableRootSpec);
-  if (spec.visible) {
-    if (PrimeFrame::Node* node = frame().getNode(tableRoot.nodeId())) {
-      node->focusable = enabled;
-      node->hitTestVisible = enabled;
-      node->tabIndex = enabled ? spec.tabIndex : -1;
-    }
-  }
+  Internal::configureInteractiveRoot(runtime, tableRoot.nodeId());
 
   StackSpec tableSpec;
   tableSpec.size = tableSize;
@@ -253,7 +254,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   rowsSpec.clipChildren = spec.clipChildren;
   rowsSpec.visible = spec.visible;
   UiNode rowsNode = tableNode.createVerticalStack(rowsSpec);
-  if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
+  if (PrimeFrame::Node* rowsNodePtr = runtimeFrame.getNode(rowsNode.nodeId())) {
     rowsNodePtr->hitTestVisible = enabled;
   }
 
@@ -271,7 +272,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   };
 
   auto interaction = std::make_shared<TableInteractionState>();
-  interaction->frame = &frame();
+  interaction->frame = &runtimeFrame;
   interaction->selectionStyle = spec.selectionStyle;
   interaction->callbacks = spec.callbacks;
   interaction->ownedRows.reserve(spec.rows.size());
@@ -304,7 +305,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     rowPanel.visible = spec.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
     rowNodeIds.push_back(rowNode.nodeId());
-    if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowNode.nodeId())) {
+    if (PrimeFrame::Node* rowNodePtr = runtimeFrame.getNode(rowNode.nodeId())) {
       if (!rowNodePtr->primitives.empty()) {
         interaction->backgrounds.push_back(rowNodePtr->primitives.front());
       } else {
@@ -411,12 +412,12 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
         }
         return selectRow(static_cast<int>(rowIndex), true);
       };
-      if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowNodeIds[rowIndex])) {
-        rowNodePtr->callbacks = frame().addCallback(std::move(rowCallback));
+      if (PrimeFrame::Node* rowNodePtr = runtimeFrame.getNode(rowNodeIds[rowIndex])) {
+        rowNodePtr->callbacks = runtimeFrame.addCallback(std::move(rowCallback));
       }
     }
 
-    (void)LowLevel::appendNodeOnEvent(frame(),
+    (void)Internal::appendNodeOnEvent(runtime,
                                       tableRoot.nodeId(),
                                       [interaction, selectRow](PrimeFrame::Event const& event) {
                               if (event.type != PrimeFrame::EventType::KeyDown) {
@@ -461,25 +462,23 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
         spec.dividerStyle);
     float focusWidth = tableBounds.width > 0.0f ? tableBounds.width : tableSize.preferredWidth.value_or(0.0f);
     float focusHeight = tableBounds.height > 0.0f ? tableBounds.height : tableSize.preferredHeight.value_or(0.0f);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  tableRoot.nodeId(),
                                  Internal::InternalRect{0.0f,
                                                         0.0f,
                                                         std::max(0.0f, focusWidth),
                                                         std::max(0.0f, focusHeight)},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       tableRoot.nodeId(),
                                       Internal::InternalRect{
-                                          0.0f, 0.0f, tableBounds.width, tableBounds.height},
-                                      spec.visible);
+                                          0.0f, 0.0f, tableBounds.width, tableBounds.height});
   }
 
-  return UiNode(frame(), tableRoot.nodeId(), allowAbsolute());
+  return UiNode(runtimeFrame, tableRoot.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createTable(std::vector<TableColumn> columns,

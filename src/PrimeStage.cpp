@@ -1046,6 +1046,50 @@ std::vector<float> buildCaretPositions(PrimeFrame::Frame& frame,
 
 namespace Internal {
 
+WidgetRuntimeContext makeWidgetRuntimeContext(PrimeFrame::Frame& frame,
+                                              PrimeFrame::NodeId parentId,
+                                              bool allowAbsolute,
+                                              bool enabled,
+                                              bool visible,
+                                              int tabIndex) {
+  WidgetRuntimeContext runtime;
+  runtime.frame = &frame;
+  runtime.parentId = parentId;
+  runtime.allowAbsolute = allowAbsolute;
+  runtime.enabled = enabled;
+  runtime.visible = visible;
+  runtime.tabIndex = tabIndex;
+  return runtime;
+}
+
+PrimeFrame::Frame& runtimeFrame(WidgetRuntimeContext const& runtime) {
+  assert(runtime.frame != nullptr);
+  return *runtime.frame;
+}
+
+UiNode makeParentNode(WidgetRuntimeContext const& runtime) {
+  return UiNode(runtimeFrame(runtime), runtime.parentId, runtime.allowAbsolute);
+}
+
+void configureInteractiveRoot(WidgetRuntimeContext const& runtime, PrimeFrame::NodeId nodeId) {
+  if (!runtime.visible) {
+    return;
+  }
+  PrimeFrame::Node* node = runtimeFrame(runtime).getNode(nodeId);
+  if (!node) {
+    return;
+  }
+  node->focusable = runtime.enabled;
+  node->hitTestVisible = runtime.enabled;
+  node->tabIndex = runtime.enabled ? runtime.tabIndex : -1;
+}
+
+bool appendNodeOnEvent(WidgetRuntimeContext const& runtime,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<bool(PrimeFrame::Event const&)> onEvent) {
+  return LowLevel::appendNodeOnEvent(runtimeFrame(runtime), nodeId, std::move(onEvent));
+}
+
 ListSpec normalizeListSpec(ListSpec const& specInput) {
   ListSpec spec = specInput;
   sanitize_size_spec(spec.size, "ListSpec.size");
@@ -1467,6 +1511,13 @@ void attachFocusOverlay(PrimeFrame::Frame& frame,
   }
 }
 
+void attachFocusOverlay(WidgetRuntimeContext const& runtime,
+                        PrimeFrame::NodeId nodeId,
+                        InternalRect const& rect,
+                        InternalFocusStyle const& focusStyle) {
+  attachFocusOverlay(runtimeFrame(runtime), nodeId, rect, focusStyle, runtime.visible);
+}
+
 void addDisabledScrimOverlay(PrimeFrame::Frame& frame,
                              PrimeFrame::NodeId nodeId,
                              InternalRect const& rect,
@@ -1476,6 +1527,12 @@ void addDisabledScrimOverlay(PrimeFrame::Frame& frame,
                           Rect{rect.x, rect.y, rect.width, rect.height},
                           DisabledScrimOpacity,
                           visible);
+}
+
+void addDisabledScrimOverlay(WidgetRuntimeContext const& runtime,
+                             PrimeFrame::NodeId nodeId,
+                             InternalRect const& rect) {
+  addDisabledScrimOverlay(runtimeFrame(runtime), nodeId, rect, runtime.visible);
 }
 
 void addReadOnlyScrimOverlay(PrimeFrame::Frame& frame,

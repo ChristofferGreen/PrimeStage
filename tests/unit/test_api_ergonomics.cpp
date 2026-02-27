@@ -3341,7 +3341,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   CHECK(combinedSource.find("AccessibilityRole::Tree") != std::string::npos);
   CHECK(combinedSource.find("AccessibilityRole::Group") != std::string::npos);
   CHECK(combinedSource.find("bool needsPatchState = enabled ||") != std::string::npos);
-  CHECK(combinedSource.find("LowLevel::appendNodeOnEvent(frame(),") != std::string::npos);
+  CHECK(combinedSource.find("Internal::appendNodeOnEvent(runtime,") != std::string::npos);
   CHECK(combinedSource.find("tableRoot.nodeId()") != std::string::npos);
 
   std::ifstream interactionInput(interactionPath);
@@ -3850,6 +3850,9 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(windowSource.find("Window UiNode::createWindow(WindowSpec const& specInput)") !=
         std::string::npos);
   CHECK(windowSource.find("Internal::normalizeWindowSpec(specInput)") != std::string::npos);
+  CHECK(windowSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(windowSource.find("Internal::appendNodeOnEvent(runtime,") != std::string::npos);
+  CHECK(windowSource.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
 
   std::ifstream lowLevelInput(lowLevelPath);
   REQUIRE(lowLevelInput.good());
@@ -3913,6 +3916,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(table.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
         std::string::npos);
   CHECK(table.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
+  CHECK(table.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(table.find("Internal::configureInteractiveRoot(runtime, tableRoot.nodeId()") !=
+        std::string::npos);
+  CHECK(table.find("Internal::appendNodeOnEvent(runtime,") != std::string::npos);
 
   std::ifstream treeInput(treePath);
   REQUIRE(treeInput.good());
@@ -4002,6 +4009,15 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("WindowSpec normalizeWindowSpec(WindowSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("struct WidgetRuntimeContext {") != std::string::npos);
+  CHECK(internals.find("WidgetRuntimeContext makeWidgetRuntimeContext(PrimeFrame::Frame& frame,") !=
+        std::string::npos);
+  CHECK(internals.find("void configureInteractiveRoot(WidgetRuntimeContext const& runtime, PrimeFrame::NodeId nodeId);") !=
+        std::string::npos);
+  CHECK(internals.find("bool appendNodeOnEvent(WidgetRuntimeContext const& runtime,") !=
+        std::string::npos);
+  CHECK(internals.find("void attachFocusOverlay(WidgetRuntimeContext const& runtime,") !=
         std::string::npos);
   CHECK(internals.find("float defaultSelectableTextWrapWidth();") != std::string::npos);
   CHECK(internals.find("bool textFieldStateIsPristine(TextFieldState const& state);") !=

@@ -2,6 +2,8 @@
 
 #include "PrimeStage/Ui.h"
 
+#include <functional>
+
 namespace PrimeStage::Internal {
 
 struct InternalRect {
@@ -15,6 +17,28 @@ struct InternalFocusStyle {
   PrimeFrame::RectStyleToken token = 0;
   PrimeFrame::RectStyleOverride overrideStyle{};
 };
+
+struct WidgetRuntimeContext {
+  PrimeFrame::Frame* frame = nullptr;
+  PrimeFrame::NodeId parentId{};
+  bool allowAbsolute = false;
+  bool enabled = true;
+  bool visible = true;
+  int tabIndex = -1;
+};
+
+WidgetRuntimeContext makeWidgetRuntimeContext(PrimeFrame::Frame& frame,
+                                              PrimeFrame::NodeId parentId,
+                                              bool allowAbsolute,
+                                              bool enabled,
+                                              bool visible,
+                                              int tabIndex = -1);
+PrimeFrame::Frame& runtimeFrame(WidgetRuntimeContext const& runtime);
+UiNode makeParentNode(WidgetRuntimeContext const& runtime);
+void configureInteractiveRoot(WidgetRuntimeContext const& runtime, PrimeFrame::NodeId nodeId);
+bool appendNodeOnEvent(WidgetRuntimeContext const& runtime,
+                       PrimeFrame::NodeId nodeId,
+                       std::function<bool(PrimeFrame::Event const&)> onEvent);
 
 ListSpec normalizeListSpec(ListSpec const& specInput);
 TableSpec normalizeTableSpec(TableSpec const& specInput);
@@ -72,10 +96,17 @@ void attachFocusOverlay(PrimeFrame::Frame& frame,
                         InternalRect const& rect,
                         InternalFocusStyle const& focusStyle,
                         bool visible);
+void attachFocusOverlay(WidgetRuntimeContext const& runtime,
+                        PrimeFrame::NodeId nodeId,
+                        InternalRect const& rect,
+                        InternalFocusStyle const& focusStyle);
 void addDisabledScrimOverlay(PrimeFrame::Frame& frame,
                              PrimeFrame::NodeId nodeId,
                              InternalRect const& rect,
                              bool visible);
+void addDisabledScrimOverlay(WidgetRuntimeContext const& runtime,
+                             PrimeFrame::NodeId nodeId,
+                             InternalRect const& rect);
 void addReadOnlyScrimOverlay(PrimeFrame::Frame& frame,
                              PrimeFrame::NodeId nodeId,
                              InternalRect const& rect,

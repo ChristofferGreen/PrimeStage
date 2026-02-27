@@ -28,10 +28,17 @@ PrimeFrame::PrimitiveId addRectPrimitive(PrimeFrame::Frame& frame,
 
 Window UiNode::createWindow(WindowSpec const& specInput) {
   WindowSpec spec = Internal::normalizeWindowSpec(specInput);
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              spec.focusable,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect windowRect{spec.positionX, spec.positionY, spec.width, spec.height};
-  PrimeFrame::NodeId windowId = Internal::createNode(frame(),
-                                                     id_,
+  PrimeFrame::NodeId windowId = Internal::createNode(runtimeFrame,
+                                                     runtime.parentId,
                                                      windowRect,
                                                      nullptr,
                                                      PrimeFrame::LayoutType::Overlay,
@@ -40,9 +47,9 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
                                                      true,
                                                      spec.visible,
                                                      "WindowSpec");
-  addRectPrimitive(frame(), windowId, spec.frameStyle, spec.frameStyleOverride);
+  addRectPrimitive(runtimeFrame, windowId, spec.frameStyle, spec.frameStyleOverride);
 
-  PrimeFrame::Node* windowNode = frame().getNode(windowId);
+  PrimeFrame::Node* windowNode = runtimeFrame.getNode(windowId);
   if (windowNode) {
     windowNode->focusable = spec.focusable;
     windowNode->tabIndex = spec.focusable ? spec.tabIndex : -1;
@@ -51,7 +58,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
 
   float titleBarHeight = std::min(spec.titleBarHeight, spec.height);
   Internal::InternalRect titleBarRect{0.0f, 0.0f, spec.width, titleBarHeight};
-  PrimeFrame::NodeId titleBarId = Internal::createNode(frame(),
+  PrimeFrame::NodeId titleBarId = Internal::createNode(runtimeFrame,
                                                        windowId,
                                                        titleBarRect,
                                                        nullptr,
@@ -61,20 +68,20 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
                                                        false,
                                                        spec.visible,
                                                        "WindowSpec.titleBar");
-  addRectPrimitive(frame(), titleBarId, spec.titleBarStyle, spec.titleBarStyleOverride);
-  if (PrimeFrame::Node* titleNode = frame().getNode(titleBarId)) {
+  addRectPrimitive(runtimeFrame, titleBarId, spec.titleBarStyle, spec.titleBarStyleOverride);
+  if (PrimeFrame::Node* titleNode = runtimeFrame.getNode(titleBarId)) {
     titleNode->hitTestVisible = true;
   }
 
   if (!spec.title.empty() && titleBarHeight > 0.0f) {
-    float titleLineHeight = Internal::resolveLineHeight(frame(), spec.titleTextStyle);
+    float titleLineHeight = Internal::resolveLineHeight(runtimeFrame, spec.titleTextStyle);
     if (titleLineHeight <= 0.0f) {
       titleLineHeight = titleBarHeight;
     }
     float titleY = (titleBarHeight - titleLineHeight) * 0.5f;
     float titleX = std::max(0.0f, spec.contentPadding);
     float titleW = std::max(0.0f, spec.width - titleX * 2.0f);
-    Internal::createTextNode(frame(),
+    Internal::createTextNode(runtimeFrame,
                              titleBarId,
                              Internal::InternalRect{titleX, titleY, titleW, titleLineHeight},
                              spec.title,
@@ -95,7 +102,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
   float contentY = titleBarHeight;
   float contentHeight = std::max(0.0f, spec.height - titleBarHeight);
   Internal::InternalRect contentRect{0.0f, contentY, spec.width, contentHeight};
-  PrimeFrame::NodeId contentId = Internal::createNode(frame(),
+  PrimeFrame::NodeId contentId = Internal::createNode(runtimeFrame,
                                                       windowId,
                                                       contentRect,
                                                       nullptr,
@@ -105,8 +112,8 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
                                                       true,
                                                       spec.visible,
                                                       "WindowSpec.content");
-  addRectPrimitive(frame(), contentId, spec.contentStyle, spec.contentStyleOverride);
-  if (PrimeFrame::Node* contentNode = frame().getNode(contentId)) {
+  addRectPrimitive(runtimeFrame, contentId, spec.contentStyle, spec.contentStyleOverride);
+  if (PrimeFrame::Node* contentNode = runtimeFrame.getNode(contentId)) {
     contentNode->hitTestVisible = true;
   }
 
@@ -115,7 +122,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
     float handleSize = std::min(spec.resizeHandleSize, std::min(spec.width, spec.height));
     float handleX = std::max(0.0f, spec.width - handleSize);
     float handleY = std::max(0.0f, spec.height - handleSize);
-    resizeHandleId = Internal::createNode(frame(),
+    resizeHandleId = Internal::createNode(runtimeFrame,
                                           windowId,
                                           Internal::InternalRect{handleX, handleY, handleSize, handleSize},
                                           nullptr,
@@ -125,19 +132,22 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
                                           false,
                                           spec.visible,
                                           "WindowSpec.resizeHandle");
-    addRectPrimitive(frame(), resizeHandleId, spec.resizeHandleStyle, spec.resizeHandleStyleOverride);
-    if (PrimeFrame::Node* resizeNode = frame().getNode(resizeHandleId)) {
+    addRectPrimitive(runtimeFrame,
+                     resizeHandleId,
+                     spec.resizeHandleStyle,
+                     spec.resizeHandleStyleOverride);
+    if (PrimeFrame::Node* resizeNode = runtimeFrame.getNode(resizeHandleId)) {
       resizeNode->hitTestVisible = true;
     }
   }
 
   if (spec.callbacks.onFocusChanged) {
-    LowLevel::appendNodeOnFocus(frame(),
+    LowLevel::appendNodeOnFocus(runtimeFrame,
                                 windowId,
                                 [callbacks = spec.callbacks]() {
                                   callbacks.onFocusChanged(true);
                                 });
-    LowLevel::appendNodeOnBlur(frame(),
+    LowLevel::appendNodeOnBlur(runtimeFrame,
                                windowId,
                                [callbacks = spec.callbacks]() {
                                  callbacks.onFocusChanged(false);
@@ -145,7 +155,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
   }
 
   if (spec.callbacks.onFocusRequested) {
-    LowLevel::appendNodeOnEvent(frame(),
+    Internal::appendNodeOnEvent(runtime,
                                 windowId,
                                 [callbacks = spec.callbacks](PrimeFrame::Event const& event) -> bool {
                                   if (event.type == PrimeFrame::EventType::PointerDown) {
@@ -166,7 +176,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
       (spec.callbacks.onMoveStarted || spec.callbacks.onMoved || spec.callbacks.onMoveEnded ||
        spec.callbacks.onFocusRequested)) {
     auto moveState = std::make_shared<PointerDeltaState>();
-    LowLevel::appendNodeOnEvent(frame(),
+    Internal::appendNodeOnEvent(runtime,
                                 titleBarId,
                                 [callbacks = spec.callbacks,
                                  moveState](PrimeFrame::Event const& event) -> bool {
@@ -218,7 +228,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
       (spec.callbacks.onResizeStarted || spec.callbacks.onResized || spec.callbacks.onResizeEnded ||
        spec.callbacks.onFocusRequested)) {
     auto resizeState = std::make_shared<PointerDeltaState>();
-    LowLevel::appendNodeOnEvent(frame(),
+    Internal::appendNodeOnEvent(runtime,
                                 resizeHandleId,
                                 [callbacks = spec.callbacks,
                                  resizeState](PrimeFrame::Event const& event) -> bool {
@@ -268,18 +278,17 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
 
   if (spec.visible && spec.focusable) {
     Internal::InternalFocusStyle focusStyle =
-        Internal::resolveFocusStyle(frame(), 0, {}, 0, 0, 0, 0, 0);
-    Internal::attachFocusOverlay(frame(),
+        Internal::resolveFocusStyle(runtimeFrame, 0, {}, 0, 0, 0, 0, 0);
+    Internal::attachFocusOverlay(runtime,
                                  windowId,
                                  Internal::InternalRect{0.0f, 0.0f, spec.width, spec.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   return Window{
-      UiNode(frame(), windowId, allowAbsolute_),
-      UiNode(frame(), titleBarId, allowAbsolute_),
-      UiNode(frame(), contentId, allowAbsolute_),
+      UiNode(runtimeFrame, windowId, runtime.allowAbsolute),
+      UiNode(runtimeFrame, titleBarId, runtime.allowAbsolute),
+      UiNode(runtimeFrame, contentId, runtime.allowAbsolute),
       resizeHandleId,
   };
 }

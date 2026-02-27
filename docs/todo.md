@@ -114,9 +114,14 @@ Release Exit Criteria (for API-quality milestone):
     navigation helpers, selection helpers, and text-selection layout/caret-hit
     utilities)
 
-- ☐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
+- ◐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
   - centralize shared patch/focus/callback helper state used across widget implementations
   - reduce duplicated runtime wiring and make interaction behavior easier to reason about/test
+  - vertical slice shipped: added `Internal::WidgetRuntimeContext` + helper seams
+    (`makeWidgetRuntimeContext`, `configureInteractiveRoot`,
+    `appendNodeOnEvent`, context-scoped focus/scrim wrappers) in
+    `src/PrimeStageCollectionInternals.h`/`src/PrimeStage.cpp`, and adopted the
+    seam in `src/PrimeStageTable.cpp` and `src/PrimeStageWindow.cpp`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size
