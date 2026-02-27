@@ -535,6 +535,96 @@ TEST_CASE("PrimeStage disabled state-backed slider ignores pointer input") {
   CHECK(sliderState.value == doctest::Approx(0.45f));
 }
 
+TEST_CASE("PrimeStage slider and progress binding mode clamps and syncs with legacy state") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 280.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 12.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::State<float> sliderBinding;
+  sliderBinding.value = -0.25f;
+  PrimeStage::SliderState sliderLegacy;
+  sliderLegacy.value = 0.80f;
+
+  PrimeStage::SliderSpec sliderSpec;
+  sliderSpec.binding = PrimeStage::bind(sliderBinding);
+  sliderSpec.state = &sliderLegacy;
+  sliderSpec.value = 0.40f;
+  sliderSpec.trackStyle = 281u;
+  sliderSpec.fillStyle = 282u;
+  sliderSpec.thumbStyle = 283u;
+  sliderSpec.size.preferredWidth = 220.0f;
+  sliderSpec.size.preferredHeight = 16.0f;
+
+  PrimeStage::State<float> progressBinding;
+  progressBinding.value = 1.35f;
+  PrimeStage::ProgressBarState progressLegacy;
+  progressLegacy.value = 0.20f;
+
+  PrimeStage::ProgressBarSpec progressSpec;
+  progressSpec.binding = PrimeStage::bind(progressBinding);
+  progressSpec.state = &progressLegacy;
+  progressSpec.value = 0.30f;
+  progressSpec.trackStyle = 291u;
+  progressSpec.fillStyle = 292u;
+  progressSpec.focusStyle = 293u;
+  progressSpec.size.preferredWidth = 220.0f;
+  progressSpec.size.preferredHeight = 14.0f;
+
+  PrimeStage::UiNode slider = stack.createSlider(sliderSpec);
+  PrimeStage::UiNode progress = stack.createProgressBar(progressSpec);
+
+  // Binding state is the source of truth and is clamped during build.
+  CHECK(sliderBinding.value == doctest::Approx(0.0f));
+  CHECK(progressBinding.value == doctest::Approx(1.0f));
+  CHECK(sliderLegacy.value == doctest::Approx(0.80f));
+  CHECK(progressLegacy.value == doctest::Approx(0.20f));
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 280.0f, 140.0f);
+  PrimeFrame::LayoutOut const* sliderOut = layout.get(slider.nodeId());
+  PrimeFrame::LayoutOut const* progressOut = layout.get(progress.nodeId());
+  REQUIRE(sliderOut != nullptr);
+  REQUIRE(progressOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float sliderX = sliderOut->absX + sliderOut->absW * 0.75f;
+  float sliderY = sliderOut->absY + sliderOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, sliderX, sliderY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, sliderX, sliderY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(sliderBinding.value >= 0.70f);
+  CHECK(sliderLegacy.value == doctest::Approx(sliderBinding.value));
+
+  focus.setFocus(frame, layout, progress.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Home), frame, layout, &focus);
+  CHECK(progressBinding.value == doctest::Approx(0.0f));
+  CHECK(progressLegacy.value == doctest::Approx(0.0f));
+
+  float progressX = progressOut->absX + progressOut->absW * 0.65f;
+  float progressY = progressOut->absY + progressOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, progressX, progressY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, progressX, progressY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(progressBinding.value >= 0.60f);
+  CHECK(progressLegacy.value == doctest::Approx(progressBinding.value));
+}
+
 TEST_CASE("PrimeStage button drag outside cancels click and resets style") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 100.0f);
@@ -822,6 +912,114 @@ TEST_CASE("PrimeStage toggle and checkbox support state-backed uncontrolled mode
   CHECK(checkboxState.checked == false);
   REQUIRE(checkboxValues.size() >= 2);
   CHECK(checkboxValues.back() == false);
+}
+
+TEST_CASE("PrimeStage toggle and checkbox binding mode takes precedence and syncs legacy state") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 12.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::State<bool> toggleBinding;
+  toggleBinding.value = false;
+  PrimeStage::ToggleState toggleLegacy;
+  toggleLegacy.on = true;
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.binding = PrimeStage::bind(toggleBinding);
+  toggleSpec.state = &toggleLegacy;
+  toggleSpec.on = true;
+  toggleSpec.trackStyle = 224u;
+  toggleSpec.knobStyle = 225u;
+  toggleSpec.focusStyle = 226u;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 28.0f;
+
+  PrimeStage::State<bool> checkboxBinding;
+  checkboxBinding.value = true;
+  PrimeStage::CheckboxState checkboxLegacy;
+  checkboxLegacy.checked = false;
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.binding = PrimeStage::bind(checkboxBinding);
+  checkboxSpec.state = &checkboxLegacy;
+  checkboxSpec.checked = false;
+  checkboxSpec.label = "Enabled";
+  checkboxSpec.boxStyle = 234u;
+  checkboxSpec.checkStyle = 235u;
+  checkboxSpec.focusStyle = 236u;
+  checkboxSpec.textStyle = 237u;
+
+  std::vector<bool> toggleValues;
+  std::vector<bool> checkboxValues;
+  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 140.0f);
+  PrimeFrame::LayoutOut const* toggleOut = layout.get(toggle.nodeId());
+  PrimeFrame::LayoutOut const* checkboxOut = layout.get(checkbox.nodeId());
+  REQUIRE(toggleOut != nullptr);
+  REQUIRE(checkboxOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float toggleX = toggleOut->absX + toggleOut->absW * 0.5f;
+  float toggleY = toggleOut->absY + toggleOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, toggleX, toggleY),
+                  frame,
+                  layout,
+                  &focus);
+  // Binding value (false -> true) wins over legacy initial value (true).
+  CHECK(toggleBinding.value == true);
+  CHECK(toggleLegacy.on == true);
+  REQUIRE(!toggleValues.empty());
+  CHECK(toggleValues.back() == true);
+
+  PrimeFrame::Event keySpace;
+  keySpace.type = PrimeFrame::EventType::KeyDown;
+  keySpace.key = 0x2C; // Space
+  router.dispatch(keySpace, frame, layout, &focus);
+  CHECK(toggleBinding.value == false);
+  CHECK(toggleLegacy.on == false);
+  REQUIRE(toggleValues.size() >= 2);
+  CHECK(toggleValues.back() == false);
+
+  float checkboxX = checkboxOut->absX + checkboxOut->absW * 0.5f;
+  float checkboxY = checkboxOut->absY + checkboxOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, checkboxX, checkboxY),
+                  frame,
+                  layout,
+                  &focus);
+  // Binding value (true -> false) wins over legacy initial value (false).
+  CHECK(checkboxBinding.value == false);
+  CHECK(checkboxLegacy.checked == false);
+  REQUIRE(!checkboxValues.empty());
+  CHECK(checkboxValues.back() == false);
+
+  PrimeFrame::Event keyEnter;
+  keyEnter.type = PrimeFrame::EventType::KeyDown;
+  keyEnter.key = 0x28; // Enter
+  router.dispatch(keyEnter, frame, layout, &focus);
+  CHECK(checkboxBinding.value == true);
+  CHECK(checkboxLegacy.checked == true);
+  REQUIRE(checkboxValues.size() >= 2);
+  CHECK(checkboxValues.back() == true);
 }
 
 TEST_CASE("PrimeStage toggle and checkbox patch visuals in place without rebuild") {

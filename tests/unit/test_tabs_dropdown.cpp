@@ -460,3 +460,146 @@ TEST_CASE("PrimeStage dropdown state-backed mode uses and updates DropdownState"
   REQUIRE(selections.size() >= 2);
   CHECK(selections.back() == 2);
 }
+
+TEST_CASE("PrimeStage tabs binding mode clamps source value and syncs legacy state") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 280.0f, 100.0f);
+
+  PrimeStage::State<int> selectedBinding;
+  selectedBinding.value = -4;
+  PrimeStage::TabsState legacyState;
+  legacyState.selectedIndex = 2;
+
+  PrimeStage::TabsSpec spec;
+  spec.binding = PrimeStage::bind(selectedBinding);
+  spec.state = &legacyState;
+  spec.labels = {"One", "Two", "Three"};
+  spec.selectedIndex = 1;
+  spec.size.preferredWidth = 240.0f;
+  spec.size.preferredHeight = 28.0f;
+  spec.tabStyle = 261u;
+  spec.activeTabStyle = 262u;
+  spec.textStyle = 271u;
+  spec.activeTextStyle = 272u;
+
+  std::vector<int> selections;
+  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
+
+  PrimeStage::UiNode tabs = root.createTabs(spec);
+  PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
+  REQUIRE(row != nullptr);
+  REQUIRE(row->children.size() == 3);
+
+  // Binding is source-of-truth and is clamped at build time.
+  CHECK(selectedBinding.value == 0);
+  CHECK(legacyState.selectedIndex == 2);
+
+  PrimeFrame::Node const* initiallyActive = frame.getNode(row->children[0]);
+  REQUIRE(initiallyActive != nullptr);
+  REQUIRE_FALSE(initiallyActive->primitives.empty());
+  PrimeFrame::Primitive const* activeRect = frame.getPrimitive(initiallyActive->primitives.front());
+  REQUIRE(activeRect != nullptr);
+  CHECK(activeRect->rect.token == spec.activeTabStyle);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 280.0f, 100.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::LayoutOut const* third = layout.get(row->children[2]);
+  REQUIRE(third != nullptr);
+  float thirdX = third->absX + third->absW * 0.5f;
+  float thirdY = third->absY + third->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, thirdX, thirdY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, thirdX, thirdY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(selectedBinding.value == 2);
+  CHECK(legacyState.selectedIndex == 2);
+  REQUIRE(!selections.empty());
+  CHECK(selections.back() == 2);
+
+  PrimeFrame::Event keyLeft;
+  keyLeft.type = PrimeFrame::EventType::KeyDown;
+  keyLeft.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Left);
+  router.dispatch(keyLeft, frame, layout, &focus);
+  CHECK(selectedBinding.value == 1);
+  CHECK(legacyState.selectedIndex == 1);
+  REQUIRE(selections.size() >= 2);
+  CHECK(selections.back() == 1);
+}
+
+TEST_CASE("PrimeStage dropdown binding mode clamps source value and syncs legacy state") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 260.0f, 100.0f);
+
+  PrimeStage::State<int> selectedBinding;
+  selectedBinding.value = 7;
+  PrimeStage::DropdownState legacyState;
+  legacyState.selectedIndex = 0;
+
+  PrimeStage::DropdownSpec spec;
+  spec.binding = PrimeStage::bind(selectedBinding);
+  spec.state = &legacyState;
+  spec.options = {"Preview", "Edit", "Export"};
+  spec.selectedIndex = 1;
+  spec.indicator = "v";
+  spec.backgroundStyle = 281u;
+  spec.textStyle = 291u;
+  spec.indicatorStyle = 292u;
+  spec.focusStyle = 293u;
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 24.0f;
+
+  int openedCount = 0;
+  std::vector<int> selections;
+  spec.callbacks.onOpened = [&]() { openedCount += 1; };
+  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
+
+  PrimeStage::UiNode dropdown = root.createDropdown(spec);
+  PrimeFrame::Node const* dropdownNode = frame.getNode(dropdown.nodeId());
+  REQUIRE(dropdownNode != nullptr);
+  PrimeFrame::Primitive const* labelPrim = findTextChild(frame, dropdownNode->id, spec.textStyle);
+  REQUIRE(labelPrim != nullptr);
+
+  // Binding is source-of-truth and is clamped at build time.
+  CHECK(selectedBinding.value == 2);
+  CHECK(legacyState.selectedIndex == 0);
+  CHECK(labelPrim->textBlock.text == "Export");
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 100.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(dropdown.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(openedCount == 1);
+  CHECK(selectedBinding.value == 0);
+  CHECK(legacyState.selectedIndex == 0);
+  REQUIRE(!selections.empty());
+  CHECK(selections.back() == 0);
+
+  PrimeFrame::Event keyUp;
+  keyUp.type = PrimeFrame::EventType::KeyDown;
+  keyUp.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Up);
+  router.dispatch(keyUp, frame, layout, &focus);
+  CHECK(openedCount == 2);
+  CHECK(selectedBinding.value == 2);
+  CHECK(legacyState.selectedIndex == 2);
+  REQUIRE(selections.size() >= 2);
+  CHECK(selections.back() == 2);
+}

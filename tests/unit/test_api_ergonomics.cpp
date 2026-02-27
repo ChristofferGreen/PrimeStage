@@ -343,6 +343,19 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode createToggle(bool on,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createSlider(float value,") != std::string::npos);
+  CHECK(uiHeader.find("template <typename T>\nstruct State") != std::string::npos);
+  CHECK(uiHeader.find("template <typename T>\nstruct Binding") != std::string::npos);
+  CHECK(uiHeader.find("Binding<T> bind(State<T>& state)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createToggle(Binding<bool> binding);") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label, Binding<bool> binding);") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode createSlider(Binding<float> binding, bool vertical = false);") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode createTabs(std::vector<std::string_view> labels, Binding<int> binding);") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode createDropdown(std::vector<std::string_view> options, Binding<int> binding);") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode createProgressBar(Binding<float> binding);") != std::string::npos);
   CHECK(uiHeader.find("struct SliderState") != std::string::npos);
   CHECK(uiHeader.find("SliderState* state = nullptr;") != std::string::npos);
   CHECK(uiHeader.find("UiNode createList(ListSpec const& spec);") != std::string::npos);
@@ -431,8 +444,21 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeFrame::LayoutEngine") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::EventRouter") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::FocusManager") == std::string::npos);
-  CHECK(widgetsSource.find("slider.state = &app.state.slider;") != std::string::npos);
-  CHECK(widgetsSource.find("progress.state = &app.state.progress;") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::State<bool> toggle{};") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::State<int> tabs{};") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::State<float> sliderValue{};") != std::string::npos);
+  CHECK(widgetsSource.find("toggle.binding = PrimeStage::bind(app.state.toggle);") != std::string::npos);
+  CHECK(widgetsSource.find("checkbox.binding = PrimeStage::bind(app.state.checkbox);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("tabs.binding = PrimeStage::bind(app.state.tabs);") != std::string::npos);
+  CHECK(widgetsSource.find("dropdown.binding = PrimeStage::bind(app.state.dropdown);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("slider.binding = PrimeStage::bind(app.state.sliderValue);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("progress.binding = PrimeStage::bind(app.state.progressValue);") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("slider.state = &app.state.slider;") == std::string::npos);
+  CHECK(widgetsSource.find("progress.state = &app.state.progress;") == std::string::npos);
   CHECK(widgetsSource.find("slider.callbacks.onValueChanged") == std::string::npos);
   CHECK(widgetsSource.find("progress.callbacks.onValueChanged") == std::string::npos);
 
@@ -651,8 +677,10 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   REQUIRE(!design.empty());
   CHECK(design.find("TextField") != std::string::npos);
   CHECK(design.find("request frame-only updates") != std::string::npos);
-  CHECK(design.find("SliderState*") != std::string::npos);
-  CHECK(design.find("state-backed `ProgressBar`") != std::string::npos);
+  CHECK(design.find("State<T>") != std::string::npos);
+  CHECK(design.find("bind(...)") != std::string::npos);
+  CHECK(design.find("createSlider") != std::string::npos);
+  CHECK(design.find("ProgressBar") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -661,8 +689,10 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   REQUIRE(!guidelines.empty());
   CHECK(guidelines.find("TextField") != std::string::npos);
   CHECK(guidelines.find("patch-first") != std::string::npos);
-  CHECK(guidelines.find("SliderState*") != std::string::npos);
-  CHECK(guidelines.find("request only a frame") != std::string::npos);
+  CHECK(guidelines.find("Binding mode") != std::string::npos);
+  CHECK(guidelines.find("State<T>") != std::string::npos);
+  CHECK(guidelines.find("bind(...)") != std::string::npos);
+  CHECK(guidelines.find("only a frame in typical app loops") != std::string::npos);
   CHECK(guidelines.find("Toggle") != std::string::npos);
   CHECK(guidelines.find("ProgressBar") != std::string::npos);
 
@@ -672,8 +702,9 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
                      std::istreambuf_iterator<char>());
   REQUIRE(!apiRef.empty());
   CHECK(apiRef.find("Patch-First Widget Interaction Paths") != std::string::npos);
-  CHECK(apiRef.find("PrimeStage::SliderState") != std::string::npos);
-  CHECK(apiRef.find("PrimeStage::ProgressBarState") != std::string::npos);
+  CHECK(apiRef.find("PrimeStage::State<T>") != std::string::npos);
+  CHECK(apiRef.find("PrimeStage::Binding<T>") != std::string::npos);
+  CHECK(apiRef.find("bind(...)") != std::string::npos);
   CHECK(apiRef.find("requestFrame()") != std::string::npos);
 
   std::ifstream exampleInput(examplePath);

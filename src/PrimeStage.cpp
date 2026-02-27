@@ -4138,7 +4138,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   spec.knobInset = clamp_non_negative(spec.knobInset, "ToggleSpec", "knobInset");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ToggleSpec", "tabIndex");
   bool enabled = spec.enabled;
-  bool on = spec.state ? spec.state->on : spec.on;
+  bool on = spec.binding.state ? spec.binding.state->value : (spec.state ? spec.state->on : spec.on);
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -4231,11 +4231,15 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
       state->value = on;
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
+                          bindingState = spec.binding.state,
                           toggleState = spec.state,
                           state,
                           applyToggleVisual](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->value = !state->value;
+          if (bindingState) {
+            bindingState->value = state->value;
+          }
           if (toggleState) {
             toggleState->on = state->value;
           }
@@ -4313,6 +4317,12 @@ UiNode UiNode::createToggle(bool on,
   return createToggle(spec);
 }
 
+UiNode UiNode::createToggle(Binding<bool> binding) {
+  ToggleSpec spec;
+  spec.binding = binding;
+  return createToggle(spec);
+}
+
 UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   CheckboxSpec spec = specInput;
   sanitize_size_spec(spec.size, "CheckboxSpec.size");
@@ -4321,7 +4331,8 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   spec.gap = clamp_non_negative(spec.gap, "CheckboxSpec", "gap");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "CheckboxSpec", "tabIndex");
   bool enabled = spec.enabled;
-  bool checked = spec.state ? spec.state->checked : spec.checked;
+  bool checked = spec.binding.state ? spec.binding.state->value
+                                    : (spec.state ? spec.state->checked : spec.checked);
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -4435,11 +4446,15 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
       state->checked = checked;
       PrimeFrame::Callback callback;
       callback.onEvent = [callbacks = spec.callbacks,
+                          bindingState = spec.binding.state,
                           checkboxState = spec.state,
                           state,
                           applyCheckboxVisual](PrimeFrame::Event const& event) mutable -> bool {
         auto activate = [&]() {
           state->checked = !state->checked;
+          if (bindingState) {
+            bindingState->value = state->checked;
+          }
           if (checkboxState) {
             checkboxState->checked = state->checked;
           }
@@ -4521,6 +4536,13 @@ UiNode UiNode::createCheckbox(std::string_view label,
   return createCheckbox(spec);
 }
 
+UiNode UiNode::createCheckbox(std::string_view label, Binding<bool> binding) {
+  CheckboxSpec spec;
+  spec.label = label;
+  spec.binding = binding;
+  return createCheckbox(spec);
+}
+
 UiNode UiNode::createSlider(SliderSpec const& specInput) {
   SliderSpec spec = specInput;
   sanitize_size_spec(spec.size, "SliderSpec.size");
@@ -4541,7 +4563,12 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "SliderSpec", "tabIndex");
   bool enabled = spec.enabled;
-  if (spec.state) {
+  if (spec.binding.state) {
+    spec.binding.state->value = clamp_unit_interval(spec.binding.state->value,
+                                                    "State<float>",
+                                                    "value");
+    spec.value = spec.binding.state->value;
+  } else if (spec.state) {
     spec.state->value = clamp_unit_interval(spec.state->value, "SliderState", "value");
     spec.value = spec.state->value;
   }
@@ -4665,7 +4692,8 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   }
 
   bool wantsInteraction = enabled &&
-                          (spec.state != nullptr ||
+                          (spec.binding.state != nullptr ||
+                           spec.state != nullptr ||
                            spec.callbacks.onValueChanged ||
                            spec.callbacks.onDragStart ||
                            spec.callbacks.onDragEnd);
@@ -4724,8 +4752,12 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       state->value = std::clamp(next, 0.0f, 1.0f);
     };
     auto notify_value_changed = [state,
+                                 bindingState = spec.binding.state,
                                  sliderState = spec.state,
                                  onValueChanged = spec.callbacks.onValueChanged]() {
+      if (bindingState) {
+        bindingState->value = state->value;
+      }
       if (sliderState) {
         sliderState->value = state->value;
       }
@@ -4913,6 +4945,13 @@ UiNode UiNode::createSlider(float value,
   return createSlider(spec);
 }
 
+UiNode UiNode::createSlider(Binding<float> binding, bool vertical) {
+  SliderSpec spec;
+  spec.binding = binding;
+  spec.vertical = vertical;
+  return createSlider(spec);
+}
+
 UiNode UiNode::createTabs(TabsSpec const& specInput) {
   TabsSpec spec = specInput;
   sanitize_size_spec(spec.size, "TabsSpec.size");
@@ -4924,7 +4963,13 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
 
   int tabCount = static_cast<int>(spec.labels.size());
   int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
-  if (spec.state) {
+  if (spec.binding.state) {
+    selectedIndex = clamp_selected_index(spec.binding.state->value,
+                                         tabCount,
+                                         "State<int>",
+                                         "value");
+    spec.binding.state->value = selectedIndex;
+  } else if (spec.state) {
     selectedIndex = clamp_selected_index(spec.state->selectedIndex,
                                          tabCount,
                                          "TabsState",
@@ -5020,6 +5065,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     auto state = std::make_shared<TabState>();
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
+                        bindingState = spec.binding.state,
                         tabsState = spec.state,
                         tabIndex,
                         tabCount,
@@ -5033,6 +5079,9 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
           return;
         }
         *sharedSelected = next;
+        if (bindingState) {
+          bindingState->value = next;
+        }
         if (tabsState) {
           tabsState->selectedIndex = next;
         }
@@ -5118,6 +5167,13 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding) {
+  TabsSpec spec;
+  spec.labels = std::move(labels);
+  spec.binding = binding;
+  return createTabs(spec);
+}
+
 UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   DropdownSpec spec = specInput;
   sanitize_size_spec(spec.size, "DropdownSpec.size");
@@ -5129,7 +5185,13 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   int optionCount = static_cast<int>(spec.options.size());
   int selectedIndex =
       clamp_selected_index(spec.selectedIndex, optionCount, "DropdownSpec", "selectedIndex");
-  if (spec.state) {
+  if (spec.binding.state) {
+    selectedIndex = clamp_selected_index(spec.binding.state->value,
+                                         optionCount,
+                                         "State<int>",
+                                         "value");
+    spec.binding.state->value = selectedIndex;
+  } else if (spec.state) {
     selectedIndex = clamp_selected_index(spec.state->selectedIndex,
                                          optionCount,
                                          "DropdownState",
@@ -5226,6 +5288,7 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
     state->currentIndex = selectedIndex;
     PrimeFrame::Callback callback;
     callback.onEvent = [callbacks = spec.callbacks,
+                        bindingState = spec.binding.state,
                         dropdownState = spec.state,
                         optionCount,
                         state](PrimeFrame::Event const& event) mutable -> bool {
@@ -5243,6 +5306,9 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
           index += span;
         }
         state->currentIndex = index;
+        if (bindingState) {
+          bindingState->value = state->currentIndex;
+        }
         if (dropdownState) {
           dropdownState->selectedIndex = state->currentIndex;
         }
@@ -5322,6 +5388,13 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
   return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createDropdown(std::vector<std::string_view> options, Binding<int> binding) {
+  DropdownSpec spec;
+  spec.options = std::move(options);
+  spec.binding = binding;
+  return createDropdown(spec);
+}
+
 UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   ProgressBarSpec spec = specInput;
   sanitize_size_spec(spec.size, "ProgressBarSpec.size");
@@ -5329,7 +5402,12 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   spec.minFillWidth = clamp_non_negative(spec.minFillWidth, "ProgressBarSpec", "minFillWidth");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ProgressBarSpec", "tabIndex");
   bool enabled = spec.enabled;
-  if (spec.state) {
+  if (spec.binding.state) {
+    spec.binding.state->value = clamp_unit_interval(spec.binding.state->value,
+                                                    "State<float>",
+                                                    "value");
+    spec.value = spec.binding.state->value;
+  } else if (spec.state) {
     spec.state->value = clamp_unit_interval(spec.state->value, "ProgressBarState", "value");
     spec.value = spec.state->value;
   }
@@ -5376,7 +5454,9 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   };
   float value = std::clamp(spec.value, 0.0f, 1.0f);
   float fillW = computeFillWidth(value);
-  bool needsPatchState = spec.state != nullptr || static_cast<bool>(spec.callbacks.onValueChanged);
+  bool needsPatchState = spec.binding.state != nullptr ||
+                         spec.state != nullptr ||
+                         static_cast<bool>(spec.callbacks.onValueChanged);
 
   PrimeFrame::NodeId fillNodeId{};
   if (fillW > 0.0f || needsPatchState) {
@@ -5427,11 +5507,15 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
     auto state = std::make_shared<ProgressBarInteractionState>();
     state->value = value;
     auto setValue = [state,
+                     bindingState = spec.binding.state,
                      progressState = spec.state,
                      onChanged = spec.callbacks.onValueChanged,
                      applyProgressVisual](float nextValue) {
       float clamped = std::clamp(nextValue, 0.0f, 1.0f);
       state->value = clamped;
+      if (bindingState) {
+        bindingState->value = clamped;
+      }
       if (progressState) {
         progressState->value = clamped;
       }
@@ -5521,6 +5605,12 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   }
 
   return UiNode(frame(), bar.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createProgressBar(Binding<float> binding) {
+  ProgressBarSpec spec;
+  spec.binding = binding;
+  return createProgressBar(spec);
 }
 
 UiNode UiNode::createTable(TableSpec const& specInput) {

@@ -57,6 +57,9 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::WidgetSpec`
 - `PrimeStage::EnableableWidgetSpec`
 - `PrimeStage::FocusableWidgetSpec`
+- `PrimeStage::State<T>`
+- `PrimeStage::Binding<T>`
+- `PrimeStage::bind(...)`
 - `PrimeStage::SliderState`
 - `PrimeStage::ProgressBarState`
 
@@ -102,13 +105,19 @@ Interactive:
 - `createSelectableText(...)`
 - `createToggle(...)`
 - `createToggle(on, trackStyle, knobStyle, size)`
+- `createToggle(binding)`
 - `createCheckbox(...)`
 - `createCheckbox(label, checked, boxStyle, checkStyle, textStyle, size)`
+- `createCheckbox(label, binding)`
 - `createSlider(...)`
 - `createSlider(value, vertical, trackStyle, fillStyle, thumbStyle, size)`
+- `createSlider(binding, vertical)`
 - `createTabs(...)`
+- `createTabs(labels, binding)`
 - `createDropdown(...)`
+- `createDropdown(options, binding)`
 - `createProgressBar(...)`
+- `createProgressBar(binding)`
 
 Collection/windowing:
 - `createTable(...)`
@@ -143,8 +152,9 @@ Callback semantics:
 - State-backed `createTextField(...)` edits (text input, caret movement, selection updates) patch
   existing field visuals in place.
 - `createToggle(...)`, `createCheckbox(...)`, and `createSlider(...)` interactions patch their
-  value visuals in place.
-- State-backed `createProgressBar(...)` value changes patch fill geometry in place.
+  value visuals in place in both binding-backed and legacy state-backed modes.
+- `createProgressBar(...)` value changes patch fill geometry in place in both binding-backed and
+  legacy state-backed modes.
 - Typical runtime wiring for these high-frequency updates uses `FrameLifecycle::requestFrame()`
   instead of full rebuild requests when no structural widgets change.
 

@@ -32,7 +32,12 @@ What app code should avoid:
 - Controlled mode:
   - pass value fields in specs (`on`, `checked`, `selectedIndex`) and handle callbacks to update app state.
   - use this when your app already has canonical domain state.
-- State-backed mode (uncontrolled convenience for common controls):
+- Binding mode (preferred for value widgets):
+  - pass `State<T>` storage through `bind(...)` (for example `toggle.binding = bind(state.flag)`).
+  - supported on `Toggle`, `Checkbox`, `Slider`, `Tabs`, `Dropdown`, and `ProgressBar`.
+  - PrimeStage reads/writes bound values directly during interaction; callbacks are optional.
+  - use this as the default modern C++ value-ownership path for interactive controls.
+- State-backed mode (legacy convenience for compatibility):
   - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`, `TabsState*`,
     `DropdownState*`, `ProgressBarState*`, `TextFieldState*`, `SelectableTextState*`).
   - PrimeStage reads/writes those state objects directly during interaction; callbacks are optional.
@@ -68,18 +73,16 @@ void buildUi(PrimeStage::UiNode root, AppState& state) {
 }
 ```
 
-Example (`Toggle` in state-backed mode):
+Example (`Toggle` in binding mode):
 
 ```cpp
 struct AppState {
-  PrimeStage::ToggleState autoSave;
+  PrimeStage::State<bool> autoSave;
 };
 
 void buildUi(PrimeStage::UiNode root, AppState& state) {
   PrimeStage::ToggleSpec toggle;
-  toggle.state = &state.autoSave;
-  toggle.trackStyle = 101u;
-  toggle.knobStyle = 102u;
+  toggle.binding = PrimeStage::bind(state.autoSave);
   root.createToggle(toggle);
 }
 ```
@@ -198,8 +201,9 @@ if (result.requestFrame) {
 - Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
 - Use `requestFrame()` for patch-only updates that do not require rebuild/layout.
 - `TextField` state-backed edits (typing, caret moves, selection updates) and value-widget
-  interactions (`Toggle`, `Checkbox`, `Slider`, and state-backed `ProgressBar`) are patch-first in
-  the built scene, so high-frequency callbacks can request only a frame in typical app loops.
+  interactions (`Toggle`, `Checkbox`, `Slider`, and `ProgressBar` in binding-backed or legacy
+  state-backed mode) are patch-first in the built scene, so high-frequency callbacks can request
+  only a frame in typical app loops.
 - In frame loops, consume work with `runRebuildIfNeeded(...)` and `runLayoutIfNeeded(...)`, then call
   `markFramePresented()` after presenting.
 

@@ -20,12 +20,12 @@ constexpr float ScrollLinePixels = 32.0f;
 struct DemoState {
   PrimeStage::TextFieldState textField{};
   PrimeStage::SelectableTextState selectableText{};
-  PrimeStage::ToggleState toggle{};
-  PrimeStage::CheckboxState checkbox{};
-  PrimeStage::TabsState tabs{};
-  PrimeStage::DropdownState dropdown{};
-  PrimeStage::SliderState slider{};
-  PrimeStage::ProgressBarState progress{};
+  PrimeStage::State<bool> toggle{};
+  PrimeStage::State<bool> checkbox{};
+  PrimeStage::State<int> tabs{};
+  PrimeStage::State<int> dropdown{};
+  PrimeStage::State<float> sliderValue{};
+  PrimeStage::State<float> progressValue{};
   int clickCount = 0;
   int listSelectedIndex = 1;
   int tableSelectedRow = -1;
@@ -86,12 +86,12 @@ PrimeHost::CursorShape cursorShapeForHint(PrimeStage::CursorHint hint) {
 
 void initializeState(DemoState& state) {
   state.textField.text = "Editable text field";
-  state.toggle.on = true;
-  state.checkbox.checked = false;
-  state.slider.value = 0.35f;
-  state.progress.value = state.slider.value;
-  state.tabs.selectedIndex = 0;
-  state.dropdown.selectedIndex = 0;
+  state.toggle.value = true;
+  state.checkbox.value = false;
+  state.sliderValue.value = 0.35f;
+  state.progressValue.value = state.sliderValue.value;
+  state.tabs.value = 0;
+  state.dropdown.value = 0;
   state.selectableTextContent =
       "Selectable text supports drag selection, keyboard movement, and clipboard shortcuts.";
 
@@ -181,14 +181,14 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     });
 
     PrimeStage::ToggleSpec toggle;
-    toggle.state = &app.state.toggle;
+    toggle.binding = PrimeStage::bind(app.state.toggle);
     toggle.callbacks.onChanged = [&app](bool) {
       app.ui.lifecycle().requestRebuild();
     };
     row.createToggle(toggle);
 
     PrimeStage::CheckboxSpec checkbox;
-    checkbox.state = &app.state.checkbox;
+    checkbox.binding = PrimeStage::bind(app.state.checkbox);
     checkbox.label = "Checkbox";
     checkbox.callbacks.onChanged = [&app](bool) {
       app.ui.lifecycle().requestRebuild();
@@ -261,12 +261,12 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
   PrimeStage::UiNode range = createSection(rightColumn, "Slider + Progress");
   {
     PrimeStage::SliderSpec slider;
-    slider.state = &app.state.slider;
+    slider.binding = PrimeStage::bind(app.state.sliderValue);
     slider.size.preferredWidth = 280.0f;
     range.createSlider(slider);
 
     PrimeStage::ProgressBarSpec progress;
-    progress.state = &app.state.progress;
+    progress.binding = PrimeStage::bind(app.state.progressValue);
     progress.size.preferredWidth = 280.0f;
     range.createProgressBar(progress);
   }
@@ -280,7 +280,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     }
 
     PrimeStage::TabsSpec tabs;
-    tabs.state = &app.state.tabs;
+    tabs.binding = PrimeStage::bind(app.state.tabs);
     tabs.labels = tabViews;
     tabs.callbacks.onTabChanged = [&app](int) {
       app.ui.lifecycle().requestRebuild();
@@ -294,7 +294,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     }
 
     PrimeStage::DropdownSpec dropdown;
-    dropdown.state = &app.state.dropdown;
+    dropdown.binding = PrimeStage::bind(app.state.dropdown);
     dropdown.options = dropdownViews;
     dropdown.callbacks.onSelected = [&app](int) {
       app.ui.lifecycle().requestRebuild();

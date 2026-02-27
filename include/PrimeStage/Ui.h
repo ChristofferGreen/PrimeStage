@@ -430,6 +430,21 @@ struct TextSelectionOverlaySpec {
   SizeSpec size;
 };
 
+template <typename T>
+struct State {
+  T value{};
+};
+
+template <typename T>
+struct Binding {
+  State<T>* state = nullptr;
+};
+
+template <typename T>
+Binding<T> bind(State<T>& state) {
+  return Binding<T>{&state};
+}
+
 struct ToggleCallbacks {
   std::function<void(bool)> onChanged;
 };
@@ -440,6 +455,7 @@ struct ToggleState {
 
 struct ToggleSpec : FocusableWidgetSpec {
   ToggleState* state = nullptr;
+  Binding<bool> binding{};
   bool on = false;
   ToggleCallbacks callbacks{};
   float knobInset = 2.0f;
@@ -461,6 +477,7 @@ struct CheckboxState {
 
 struct CheckboxSpec : FocusableWidgetSpec {
   CheckboxState* state = nullptr;
+  Binding<bool> binding{};
   std::string_view label;
   bool checked = false;
   CheckboxCallbacks callbacks{};
@@ -489,6 +506,7 @@ struct SliderState {
 
 struct SliderSpec : FocusableWidgetSpec {
   SliderState* state = nullptr;
+  Binding<float> binding{};
   float value = 0.0f;
   bool vertical = false;
   float trackThickness = 6.0f;
@@ -520,6 +538,7 @@ struct TabsState {
 
 struct TabsSpec : FocusableWidgetSpec {
   TabsState* state = nullptr;
+  Binding<int> binding{};
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
   TabsCallbacks callbacks{};
@@ -547,6 +566,7 @@ struct DropdownState {
 
 struct DropdownSpec : FocusableWidgetSpec {
   DropdownState* state = nullptr;
+  Binding<int> binding{};
   std::vector<std::string_view> options;
   int selectedIndex = 0;
   DropdownCallbacks callbacks{};
@@ -574,6 +594,7 @@ struct ProgressBarState {
 
 struct ProgressBarSpec : FocusableWidgetSpec {
   ProgressBarState* state = nullptr;
+  Binding<float> binding{};
   ProgressBarCallbacks callbacks{};
   float value = 0.0f;
   float minFillWidth = 0.0f;
@@ -1121,6 +1142,7 @@ public:
                       PrimeFrame::RectStyleToken trackStyle,
                       PrimeFrame::RectStyleToken knobStyle,
                       SizeSpec const& size);
+  UiNode createToggle(Binding<bool> binding);
   template <typename Fn>
   UiNode createToggle(ToggleSpec const& spec, Fn&& fn) {
     UiNode child = createToggle(spec);
@@ -1134,6 +1156,7 @@ public:
                         PrimeFrame::RectStyleToken checkStyle,
                         PrimeFrame::TextStyleToken textStyle,
                         SizeSpec const& size);
+  UiNode createCheckbox(std::string_view label, Binding<bool> binding);
   template <typename Fn>
   UiNode createCheckbox(CheckboxSpec const& spec, Fn&& fn) {
     UiNode child = createCheckbox(spec);
@@ -1147,6 +1170,7 @@ public:
                       PrimeFrame::RectStyleToken fillStyle,
                       PrimeFrame::RectStyleToken thumbStyle,
                       SizeSpec const& size);
+  UiNode createSlider(Binding<float> binding, bool vertical = false);
   template <typename Fn>
   UiNode createSlider(SliderSpec const& spec, Fn&& fn) {
     UiNode child = createSlider(spec);
@@ -1154,6 +1178,7 @@ public:
     return child;
   }
   UiNode createTabs(TabsSpec const& spec);
+  UiNode createTabs(std::vector<std::string_view> labels, Binding<int> binding);
   template <typename Fn>
   UiNode createTabs(TabsSpec const& spec, Fn&& fn) {
     UiNode child = createTabs(spec);
@@ -1161,6 +1186,7 @@ public:
     return child;
   }
   UiNode createDropdown(DropdownSpec const& spec);
+  UiNode createDropdown(std::vector<std::string_view> options, Binding<int> binding);
   template <typename Fn>
   UiNode createDropdown(DropdownSpec const& spec, Fn&& fn) {
     UiNode child = createDropdown(spec);
@@ -1168,6 +1194,7 @@ public:
     return child;
   }
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  UiNode createProgressBar(Binding<float> binding);
   template <typename Fn>
   UiNode createProgressBar(ProgressBarSpec const& spec, Fn&& fn) {
     UiNode child = createProgressBar(spec);

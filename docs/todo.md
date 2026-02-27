@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [55] Add first-class state/binding primitives.
-  - provide `State<T>`/`Signal`-style primitives for value ownership and mutation tracking
-  - allow widgets to bind directly to values (`bind(value)`) with default two-way behavior where appropriate
-  - acceptance: tabs/dropdown/toggle/checkbox/slider/progress no longer require separate ad-hoc app state wiring patterns
-
 - ☐ [56] Define and enforce a minimal callback surface.
   - standardize semantic callbacks (`onActivate`, `onChange`, `onOpen`, `onSelect`) and avoid redundant low-level callback sets
   - callbacks should be optional; controls remain useful/interactive without callback registration
@@ -151,6 +146,13 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [55] Add first-class state/binding primitives.
+  - delivered via `State<T>`/`Binding<T>` + `bind(...)` in `include/PrimeStage/Ui.h`, binding-first
+    interaction wiring for toggle/checkbox/slider/tabs/dropdown/progress in `src/PrimeStage.cpp`,
+    canonical example migration in `examples/primestage_widgets.cpp`, and regression coverage
+    updates in `tests/unit/test_interaction.cpp`, `tests/unit/test_tabs_dropdown.cpp`, and
+    `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [54] Add a declarative UI composition API.
   - delivered via declarative `UiNode` helpers in `include/PrimeStage/Ui.h` (`column`, `row`,

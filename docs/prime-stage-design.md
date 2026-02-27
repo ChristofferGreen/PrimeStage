@@ -55,8 +55,9 @@ scheduling, input dispatch routing, and render helpers so application code does 
 
 The ground truth remains authoritative. `PrimeScene` is a disposable snapshot that can be rebuilt at any time.
 For high-frequency `TextField` interactions and interactive value widgets (`Toggle`, `Checkbox`,
-`Slider`, and state-backed `ProgressBar`), PrimeStage patches visuals in place on the built scene so
-app runtimes can request frame-only updates when structure is unchanged.
+`Slider`, and `ProgressBar` in binding-backed or legacy state-backed mode), PrimeStage patches
+visuals in place on the built scene so app runtimes can request frame-only updates when structure is
+unchanged.
 
 ### Patch Safety
 Patches should only touch fields that do not restructure the graph:
@@ -89,15 +90,21 @@ Callback reentrancy/threading guarantees are documented in
 Data ownership/lifetime guarantees for `std::string_view` specs and callback captures are
 documented in `docs/data-ownership-lifetime.md`.
 
-## Controlled vs State-Backed Widgets
-PrimeStage supports two widget value models for interactive controls:
+## Controlled, Binding, and State-Backed Widgets
+PrimeStage supports three widget value models for interactive controls:
 - Controlled:
   - widget value comes from spec fields (`on`, `checked`, `selectedIndex`).
   - app callbacks update canonical app state, then rebuild.
-- State-backed:
+- Binding-backed:
+  - widget value comes from first-class bindings (`State<T>`, `Binding<T>`, `bind(...)`).
+  - supported on `Toggle`, `Checkbox`, `Slider`, `Tabs`, `Dropdown`, and `ProgressBar`.
+  - PrimeStage mutates bound state values during interaction; callbacks are optional.
+  - this is the preferred default for concise app-side value ownership in modern API usage.
+- Legacy state-backed:
   - widget value comes from state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`,
     `TabsState*`, `DropdownState*`, `TextFieldState*`, `SelectableTextState*`).
   - PrimeStage mutates those state objects during interaction; callbacks are optional.
+  - kept for backward compatibility and advanced interoperability.
 
 PrimeStage always owns transient per-frame interaction details (hover/pressed/drag bookkeeping).
 
