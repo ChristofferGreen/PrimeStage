@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [51] Guarantee zero-theme-setup readable defaults.
-  - default widget rendering must be legible without any app-level palette or color configuration
-  - examples should not need custom theme bootstrapping to achieve basic contrast/readability
-  - acceptance: `examples/primestage_widgets.cpp` uses no custom theme/palette/color setup and remains readable
-
 - ☐ [52] Remove callback-gated interaction from stateful controls.
   - controls like slider/progress should remain interactive when state is provided, without requiring `onValueChanged` to enable pointer drag behavior
   - make controlled/uncontrolled behavior consistent across button/toggle/checkbox/slider/progress/tabs/dropdown
@@ -171,6 +166,11 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [51] Guarantee zero-theme-setup readable defaults.
+  - default widget rendering is legible without app-level palette or color configuration
+  - `examples/primestage_widgets.cpp` uses no custom theme/palette setup and remains readable
+  - delivered by canonical default-theme bootstrap in `src/PrimeStage.cpp` plus source-guard/readability regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [22] Define PrimeStage API ergonomics guidelines.
   - document what belongs in PrimeStage vs what user code should never have to implement
@@ -431,4 +431,3 @@ Completed items moved here to keep active backlog focused.
   - delivered via new example app `examples/primestage_scene.cpp` (window + widget-scene
     composition and layout pass), example-target wiring in `CMakeLists.txt`, regression guards in
     `tests/unit/test_api_ergonomics.cpp`, and README example-binary documentation updates
-

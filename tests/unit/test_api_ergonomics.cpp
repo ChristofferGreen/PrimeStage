@@ -388,11 +388,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                             std::istreambuf_iterator<char>());
   REQUIRE(!widgetsSource.empty());
 
-  CHECK(widgetsSource.find("tabsSpec.callbacks.onTabChanged") != std::string::npos);
-  CHECK(widgetsSource.find("dropdownSpec.callbacks.onOpened") != std::string::npos);
-  CHECK(widgetsSource.find("dropdownSpec.callbacks.onSelected") != std::string::npos);
-  CHECK(widgetsSource.find("widgetIdentity.registerNode") != std::string::npos);
-  CHECK(widgetsSource.find("widgetIdentity.restoreFocus") != std::string::npos);
+  CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") != std::string::npos);
+  CHECK(widgetsSource.find("dropdown.callbacks.onSelected") != std::string::npos);
   CHECK(widgetsSource.find("bridgeHostInputEvent") != std::string::npos);
   CHECK(widgetsSource.find("HostKey::Escape") != std::string::npos);
   CHECK(widgetsSource.find("scrollDirectionSign") != std::string::npos);
@@ -400,12 +397,13 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("runRebuildIfNeeded(app)") != std::string::npos);
   CHECK(widgetsSource.find("app.runtime.requestRebuild()") != std::string::npos);
   CHECK(widgetsSource.find("app.runtime.framePending()") != std::string::npos);
-  CHECK(widgetsSource.find("Advanced PrimeFrame integration (documented exception):") !=
-        std::string::npos);
-  CHECK(widgetsSource.find("theme token/palette bootstrap") != std::string::npos);
-  CHECK(widgetsSource.find("root-node creation and") != std::string::npos);
-  CHECK(widgetsSource.find("explicit layout and") != std::string::npos);
-  CHECK(widgetsSource.find("low-level router dispatch") != std::string::npos);
+  CHECK(widgetsSource.find("updateLayoutIfNeeded(app)") != std::string::npos);
+
+  // [51] canonical examples must not bootstrap theme/palette defaults in app code.
+  CHECK(widgetsSource.find("getTheme(PrimeFrame::DefaultThemeId)") == std::string::npos);
+  CHECK(widgetsSource.find("theme->palette") == std::string::npos);
+  CHECK(widgetsSource.find("theme->rectStyles") == std::string::npos);
+  CHECK(widgetsSource.find("theme->textStyles") == std::string::npos);
 
   // App-level widget usage should not rely on raw PrimeFrame callback mutation.
   CHECK(widgetsSource.find("appendNodeEventCallback") == std::string::npos);
@@ -462,8 +460,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("FrameLifecycle") != std::string::npos);
   CHECK(checklist.find("WidgetIdentityReconciler") != std::string::npos);
   CHECK(checklist.find("node->callbacks = ...") != std::string::npos);
-  CHECK(checklist.find("Advanced PrimeFrame integration (documented exception):") !=
-        std::string::npos);
+  CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
 }
 
@@ -643,8 +640,8 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string example((std::istreambuf_iterator<char>(exampleInput)),
                       std::istreambuf_iterator<char>());
   REQUIRE(!example.empty());
-  CHECK(example.find("fieldSpec.callbacks.onStateChanged") != std::string::npos);
-  CHECK(example.find("fieldSpec.callbacks.onTextChanged") != std::string::npos);
+  CHECK(example.find("field.callbacks.onStateChanged") != std::string::npos);
+  CHECK(example.find("field.callbacks.onCursorHintChanged") != std::string::npos);
   CHECK(example.find("app.runtime.requestFrame();") != std::string::npos);
 }
 

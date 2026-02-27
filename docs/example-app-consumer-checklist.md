@@ -21,7 +21,6 @@ advanced host/runtime integration concern and no PrimeStage wrapper currently ex
 Current documented advanced exceptions:
 
 - Frame root creation and root-node sizing/layout bootstrap.
-- Theme token/palette construction on `PrimeFrame::Theme`.
 - Layout/focus/event-router orchestration at host-loop boundaries.
 
 These exceptions must be clearly tagged inline in the example source with
