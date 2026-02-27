@@ -115,6 +115,9 @@ std::vector<std::string> wrapTextLines(PrimeFrame::Frame& frame,
 
 UiNode UiNode::createLabel(LabelSpec const& specInput) {
   LabelSpec spec = Internal::normalizeLabelSpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect rect = Internal::resolveRect(spec.size);
   if ((rect.width <= 0.0f || rect.height <= 0.0f) &&
@@ -123,8 +126,8 @@ UiNode UiNode::createLabel(LabelSpec const& specInput) {
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f) {
-    float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
-    float textWidth = Internal::estimateTextWidth(frame(), spec.textStyle, spec.text);
+    float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
+    float textWidth = Internal::estimateTextWidth(runtimeFrame, spec.textStyle, spec.text);
     if (rect.width <= 0.0f) {
       rect.width = spec.maxWidth > 0.0f ? std::min(textWidth, spec.maxWidth) : textWidth;
     }
@@ -133,14 +136,14 @@ UiNode UiNode::createLabel(LabelSpec const& specInput) {
       float height = lineHeight;
       if (spec.wrap != PrimeFrame::WrapMode::None && wrapWidth > 0.0f) {
         std::vector<std::string> lines =
-            wrapTextLines(frame(), spec.textStyle, spec.text, wrapWidth, spec.wrap);
+            wrapTextLines(runtimeFrame, spec.textStyle, spec.text, wrapWidth, spec.wrap);
         height = lineHeight * static_cast<float>(std::max<size_t>(1, lines.size()));
       }
       rect.height = height;
     }
   }
-  PrimeFrame::NodeId nodeId = Internal::createNode(frame(),
-                                                   id_,
+  PrimeFrame::NodeId nodeId = Internal::createNode(runtimeFrame,
+                                                   runtime.parentId,
                                                    rect,
                                                    &spec.size,
                                                    PrimeFrame::LayoutType::None,
@@ -148,10 +151,10 @@ UiNode UiNode::createLabel(LabelSpec const& specInput) {
                                                    0.0f,
                                                    false,
                                                    spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(nodeId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(nodeId)) {
     node->hitTestVisible = false;
   }
-  addTextPrimitive(frame(),
+  addTextPrimitive(runtimeFrame,
                    nodeId,
                    spec.text,
                    spec.textStyle,
@@ -161,7 +164,7 @@ UiNode UiNode::createLabel(LabelSpec const& specInput) {
                    spec.maxWidth,
                    rect.width,
                    rect.height);
-  return UiNode(frame(), nodeId, allowAbsolute_);
+  return UiNode(runtimeFrame, nodeId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createLabel(std::string_view text,

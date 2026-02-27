@@ -96,6 +96,9 @@ float measureTextWidth(PrimeFrame::Frame& frame,
 
 UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
   ParagraphSpec spec = Internal::normalizeParagraphSpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
@@ -115,14 +118,14 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
       spec.size.stretchX <= 0.0f) {
     bounds.width = maxWidth;
   }
-  std::vector<std::string> lines = wrapTextLines(frame(), token, spec.text, maxWidth, spec.wrap);
+  std::vector<std::string> lines = wrapTextLines(runtimeFrame, token, spec.text, maxWidth, spec.wrap);
   if (bounds.width <= 0.0f &&
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f &&
       !lines.empty()) {
     float inferredWidth = 0.0f;
     for (auto const& line : lines) {
-      inferredWidth = std::max(inferredWidth, measureTextWidth(frame(), token, line));
+      inferredWidth = std::max(inferredWidth, measureTextWidth(runtimeFrame, token, line));
     }
     if (maxWidth > 0.0f) {
       inferredWidth = std::min(inferredWidth, maxWidth);
@@ -133,7 +136,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
     maxWidth = bounds.width;
   }
 
-  float lineHeight = Internal::resolveLineHeight(frame(), token);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, token);
   if (spec.autoHeight &&
       bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
@@ -141,8 +144,8 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
     bounds.height = std::max(0.0f, lineHeight * static_cast<float>(lines.size()));
   }
 
-  PrimeFrame::NodeId paragraphId = Internal::createNode(frame(),
-                                                        id_,
+  PrimeFrame::NodeId paragraphId = Internal::createNode(runtimeFrame,
+                                                        runtime.parentId,
                                                         bounds,
                                                         &spec.size,
                                                         PrimeFrame::LayoutType::None,
@@ -150,13 +153,13 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
                                                         0.0f,
                                                         false,
                                                         spec.visible);
-  if (PrimeFrame::Node* node = frame().getNode(paragraphId)) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(paragraphId)) {
     node->hitTestVisible = false;
   }
 
   for (size_t i = 0; i < lines.size(); ++i) {
     float width = maxWidth > 0.0f ? maxWidth : bounds.width;
-    Internal::createTextNode(frame(),
+    Internal::createTextNode(runtimeFrame,
                              paragraphId,
                              Internal::InternalRect{0.0f,
                                                     spec.textOffsetY + static_cast<float>(i) * lineHeight,
@@ -171,7 +174,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
                              spec.visible);
   }
 
-  return UiNode(frame(), paragraphId, allowAbsolute_);
+  return UiNode(runtimeFrame, paragraphId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createParagraph(std::string_view text,

@@ -146,6 +146,10 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: adopted the runtime seam in
     `src/PrimeStageCollections.cpp` (`createScrollView`) so parent/frame/return
     runtime wiring routes through `WidgetRuntimeContext`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageTextLine.cpp`, `src/PrimeStageLabel.cpp`, and
+    `src/PrimeStageParagraph.cpp` so text-widget parent/frame/return runtime
+    wiring routes through `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

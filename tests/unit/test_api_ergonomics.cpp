@@ -3760,6 +3760,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(textLineSource.find("UiNode UiNode::createTextLine(std::string_view text,") !=
         std::string::npos);
   CHECK(textLineSource.find("Internal::normalizeTextLineSpec(specInput)") != std::string::npos);
+  CHECK(textLineSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
 
   std::ifstream labelInput(labelPath);
   REQUIRE(labelInput.good());
@@ -3771,6 +3772,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(labelSource.find("UiNode UiNode::createLabel(std::string_view text,") !=
         std::string::npos);
   CHECK(labelSource.find("Internal::normalizeLabelSpec(specInput)") != std::string::npos);
+  CHECK(labelSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
 
   std::ifstream paragraphInput(paragraphPath);
   REQUIRE(paragraphInput.good());
@@ -3782,6 +3784,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(paragraphSource.find("UiNode UiNode::createParagraph(std::string_view text,") !=
         std::string::npos);
   CHECK(paragraphSource.find("Internal::normalizeParagraphSpec(specInput)") != std::string::npos);
+  CHECK(paragraphSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
 
   std::ifstream textFieldInput(textFieldPath);
   REQUIRE(textFieldInput.good());

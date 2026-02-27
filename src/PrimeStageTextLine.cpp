@@ -8,8 +8,11 @@ namespace PrimeStage {
 
 UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
   TextLineSpec spec = Internal::normalizeTextLineSpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
   PrimeFrame::TextStyleToken token = spec.textStyle;
-  float lineHeight = Internal::resolveLineHeight(frame(), token);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, token);
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   if ((bounds.width <= 0.0f || bounds.height <= 0.0f) &&
       !spec.size.preferredWidth.has_value() &&
@@ -17,7 +20,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f &&
       !spec.text.empty()) {
-    float textWidth = Internal::estimateTextWidth(frame(), token, spec.text);
+    float textWidth = Internal::estimateTextWidth(runtimeFrame, token, spec.text);
     if (bounds.width <= 0.0f) {
       bounds.width = textWidth;
     }
@@ -28,7 +31,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
   float containerHeight = bounds.height > 0.0f ? bounds.height : lineHeight;
   float textY = (containerHeight - lineHeight) * 0.5f + spec.textOffsetY;
 
-  float textWidth = Internal::estimateTextWidth(frame(), token, spec.text);
+  float textWidth = Internal::estimateTextWidth(runtimeFrame, token, spec.text);
   float containerWidth = bounds.width;
   bool manualAlign = spec.align != PrimeFrame::TextAlign::Start &&
                      containerWidth > 0.0f &&
@@ -43,8 +46,8 @@ UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
       offset = containerWidth - textWidth;
     }
     float x = std::max(0.0f, offset);
-    lineId = Internal::createTextNode(frame(),
-                                      id_,
+    lineId = Internal::createTextNode(runtimeFrame,
+                                      runtime.parentId,
                                       Internal::InternalRect{x, textY, textWidth, lineHeight},
                                       spec.text,
                                       token,
@@ -55,8 +58,8 @@ UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
                                       spec.visible);
   } else {
     float width = containerWidth > 0.0f ? containerWidth : textWidth;
-    lineId = Internal::createTextNode(frame(),
-                                      id_,
+    lineId = Internal::createTextNode(runtimeFrame,
+                                      runtime.parentId,
                                       Internal::InternalRect{0.0f, textY, width, lineHeight},
                                       spec.text,
                                       token,
@@ -66,7 +69,7 @@ UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
                                       width,
                                       spec.visible);
   }
-  return UiNode(frame(), lineId, allowAbsolute_);
+  return UiNode(runtimeFrame, lineId, runtime.allowAbsolute);
 }
 
 UiNode UiNode::createTextLine(std::string_view text,
