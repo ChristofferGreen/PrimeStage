@@ -182,7 +182,7 @@ TEST_CASE("PrimeStage dropdown with empty label inserts spacer") {
   CHECK(indicatorCount == 1);
 }
 
-TEST_CASE("PrimeStage tabs onTabChanged supports pointer and keyboard activation") {
+TEST_CASE("PrimeStage tabs onSelect supports pointer and keyboard activation") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 280.0f, 100.0f);
 
@@ -197,7 +197,7 @@ TEST_CASE("PrimeStage tabs onTabChanged supports pointer and keyboard activation
   spec.activeTextStyle = 72u;
 
   std::vector<int> selections;
-  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode tabs = root.createTabs(spec);
   PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
@@ -239,7 +239,7 @@ TEST_CASE("PrimeStage tabs onTabChanged supports pointer and keyboard activation
   CHECK(selections.back() == 2);
 }
 
-TEST_CASE("PrimeStage dropdown onOpened and onSelected support pointer and keyboard") {
+TEST_CASE("PrimeStage dropdown onOpen and onSelect support pointer and keyboard") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 260.0f, 100.0f);
 
@@ -256,8 +256,8 @@ TEST_CASE("PrimeStage dropdown onOpened and onSelected support pointer and keybo
 
   int openedCount = 0;
   std::vector<int> selections;
-  spec.callbacks.onOpened = [&]() { openedCount += 1; };
-  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onOpen = [&]() { openedCount += 1; };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 260.0f, 100.0f);
@@ -290,7 +290,7 @@ TEST_CASE("PrimeStage dropdown onOpened and onSelected support pointer and keybo
   CHECK(selections.back() == 2);
 }
 
-TEST_CASE("PrimeStage dropdown with no options emits onOpened but not onSelected") {
+TEST_CASE("PrimeStage dropdown with no options emits onOpen but not onSelect") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 220.0f, 80.0f);
 
@@ -306,8 +306,8 @@ TEST_CASE("PrimeStage dropdown with no options emits onOpened but not onSelected
 
   int openedCount = 0;
   int selectedCount = 0;
-  spec.callbacks.onOpened = [&]() { openedCount += 1; };
-  spec.callbacks.onSelected = [&](int) { selectedCount += 1; };
+  spec.callbacks.onOpen = [&]() { openedCount += 1; };
+  spec.callbacks.onSelect = [&](int) { selectedCount += 1; };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 220.0f, 80.0f);
@@ -355,7 +355,7 @@ TEST_CASE("PrimeStage tabs state-backed mode uses and updates TabsState") {
   spec.activeTextStyle = 172u;
 
   std::vector<int> selections;
-  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode tabs = root.createTabs(spec);
   PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
@@ -419,8 +419,8 @@ TEST_CASE("PrimeStage dropdown state-backed mode uses and updates DropdownState"
 
   int openedCount = 0;
   std::vector<int> selections;
-  spec.callbacks.onOpened = [&]() { openedCount += 1; };
-  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onOpen = [&]() { openedCount += 1; };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::Node const* dropdownNode = frame.getNode(dropdown.nodeId());
@@ -483,7 +483,7 @@ TEST_CASE("PrimeStage tabs binding mode clamps source value and syncs legacy sta
   spec.activeTextStyle = 272u;
 
   std::vector<int> selections;
-  spec.callbacks.onTabChanged = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode tabs = root.createTabs(spec);
   PrimeFrame::Node const* row = frame.getNode(tabs.nodeId());
@@ -556,8 +556,8 @@ TEST_CASE("PrimeStage dropdown binding mode clamps source value and syncs legacy
 
   int openedCount = 0;
   std::vector<int> selections;
-  spec.callbacks.onOpened = [&]() { openedCount += 1; };
-  spec.callbacks.onSelected = [&](int index) { selections.push_back(index); };
+  spec.callbacks.onOpen = [&]() { openedCount += 1; };
+  spec.callbacks.onSelect = [&](int index) { selections.push_back(index); };
 
   PrimeStage::UiNode dropdown = root.createDropdown(spec);
   PrimeFrame::Node const* dropdownNode = frame.getNode(dropdown.nodeId());
@@ -602,4 +602,72 @@ TEST_CASE("PrimeStage dropdown binding mode clamps source value and syncs legacy
   CHECK(legacyState.selectedIndex == 2);
   REQUIRE(selections.size() >= 2);
   CHECK(selections.back() == 2);
+}
+
+TEST_CASE("PrimeStage tabs and dropdown legacy callback aliases remain supported") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::TabsSpec tabsSpec;
+  tabsSpec.labels = {"One", "Two", "Three"};
+  tabsSpec.selectedIndex = 0;
+  tabsSpec.size.preferredWidth = 240.0f;
+  tabsSpec.size.preferredHeight = 28.0f;
+  int tabChanges = 0;
+  tabsSpec.callbacks.onTabChanged = [&](int) { tabChanges += 1; };
+  PrimeStage::UiNode tabs = stack.createTabs(tabsSpec);
+
+  PrimeStage::DropdownSpec dropdownSpec;
+  dropdownSpec.options = {"Preview", "Edit", "Export"};
+  dropdownSpec.selectedIndex = 0;
+  dropdownSpec.size.preferredWidth = 180.0f;
+  dropdownSpec.size.preferredHeight = 24.0f;
+  int dropdownOpened = 0;
+  int dropdownSelected = 0;
+  dropdownSpec.callbacks.onOpened = [&]() { dropdownOpened += 1; };
+  dropdownSpec.callbacks.onSelected = [&](int) { dropdownSelected += 1; };
+  PrimeStage::UiNode dropdown = stack.createDropdown(dropdownSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 140.0f);
+  PrimeFrame::Node const* tabRow = frame.getNode(tabs.nodeId());
+  REQUIRE(tabRow != nullptr);
+  REQUIRE(tabRow->children.size() == 3);
+  PrimeFrame::LayoutOut const* tabOut = layout.get(tabRow->children[1]);
+  PrimeFrame::LayoutOut const* dropdownOut = layout.get(dropdown.nodeId());
+  REQUIRE(tabOut != nullptr);
+  REQUIRE(dropdownOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float tabX = tabOut->absX + tabOut->absW * 0.5f;
+  float tabY = tabOut->absY + tabOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, tabX, tabY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, tabX, tabY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(tabChanges == 1);
+
+  float dropdownX = dropdownOut->absX + dropdownOut->absW * 0.5f;
+  float dropdownY = dropdownOut->absY + dropdownOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, dropdownX, dropdownY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, dropdownX, dropdownY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(dropdownOpened == 1);
+  CHECK(dropdownSelected == 1);
 }

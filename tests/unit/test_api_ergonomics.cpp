@@ -110,7 +110,7 @@ TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
   buttonSpec.hoverStyle = 102u;
   buttonSpec.pressedStyle = 103u;
   buttonSpec.focusStyle = 104u;
-  buttonSpec.callbacks.onClick = [&]() { clickCount += 1; };
+  buttonSpec.callbacks.onActivate = [&]() { clickCount += 1; };
 
   PrimeStage::UiNode button = root.createButton(buttonSpec);
   PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
@@ -155,7 +155,7 @@ TEST_CASE("PrimeStage text field editing is owned by app state") {
   fieldSpec.size.preferredWidth = 220.0f;
   fieldSpec.size.preferredHeight = 28.0f;
   fieldSpec.callbacks.onStateChanged = [&]() { stateChangedCount += 1; };
-  fieldSpec.callbacks.onTextChanged = [&](std::string_view text) { lastText = std::string(text); };
+  fieldSpec.callbacks.onChange = [&](std::string_view text) { lastText = std::string(text); };
 
   PrimeStage::UiNode field = root.createTextField(fieldSpec);
   PrimeFrame::Node const* node = frame.getNode(field.nodeId());
@@ -333,7 +333,7 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode paragraph(std::string_view text, float maxWidth = 0.0f)") !=
         std::string::npos);
   CHECK(uiHeader.find("UiNode textLine(std::string_view text)") != std::string::npos);
-  CHECK(uiHeader.find("UiNode button(std::string_view text, std::function<void()> onClick = {})") !=
+  CHECK(uiHeader.find("UiNode button(std::string_view text, std::function<void()> onActivate = {})") !=
         std::string::npos);
   CHECK(uiHeader.find("Window window(WindowSpec const& spec)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createPanel(PanelSpec const& spec, Fn&& fn)") != std::string::npos);
@@ -346,6 +346,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("template <typename T>\nstruct State") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct Binding") != std::string::npos);
   CHECK(uiHeader.find("Binding<T> bind(State<T>& state)") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void()> onActivate;") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void(bool)> onChange;") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void(int)> onSelect;") != std::string::npos);
+  CHECK(uiHeader.find("std::function<void()> onOpen;") != std::string::npos);
   CHECK(uiHeader.find("UiNode createToggle(Binding<bool> binding);") != std::string::npos);
   CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label, Binding<bool> binding);") !=
         std::string::npos);
@@ -379,6 +383,11 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("column(...)") != std::string::npos);
   CHECK(apiRef.find("row(...)") != std::string::npos);
   CHECK(apiRef.find("window(spec, lambda)") != std::string::npos);
+  CHECK(apiRef.find("Semantic Callback Surface") != std::string::npos);
+  CHECK(apiRef.find("onActivate") != std::string::npos);
+  CHECK(apiRef.find("onChange") != std::string::npos);
+  CHECK(apiRef.find("onOpen") != std::string::npos);
+  CHECK(apiRef.find("onSelect") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -390,6 +399,9 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(design.find("column(...)") != std::string::npos);
   CHECK(design.find("row(...)") != std::string::npos);
   CHECK(design.find("window(spec, fn)") != std::string::npos);
+  CHECK(design.find("onActivate") != std::string::npos);
+  CHECK(design.find("onChange") != std::string::npos);
+  CHECK(design.find("onSelect") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -399,6 +411,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
   CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
   CHECK(guidelines.find("Declarative Composition Helpers") != std::string::npos);
+  CHECK(guidelines.find("onActivate") != std::string::npos);
+  CHECK(guidelines.find("onChange") != std::string::npos);
+  CHECK(guidelines.find("onOpen") != std::string::npos);
+  CHECK(guidelines.find("onSelect") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage examples stay canonical API consumers") {
@@ -422,8 +438,12 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                             std::istreambuf_iterator<char>());
   REQUIRE(!widgetsSource.empty());
 
-  CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") != std::string::npos);
-  CHECK(widgetsSource.find("dropdown.callbacks.onSelected") != std::string::npos);
+  CHECK(widgetsSource.find("tabs.callbacks.onSelect") == std::string::npos);
+  CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") == std::string::npos);
+  CHECK(widgetsSource.find("dropdown.callbacks.onSelect") == std::string::npos);
+  CHECK(widgetsSource.find("dropdown.callbacks.onSelected") == std::string::npos);
+  CHECK(widgetsSource.find("toggle.callbacks.onChange") == std::string::npos);
+  CHECK(widgetsSource.find("checkbox.callbacks.onChange") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.bridgeHostInputEvent") != std::string::npos);
   CHECK(widgetsSource.find("HostKey::Escape") != std::string::npos);
   CHECK(widgetsSource.find("scrollDirectionSign") != std::string::npos);

@@ -182,17 +182,11 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
     PrimeStage::ToggleSpec toggle;
     toggle.binding = PrimeStage::bind(app.state.toggle);
-    toggle.callbacks.onChanged = [&app](bool) {
-      app.ui.lifecycle().requestRebuild();
-    };
     row.createToggle(toggle);
 
     PrimeStage::CheckboxSpec checkbox;
     checkbox.binding = PrimeStage::bind(app.state.checkbox);
     checkbox.label = "Checkbox";
-    checkbox.callbacks.onChanged = [&app](bool) {
-      app.ui.lifecycle().requestRebuild();
-    };
     row.createCheckbox(checkbox);
 
     std::string summaryText = "Clicks: " + std::to_string(app.state.clickCount);
@@ -282,9 +276,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::TabsSpec tabs;
     tabs.binding = PrimeStage::bind(app.state.tabs);
     tabs.labels = tabViews;
-    tabs.callbacks.onTabChanged = [&app](int) {
-      app.ui.lifecycle().requestRebuild();
-    };
     choice.createTabs(tabs);
 
     std::vector<std::string_view> dropdownViews;
@@ -296,9 +287,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::DropdownSpec dropdown;
     dropdown.binding = PrimeStage::bind(app.state.dropdown);
     dropdown.options = dropdownViews;
-    dropdown.callbacks.onSelected = [&app](int) {
-      app.ui.lifecycle().requestRebuild();
-    };
     choice.createDropdown(dropdown);
 
     std::vector<std::string_view> listViews;
@@ -312,7 +300,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     list.selectedIndex = app.state.listSelectedIndex;
     list.size.preferredWidth = 280.0f;
     list.size.preferredHeight = 116.0f;
-    list.callbacks.onSelected = [&app](PrimeStage::ListRowInfo const& info) {
+    list.callbacks.onSelect = [&app](PrimeStage::ListRowInfo const& info) {
       app.state.listSelectedIndex = info.rowIndex;
       app.ui.lifecycle().requestRebuild();
     };
@@ -335,7 +323,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
         {"theme.ogg", "Audio", "3.1 MB"},
         {"ui.vert", "Shader", "14 KB"},
     };
-    table.callbacks.onRowClicked = [&app](PrimeStage::TableRowInfo const& info) {
+    table.callbacks.onSelect = [&app](PrimeStage::TableRowInfo const& info) {
       app.state.tableSelectedRow = info.rowIndex;
       app.ui.lifecycle().requestRebuild();
     };
@@ -345,7 +333,7 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     tree.nodes = app.state.tree;
     tree.size.preferredWidth = 360.0f;
     tree.size.preferredHeight = 120.0f;
-    tree.callbacks.onSelectionChanged = [&app](PrimeStage::TreeViewRowInfo const& info) {
+    tree.callbacks.onSelect = [&app](PrimeStage::TreeViewRowInfo const& info) {
       clearTreeSelection(app.state.tree);
       if (PrimeStage::TreeNode* node = findTreeNode(app.state.tree, info.path)) {
         node->selected = true;

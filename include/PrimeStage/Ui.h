@@ -266,6 +266,9 @@ struct SpacerSpec {
 };
 
 struct ButtonCallbacks {
+  // Preferred semantic callback.
+  std::function<void()> onActivate;
+  // Legacy alias retained for compatibility.
   std::function<void()> onClick;
   std::function<void(bool)> onHoverChanged;
   std::function<void(bool)> onPressedChanged;
@@ -328,6 +331,9 @@ struct TextCompositionCallbacks {
 
 struct TextFieldCallbacks {
   std::function<void()> onStateChanged;
+  // Preferred semantic callback.
+  std::function<void(std::string_view)> onChange;
+  // Legacy alias retained for compatibility.
   std::function<void(std::string_view)> onTextChanged;
   std::function<void(bool)> onFocusChanged;
   std::function<void(bool)> onHoverChanged;
@@ -446,6 +452,9 @@ Binding<T> bind(State<T>& state) {
 }
 
 struct ToggleCallbacks {
+  // Preferred semantic callback.
+  std::function<void(bool)> onChange;
+  // Legacy alias retained for compatibility.
   std::function<void(bool)> onChanged;
 };
 
@@ -468,6 +477,9 @@ struct ToggleSpec : FocusableWidgetSpec {
 };
 
 struct CheckboxCallbacks {
+  // Preferred semantic callback.
+  std::function<void(bool)> onChange;
+  // Legacy alias retained for compatibility.
   std::function<void(bool)> onChanged;
 };
 
@@ -495,6 +507,9 @@ struct CheckboxSpec : FocusableWidgetSpec {
 };
 
 struct SliderCallbacks {
+  // Preferred semantic callback.
+  std::function<void(float)> onChange;
+  // Legacy alias retained for compatibility.
   std::function<void(float)> onValueChanged;
   std::function<void()> onDragStart;
   std::function<void()> onDragEnd;
@@ -529,6 +544,9 @@ struct SliderSpec : FocusableWidgetSpec {
 };
 
 struct TabsCallbacks {
+  // Preferred semantic callback.
+  std::function<void(int)> onSelect;
+  // Legacy alias retained for compatibility.
   std::function<void(int)> onTabChanged;
 };
 
@@ -556,6 +574,10 @@ struct TabsSpec : FocusableWidgetSpec {
 };
 
 struct DropdownCallbacks {
+  // Preferred semantic callbacks.
+  std::function<void()> onOpen;
+  std::function<void(int)> onSelect;
+  // Legacy aliases retained for compatibility.
   std::function<void()> onOpened;
   std::function<void(int)> onSelected;
 };
@@ -585,6 +607,9 @@ struct DropdownSpec : FocusableWidgetSpec {
 };
 
 struct ProgressBarCallbacks {
+  // Preferred semantic callback.
+  std::function<void(float)> onChange;
+  // Legacy alias retained for compatibility.
   std::function<void(float)> onValueChanged;
 };
 
@@ -650,6 +675,9 @@ struct TableRowInfo {
 };
 
 struct TableCallbacks {
+  // Preferred semantic callback.
+  std::function<void(TableRowInfo const&)> onSelect;
+  // Legacy alias retained for compatibility.
   std::function<void(TableRowInfo const&)> onRowClicked;
 };
 
@@ -659,6 +687,9 @@ struct ListRowInfo {
 };
 
 struct ListCallbacks {
+  // Preferred semantic callback.
+  std::function<void(ListRowInfo const&)> onSelect;
+  // Legacy alias retained for compatibility.
   std::function<void(ListRowInfo const&)> onSelected;
 };
 
@@ -725,6 +756,10 @@ struct TreeViewScrollInfo {
 };
 
 struct TreeViewCallbacks {
+  // Preferred semantic callbacks.
+  std::function<void(TreeViewRowInfo const&)> onSelect;
+  std::function<void(TreeViewRowInfo const&)> onActivate;
+  // Legacy aliases retained for compatibility.
   std::function<void(TreeViewRowInfo const&)> onSelectionChanged;
   std::function<void(TreeViewRowInfo const&, bool)> onExpandedChanged;
   std::function<void(TreeViewRowInfo const&)> onActivated;
@@ -1012,10 +1047,10 @@ public:
     return createSpacer(spec);
   }
 
-  UiNode button(std::string_view text, std::function<void()> onClick = {}) {
+  UiNode button(std::string_view text, std::function<void()> onActivate = {}) {
     ButtonSpec spec;
     spec.label = text;
-    spec.callbacks.onClick = std::move(onClick);
+    spec.callbacks.onActivate = std::move(onActivate);
     return createButton(spec);
   }
 

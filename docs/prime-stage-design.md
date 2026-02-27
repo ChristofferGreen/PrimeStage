@@ -71,12 +71,15 @@ See `docs/design-decisions.md` for the strict patch-operation whitelist used by 
 ## Callback Model
 PrimeStage widget callbacks are configured through widget specs.
 Examples:
-- `ButtonSpec::callbacks.onClick`
-- `TextFieldSpec::callbacks.onTextChanged`
-- `TabsSpec::callbacks.onTabChanged`
+- `ButtonSpec::callbacks.onActivate`
+- `TextFieldSpec::callbacks.onChange`
+- `TabsSpec::callbacks.onSelect`
+- `DropdownSpec::callbacks.onOpen` / `DropdownSpec::callbacks.onSelect`
+- `ToggleSpec::callbacks.onChange`
 
 Application code should provide callback behavior at spec level and avoid direct `PrimeFrame::Callback`
 table mutation for standard widget usage.
+Legacy callback names remain accepted for compatibility, but new app code should use semantic names.
 Canonical example-app usage and documented advanced exceptions are tracked in
 `docs/example-app-consumer-checklist.md`.
 For advanced extension points, use PrimeStage callback composition helpers:
@@ -120,13 +123,13 @@ UiNode root(frame, rootId, true);
 
 ButtonSpec primary;
 primary.label = "Apply";
-primary.callbacks.onClick = [&] { appState.pendingApply = true; };
+primary.callbacks.onActivate = [&] { appState.pendingApply = true; };
 root.createButton(primary);
 
 TextFieldSpec field;
 field.state = &appState.nameField;
 field.placeholder = "Name";
-field.callbacks.onTextChanged = [&](std::string_view text) {
+field.callbacks.onChange = [&](std::string_view text) {
   appState.name = std::string(text);
 };
 root.createTextField(field);
@@ -147,7 +150,7 @@ after invoking `fn(createdNode)`. For composed return types, `createScrollView(s
 For low-ceremony composition, `UiNode` also exposes declarative helpers:
 - `column(...)`, `row(...)`, `overlay(...)`, `panel(...)`
 - `label(text)`, `paragraph(text, maxWidth)`, `textLine(text)`
-- `divider(height)`, `spacer(height)`, `button(text, onClick)`, `window(spec, fn)`
+- `divider(height)`, `spacer(height)`, `button(text, onActivate)`, `window(spec, fn)`
 
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
 All widget specs use `std::optional` for optional fields.

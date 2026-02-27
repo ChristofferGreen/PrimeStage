@@ -79,7 +79,7 @@ Declarative helpers:
 - `textLine(text)`
 - `divider(height)`
 - `spacer(height)`
-- `button(text, onClick)`
+- `button(text, onActivate)`
 - `window(spec, lambda)`
 
 Container/base:
@@ -128,6 +128,16 @@ Collection/windowing:
 - `createScrollView(...)`
 - `createScrollView(size, showVertical, showHorizontal)`
 - `createWindow(...)`
+
+## Semantic Callback Surface
+
+Preferred widget callback names:
+- `onActivate` for activation actions (for example `Button`).
+- `onChange` for value mutations (for example `Toggle`, `Checkbox`, `Slider`, `ProgressBar`, `TextField` text changes).
+- `onOpen` for open/expand intent (for example `Dropdown` open intent).
+- `onSelect` for selection changes (for example `Tabs`, `Dropdown`, `List`, `Table`, `TreeView`).
+
+Legacy callback names remain accepted as compatibility aliases.
 
 ## Window Builder (Stateless)
 

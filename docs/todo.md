@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [56] Define and enforce a minimal callback surface.
-  - standardize semantic callbacks (`onActivate`, `onChange`, `onOpen`, `onSelect`) and avoid redundant low-level callback sets
-  - callbacks should be optional; controls remain useful/interactive without callback registration
-  - acceptance: no canonical example uses no-op callbacks solely to turn interaction on
-
 - ☐ [57] Provide high-level platform service integration.
   - move clipboard/cursor/IME services into app/runtime context rather than widget-by-widget manual plumbing
   - text controls should work out-of-the-box when app runtime is used
@@ -146,6 +141,15 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [56] Define and enforce a minimal callback surface.
+  - delivered via semantic callback fields in `include/PrimeStage/Ui.h`
+    (`onActivate`/`onChange`/`onOpen`/`onSelect`) with legacy alias compatibility, runtime
+    semantic-callback-first dispatch in `src/PrimeStage.cpp`, canonical example cleanup in
+    `examples/primestage_widgets.cpp` (no callback plumbing required to enable baseline
+    interactions for toggle/checkbox/tabs/dropdown), and regression updates in
+    `tests/unit/test_interaction.cpp`, `tests/unit/test_tabs_dropdown.cpp`, and
+    `tests/unit/test_api_ergonomics.cpp`
 
 - ☑ [55] Add first-class state/binding primitives.
   - delivered via `State<T>`/`Binding<T>` + `bind(...)` in `include/PrimeStage/Ui.h`, binding-first

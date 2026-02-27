@@ -66,7 +66,7 @@ void buildUi(PrimeStage::UiNode root, AppState& state) {
   field.placeholder = "Name";
   field.size.preferredWidth = 220.0f;
   field.size.preferredHeight = 28.0f;
-  field.callbacks.onTextChanged = [&](std::string_view text) {
+  field.callbacks.onChange = [&](std::string_view text) {
     state.status = std::string(text);
   };
   root.createTextField(field);
@@ -108,7 +108,8 @@ void afterLayout(App& app) {
 ```
 
 ## Interaction Wiring Rules
-- Prefer widget spec callbacks (`onClick`, `onValueChanged`, `onSelectionChanged`) over node event hooks.
+- Prefer semantic widget spec callbacks (`onActivate`, `onChange`, `onOpen`, `onSelect`) over node event hooks.
+- Legacy callback names are still accepted as compatibility aliases, but new code should use semantic names.
 - Keep callbacks side-effect-light: update state and mark the app for rebuild/layout.
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
 - For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
@@ -139,7 +140,7 @@ PrimeStage::ButtonSpec apply;
 apply.label = "Apply";
 apply.size.preferredWidth = 120.0f;
 apply.size.preferredHeight = 28.0f;
-apply.callbacks.onClick = [&] {
+apply.callbacks.onActivate = [&] {
   appState.pendingApply = true;
 };
 root.createButton(apply);
@@ -157,7 +158,7 @@ root.createButton(apply);
   app code.
 - Prefer `label(text)`, `paragraph(text, maxWidth)`, and `textLine(text)` for default text nodes
   when style overrides are unnecessary.
-- Use `button(text, onClick)` for default button construction when advanced styling is not needed.
+- Use `button(text, onActivate)` for default button construction when advanced styling is not needed.
 - Use `window(spec, fn)` in declarative code paths to compose title/content slots without manual
   `createWindow` ceremony.
 

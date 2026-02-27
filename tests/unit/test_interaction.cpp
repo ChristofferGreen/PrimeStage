@@ -133,7 +133,7 @@ TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   buttonSpec.size.preferredWidth = 120.0f;
   buttonSpec.size.preferredHeight = 28.0f;
   buttonSpec.enabled = false;
-  buttonSpec.callbacks.onClick = [&]() { buttonClicks += 1; };
+  buttonSpec.callbacks.onActivate = [&]() { buttonClicks += 1; };
 
   PrimeStage::ToggleSpec toggleSpec;
   toggleSpec.trackStyle = 21u;
@@ -141,7 +141,7 @@ TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   toggleSpec.size.preferredWidth = 60.0f;
   toggleSpec.size.preferredHeight = 24.0f;
   toggleSpec.enabled = false;
-  toggleSpec.callbacks.onChanged = [&](bool) { toggleChanges += 1; };
+  toggleSpec.callbacks.onChange = [&](bool) { toggleChanges += 1; };
 
   PrimeStage::CheckboxSpec checkboxSpec;
   checkboxSpec.label = "Flag";
@@ -149,7 +149,7 @@ TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   checkboxSpec.checkStyle = 32u;
   checkboxSpec.size.preferredHeight = 24.0f;
   checkboxSpec.enabled = false;
-  checkboxSpec.callbacks.onChanged = [&](bool) { checkboxChanges += 1; };
+  checkboxSpec.callbacks.onChange = [&](bool) { checkboxChanges += 1; };
 
   PrimeStage::TabsSpec tabsSpec;
   tabsSpec.labels = {"A", "B", "C"};
@@ -157,7 +157,7 @@ TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   tabsSpec.activeTabStyle = 42u;
   tabsSpec.size.preferredHeight = 24.0f;
   tabsSpec.enabled = false;
-  tabsSpec.callbacks.onTabChanged = [&](int) { tabChanges += 1; };
+  tabsSpec.callbacks.onSelect = [&](int) { tabChanges += 1; };
 
   PrimeStage::DropdownSpec dropdownSpec;
   dropdownSpec.options = {"One", "Two"};
@@ -165,8 +165,8 @@ TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   dropdownSpec.size.preferredWidth = 120.0f;
   dropdownSpec.size.preferredHeight = 24.0f;
   dropdownSpec.enabled = false;
-  dropdownSpec.callbacks.onSelected = [&](int) { dropdownChanges += 1; };
-  dropdownSpec.callbacks.onOpened = [&]() { dropdownChanges += 1; };
+  dropdownSpec.callbacks.onSelect = [&](int) { dropdownChanges += 1; };
+  dropdownSpec.callbacks.onOpen = [&]() { dropdownChanges += 1; };
 
   PrimeStage::UiNode button = stack.createButton(buttonSpec);
   PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
@@ -321,7 +321,7 @@ TEST_CASE("PrimeStage button hover/press transitions update styles and callbacks
     pressChanges += 1;
     lastPressed = pressed;
   };
-  spec.callbacks.onClick = [&]() { clicks += 1; };
+  spec.callbacks.onActivate = [&]() { clicks += 1; };
 
   PrimeStage::UiNode button = root.createButton(spec);
 
@@ -369,6 +369,41 @@ TEST_CASE("PrimeStage button hover/press transitions update styles and callbacks
   CHECK(pressChanges >= 2);
 }
 
+TEST_CASE("PrimeStage button legacy onClick callback remains supported") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 200.0f, 100.0f);
+
+  PrimeStage::ButtonSpec spec;
+  spec.size.preferredWidth = 80.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.label = "Legacy";
+  int clicks = 0;
+  spec.callbacks.onClick = [&]() { clicks += 1; };
+
+  PrimeStage::UiNode button = root.createButton(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 200.0f, 100.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(button.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(clicks == 1);
+
+  focus.setFocus(frame, layout, button.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(clicks == 2);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);
@@ -395,7 +430,7 @@ TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   std::vector<float> values;
   spec.callbacks.onDragStart = [&]() { dragStart += 1; };
   spec.callbacks.onDragEnd = [&]() { dragEnd += 1; };
-  spec.callbacks.onValueChanged = [&](float value) { values.push_back(value); };
+  spec.callbacks.onChange = [&](float value) { values.push_back(value); };
 
   PrimeStage::UiNode slider = root.createSlider(spec);
 
@@ -643,7 +678,7 @@ TEST_CASE("PrimeStage button drag outside cancels click and resets style") {
   int clicks = 0;
   bool hovered = false;
   bool pressed = false;
-  spec.callbacks.onClick = [&]() { clicks += 1; };
+  spec.callbacks.onActivate = [&]() { clicks += 1; };
   spec.callbacks.onHoverChanged = [&](bool value) { hovered = value; };
   spec.callbacks.onPressedChanged = [&](bool value) { pressed = value; };
 
@@ -700,7 +735,7 @@ TEST_CASE("PrimeStage button key activation triggers click") {
   spec.focusStyle = 124u;
 
   int clicks = 0;
-  spec.callbacks.onClick = [&]() { clicks += 1; };
+  spec.callbacks.onActivate = [&]() { clicks += 1; };
 
   PrimeStage::UiNode button = root.createButton(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 220.0f, 120.0f);
@@ -735,7 +770,7 @@ TEST_CASE("PrimeStage button key activation triggers click") {
   CHECK(clicks == 3);
 }
 
-TEST_CASE("PrimeStage toggle and checkbox emit onChanged for pointer and keyboard") {
+TEST_CASE("PrimeStage toggle and checkbox emit onChange for pointer and keyboard") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 260.0f, 140.0f);
 
@@ -763,8 +798,8 @@ TEST_CASE("PrimeStage toggle and checkbox emit onChanged for pointer and keyboar
 
   std::vector<bool> toggleValues;
   std::vector<bool> checkboxValues;
-  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
-  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+  toggleSpec.callbacks.onChange = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChange = [&](bool checked) { checkboxValues.push_back(checked); };
 
   PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
   PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
@@ -854,8 +889,8 @@ TEST_CASE("PrimeStage toggle and checkbox support state-backed uncontrolled mode
 
   std::vector<bool> toggleValues;
   std::vector<bool> checkboxValues;
-  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
-  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+  toggleSpec.callbacks.onChange = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChange = [&](bool checked) { checkboxValues.push_back(checked); };
 
   PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
   PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
@@ -956,8 +991,8 @@ TEST_CASE("PrimeStage toggle and checkbox binding mode takes precedence and sync
 
   std::vector<bool> toggleValues;
   std::vector<bool> checkboxValues;
-  toggleSpec.callbacks.onChanged = [&](bool on) { toggleValues.push_back(on); };
-  checkboxSpec.callbacks.onChanged = [&](bool checked) { checkboxValues.push_back(checked); };
+  toggleSpec.callbacks.onChange = [&](bool on) { toggleValues.push_back(on); };
+  checkboxSpec.callbacks.onChange = [&](bool checked) { checkboxValues.push_back(checked); };
 
   PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
   PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
@@ -1142,7 +1177,7 @@ TEST_CASE("PrimeStage accessibility keyboard focus and activation contract is co
   buttonSpec.tabIndex = 10;
   buttonSpec.size.preferredWidth = 120.0f;
   buttonSpec.size.preferredHeight = 28.0f;
-  buttonSpec.callbacks.onClick = [&]() { buttonActivations += 1; };
+  buttonSpec.callbacks.onActivate = [&]() { buttonActivations += 1; };
 
   PrimeStage::ToggleSpec toggleSpec;
   toggleSpec.tabIndex = 20;
@@ -1150,14 +1185,14 @@ TEST_CASE("PrimeStage accessibility keyboard focus and activation contract is co
   toggleSpec.size.preferredHeight = 24.0f;
   toggleSpec.trackStyle = 501u;
   toggleSpec.knobStyle = 502u;
-  toggleSpec.callbacks.onChanged = [&](bool) { toggleActivations += 1; };
+  toggleSpec.callbacks.onChange = [&](bool) { toggleActivations += 1; };
 
   PrimeStage::CheckboxSpec checkboxSpec;
   checkboxSpec.label = "Enable";
   checkboxSpec.tabIndex = 30;
   checkboxSpec.boxStyle = 511u;
   checkboxSpec.checkStyle = 512u;
-  checkboxSpec.callbacks.onChanged = [&](bool) { checkboxActivations += 1; };
+  checkboxSpec.callbacks.onChange = [&](bool) { checkboxActivations += 1; };
 
   PrimeStage::UiNode button = stack.createButton(buttonSpec);
   PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
@@ -1599,7 +1634,7 @@ TEST_CASE("PrimeStage vertical slider maps top to 1 and bottom to 0") {
   spec.thumbSize = 0.0f;
 
   std::vector<float> values;
-  spec.callbacks.onValueChanged = [&](float value) { values.push_back(value); };
+  spec.callbacks.onChange = [&](float value) { values.push_back(value); };
 
   PrimeStage::UiNode slider = root.createSlider(spec);
 
@@ -1641,7 +1676,7 @@ TEST_CASE("PrimeStage progress bar state-backed interactions patch fill in place
   spec.focusStyle = 323u;
   spec.size.preferredWidth = 200.0f;
   spec.size.preferredHeight = 14.0f;
-  spec.callbacks.onValueChanged = [&](float value) { values.push_back(value); };
+  spec.callbacks.onChange = [&](float value) { values.push_back(value); };
 
   PrimeStage::UiNode progress = root.createProgressBar(spec);
 
@@ -1709,7 +1744,7 @@ TEST_CASE("PrimeStage disabled progress bar ignores interaction callbacks") {
   spec.fillStyle = 332u;
   spec.size.preferredWidth = 180.0f;
   spec.size.preferredHeight = 12.0f;
-  spec.callbacks.onValueChanged = [&](float) { changed += 1; };
+  spec.callbacks.onChange = [&](float) { changed += 1; };
 
   PrimeStage::UiNode progress = root.createProgressBar(spec);
   PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 100.0f);

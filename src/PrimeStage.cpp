@@ -2479,7 +2479,8 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   PrimeFrame::RectStyleOverride pressedOverride = spec.pressedStyleOverride;
   pressedOverride.opacity = spec.pressedOpacity;
   bool needsInteraction = enabled &&
-                          (spec.callbacks.onClick ||
+                          (spec.callbacks.onActivate ||
+                          spec.callbacks.onClick ||
                           spec.callbacks.onHoverChanged ||
                           spec.callbacks.onPressedChanged ||
                           hoverToken != baseToken ||
@@ -2623,8 +2624,12 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
             bool inside = is_pointer_inside(event);
             bool fire = state->pressed && inside;
             update(false, inside);
-            if (fire && callbacks.onClick) {
-              callbacks.onClick();
+            if (fire) {
+              if (callbacks.onActivate) {
+                callbacks.onActivate();
+              } else if (callbacks.onClick) {
+                callbacks.onClick();
+              }
             }
             return true;
           }
@@ -2642,7 +2647,9 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
                 callbacks.onPressedChanged(true);
                 callbacks.onPressedChanged(false);
               }
-              if (callbacks.onClick) {
+              if (callbacks.onActivate) {
+                callbacks.onActivate();
+              } else if (callbacks.onClick) {
                 callbacks.onClick();
               }
               return true;
@@ -3116,7 +3123,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
           }
         };
         auto notify_text = [&]() {
-          if (callbacks.onTextChanged) {
+          if (callbacks.onChange) {
+            callbacks.onChange(std::string_view(state->text));
+          } else if (callbacks.onTextChanged) {
             callbacks.onTextChanged(std::string_view(state->text));
           }
         };
@@ -4244,7 +4253,9 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
             toggleState->on = state->value;
           }
           applyToggleVisual(state->value);
-          if (callbacks.onChanged) {
+          if (callbacks.onChange) {
+            callbacks.onChange(state->value);
+          } else if (callbacks.onChanged) {
             callbacks.onChanged(state->value);
           }
         };
@@ -4459,7 +4470,9 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
             checkboxState->checked = state->checked;
           }
           applyCheckboxVisual(state->checked);
-          if (callbacks.onChanged) {
+          if (callbacks.onChange) {
+            callbacks.onChange(state->checked);
+          } else if (callbacks.onChanged) {
             callbacks.onChanged(state->checked);
           }
         };
@@ -4694,6 +4707,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   bool wantsInteraction = enabled &&
                           (spec.binding.state != nullptr ||
                            spec.state != nullptr ||
+                           spec.callbacks.onChange ||
                            spec.callbacks.onValueChanged ||
                            spec.callbacks.onDragStart ||
                            spec.callbacks.onDragEnd);
@@ -4754,6 +4768,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
     auto notify_value_changed = [state,
                                  bindingState = spec.binding.state,
                                  sliderState = spec.state,
+                                 onChange = spec.callbacks.onChange,
                                  onValueChanged = spec.callbacks.onValueChanged]() {
       if (bindingState) {
         bindingState->value = state->value;
@@ -4761,7 +4776,9 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
       if (sliderState) {
         sliderState->value = state->value;
       }
-      if (onValueChanged) {
+      if (onChange) {
+        onChange(state->value);
+      } else if (onValueChanged) {
         onValueChanged(state->value);
       }
     };
@@ -5085,7 +5102,9 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
         if (tabsState) {
           tabsState->selectedIndex = next;
         }
-        if (callbacks.onTabChanged) {
+        if (callbacks.onSelect) {
+          callbacks.onSelect(next);
+        } else if (callbacks.onTabChanged) {
           callbacks.onTabChanged(next);
         }
       };
@@ -5293,7 +5312,9 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
                         optionCount,
                         state](PrimeFrame::Event const& event) mutable -> bool {
       auto select_with_step = [&](int step) {
-        if (callbacks.onOpened) {
+        if (callbacks.onOpen) {
+          callbacks.onOpen();
+        } else if (callbacks.onOpened) {
           callbacks.onOpened();
         }
         if (optionCount <= 0) {
@@ -5312,7 +5333,9 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
         if (dropdownState) {
           dropdownState->selectedIndex = state->currentIndex;
         }
-        if (callbacks.onSelected) {
+        if (callbacks.onSelect) {
+          callbacks.onSelect(state->currentIndex);
+        } else if (callbacks.onSelected) {
           callbacks.onSelected(state->currentIndex);
         }
       };
@@ -5456,6 +5479,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   float fillW = computeFillWidth(value);
   bool needsPatchState = spec.binding.state != nullptr ||
                          spec.state != nullptr ||
+                         static_cast<bool>(spec.callbacks.onChange) ||
                          static_cast<bool>(spec.callbacks.onValueChanged);
 
   PrimeFrame::NodeId fillNodeId{};
@@ -5509,6 +5533,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
     auto setValue = [state,
                      bindingState = spec.binding.state,
                      progressState = spec.state,
+                     onChange = spec.callbacks.onChange,
                      onChanged = spec.callbacks.onValueChanged,
                      applyProgressVisual](float nextValue) {
       float clamped = std::clamp(nextValue, 0.0f, 1.0f);
@@ -5520,7 +5545,9 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
         progressState->value = clamped;
       }
       applyProgressVisual(clamped);
-      if (onChanged) {
+      if (onChange) {
+        onChange(clamped);
+      } else if (onChanged) {
         onChanged(clamped);
       }
     };
@@ -5936,7 +5963,9 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     }
   }
 
-  if (enabled && spec.visible && (interaction->callbacks.onRowClicked || spec.selectionStyle != 0)) {
+  bool hasRowSelectCallback = static_cast<bool>(interaction->callbacks.onSelect) ||
+                              static_cast<bool>(interaction->callbacks.onRowClicked);
+  if (enabled && spec.visible && (hasRowSelectCallback || spec.selectionStyle != 0)) {
     auto updateRowStyle = [interaction](int rowIndex, bool selected) {
       if (rowIndex < 0 || rowIndex >= static_cast<int>(interaction->backgrounds.size())) {
         return;
@@ -5979,7 +6008,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
         updateRowStyle(previous, false);
         updateRowStyle(index, true);
       }
-      if (interaction->callbacks.onRowClicked) {
+      if (interaction->callbacks.onSelect || interaction->callbacks.onRowClicked) {
         TableRowInfo info;
         info.rowIndex = index;
         if (index >= 0 && index < static_cast<int>(interaction->ownedRows.size())) {
@@ -5991,7 +6020,11 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
           }
           info.row = std::span<const std::string_view>(interaction->rowViewScratch);
         }
-        interaction->callbacks.onRowClicked(info);
+        if (interaction->callbacks.onSelect) {
+          interaction->callbacks.onSelect(info);
+        } else if (interaction->callbacks.onRowClicked) {
+          interaction->callbacks.onRowClicked(info);
+        }
       }
       return true;
     };
@@ -6082,9 +6115,10 @@ UiNode UiNode::createList(ListSpec const& specInput) {
   for (std::string_view item : spec.items) {
     table.rows.push_back({item});
   }
-  if (spec.callbacks.onSelected) {
-    table.callbacks.onRowClicked =
-        [callback = spec.callbacks.onSelected](TableRowInfo const& rowInfo) {
+  auto onListSelect = spec.callbacks.onSelect ? spec.callbacks.onSelect : spec.callbacks.onSelected;
+  if (onListSelect) {
+    table.callbacks.onSelect =
+        [callback = std::move(onListSelect)](TableRowInfo const& rowInfo) {
           ListRowInfo listInfo;
           listInfo.rowIndex = rowInfo.rowIndex;
           if (!rowInfo.row.empty()) {
@@ -6840,7 +6874,10 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
       updateRowVisual(previous);
     }
     updateRowVisual(rowIndex);
-    if (interaction->callbacks.onSelectionChanged) {
+    if (interaction->callbacks.onSelect) {
+      TreeViewRowInfo info = makeRowInfo(rowIndex);
+      interaction->callbacks.onSelect(info);
+    } else if (interaction->callbacks.onSelectionChanged) {
       TreeViewRowInfo info = makeRowInfo(rowIndex);
       interaction->callbacks.onSelectionChanged(info);
     }
@@ -7195,6 +7232,9 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
               const auto& row = interaction->rows[static_cast<size_t>(rowIndex)];
               if (row.hasChildren) {
                 requestToggle(rowIndex, !row.expanded);
+              } else if (interaction->callbacks.onActivate) {
+                TreeViewRowInfo info = makeRowInfo(rowIndex);
+                interaction->callbacks.onActivate(info);
               } else if (interaction->callbacks.onActivated) {
                 TreeViewRowInfo info = makeRowInfo(rowIndex);
                 interaction->callbacks.onActivated(info);
@@ -7330,6 +7370,9 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
               const auto& row = interaction->rows[static_cast<size_t>(index)];
               if (row.hasChildren) {
                 requestToggle(index, !row.expanded);
+              } else if (interaction->callbacks.onActivate) {
+                TreeViewRowInfo info = makeRowInfo(index);
+                interaction->callbacks.onActivate(info);
               } else if (interaction->callbacks.onActivated) {
                 TreeViewRowInfo info = makeRowInfo(index);
                 interaction->callbacks.onActivated(info);
