@@ -34,7 +34,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - For new widget APIs, derive spec structs from shared bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) instead of duplicating accessibility/visibility/enablement fields.
 - For public API/spec/callback changes, follow `docs/api-evolution-policy.md` (semver impact classification, staged deprecation, and migration notes).
 - For callback composition/reentrancy/threading behavior, follow `docs/callback-reentrancy-threading.md` and keep callback state changes single-thread-safe.
-- For low-level node callback overrides, use `NodeCallbackTable` + `NodeCallbackHandle` so previous callback tables are restored automatically via RAII.
+- For low-level node callback overrides, use `PrimeStage::LowLevel::NodeCallbackTable` + `PrimeStage::LowLevel::NodeCallbackHandle` so previous callback tables are restored automatically via RAII.
+- Keep low-level callback composition quarantined under `PrimeStage::LowLevel` (`LowLevel::appendNodeOnEvent`, `LowLevel::NodeCallbackHandle`, etc.); canonical/high-level app code should not use these APIs.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.
 - For render-path failures, use `RenderStatus`/`RenderStatusCode` diagnostics (`docs/render-diagnostics.md`) instead of introducing new opaque `bool` failure paths.
 - For renderer corner rounding behavior, use explicit `RenderOptions::cornerStyle` metadata; do not reintroduce theme-color index heuristics.

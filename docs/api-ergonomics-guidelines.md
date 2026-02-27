@@ -132,8 +132,8 @@ void afterLayout(App& app) {
   `registerAction(...)`, `bindShortcut(...)`, and `invokeAction(...)`.
 - Reuse action ids across widget callbacks and shortcuts using `makeActionCallback(...)` instead of
   duplicating command behavior in multiple callback sites.
-- For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
-- When installing temporary/replaced low-level node callbacks, prefer `NodeCallbackHandle` with `NodeCallbackTable` so previous callback wiring restores automatically on scope exit.
+- For advanced/internal extension points, use `PrimeStage::LowLevel` callback-composition helpers (`LowLevel::appendNodeOnEvent`, `LowLevel::appendNodeOnFocus`, `LowLevel::appendNodeOnBlur`) instead of mutating callback tables ad hoc.
+- When installing temporary/replaced low-level node callbacks, prefer `PrimeStage::LowLevel::NodeCallbackHandle` with `PrimeStage::LowLevel::NodeCallbackTable` so previous callback wiring restores automatically on scope exit.
 - For window composition via `createWindow(WindowSpec)`, treat move/resize callbacks as stateless
   delta signals; update app-owned window geometry and request rebuild/layout from your runtime.
 

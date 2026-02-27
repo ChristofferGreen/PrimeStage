@@ -88,12 +88,12 @@ table mutation for standard widget usage.
 Legacy callback names remain accepted for compatibility, but new app code should use semantic names.
 Canonical example-app usage and documented advanced exceptions are tracked in
 `docs/example-app-consumer-checklist.md`.
-For advanced extension points, use PrimeStage callback composition helpers:
-- `appendNodeOnEvent(...)`
-- `appendNodeOnFocus(...)`
-- `appendNodeOnBlur(...)`
-For scoped callback-table replacement on a node, use `NodeCallbackTable` with
-`NodeCallbackHandle` to restore previous callback wiring automatically.
+For advanced extension points, use `PrimeStage::LowLevel` callback composition helpers:
+- `LowLevel::appendNodeOnEvent(...)`
+- `LowLevel::appendNodeOnFocus(...)`
+- `LowLevel::appendNodeOnBlur(...)`
+For scoped callback-table replacement on a node, use `LowLevel::NodeCallbackTable` with
+`LowLevel::NodeCallbackHandle` to restore previous callback wiring automatically.
 Callback reentrancy/threading guarantees are documented in
 `docs/callback-reentrancy-threading.md`.
 Data ownership/lifetime guarantees for `std::string_view` specs and callback captures are
@@ -189,7 +189,8 @@ For low-ceremony composition, `UiNode` also exposes declarative helpers:
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`, but app-facing focus,
 visibility, and imperative flows should use typed handles (`WidgetFocusHandle`,
 `WidgetVisibilityHandle`, `WidgetActionHandle`) exposed from `UiNode`.
-Raw `NodeId` access is explicitly low-level via `lowLevelNodeId()`.
+Raw `NodeId` access is explicitly low-level via `lowLevelNodeId()`, and low-level callback
+primitives are quarantined under `PrimeStage::LowLevel`.
 All widget specs use `std::optional` for optional fields.
 Shared spec bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) centralize
 common accessibility/visibility/enablement/focus-order fields across widget families.

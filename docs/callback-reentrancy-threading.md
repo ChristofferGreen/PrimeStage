@@ -22,10 +22,10 @@ Avoid performing full rebuild/layout recursively inside the callback itself.
 ## Reentrancy Guardrails
 
 For callback composition helpers:
-- `appendNodeOnEvent(...)`
-- `appendNodeOnFocus(...)`
-- `appendNodeOnBlur(...)`
-- `NodeCallbackHandle` (when callback tables are installed/replaced for node scope)
+- `PrimeStage::LowLevel::appendNodeOnEvent(...)`
+- `PrimeStage::LowLevel::appendNodeOnFocus(...)`
+- `PrimeStage::LowLevel::appendNodeOnBlur(...)`
+- `PrimeStage::LowLevel::NodeCallbackHandle` (when callback tables are installed/replaced for node scope)
 
 PrimeStage suppresses direct reentrant invocation of the same composed callback chain.
 

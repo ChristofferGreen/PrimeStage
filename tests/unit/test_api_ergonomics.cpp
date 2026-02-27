@@ -859,6 +859,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(modernSource.find(".layout()") == std::string::npos);
   CHECK(modernSource.find(".focus()") == std::string::npos);
   CHECK(modernSource.find(".router()") == std::string::npos);
+  CHECK(modernSource.find("PrimeStage::LowLevel::") == std::string::npos);
   CHECK(modernSource.find("requestRebuild") == std::string::npos);
   CHECK(modernSource.find("requestLayout") == std::string::npos);
   CHECK(modernSource.find("requestFrame") == std::string::npos);
@@ -908,6 +909,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeFrame::EventRouter") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::FocusManager") == std::string::npos);
   CHECK(widgetsSource.find(".nodeId(") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::LowLevel::") == std::string::npos);
   CHECK(widgetsSource.find("makeListModel(") != std::string::npos);
   CHECK(widgetsSource.find("makeTableModel(") != std::string::npos);
   CHECK(widgetsSource.find("makeTreeModel(") != std::string::npos);
@@ -1023,6 +1025,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("bindShortcut") != std::string::npos);
   CHECK(checklist.find("form(...)") != std::string::npos);
   CHECK(checklist.find("formField(...)") != std::string::npos);
+  CHECK(checklist.find("Keep canonical examples out of `PrimeStage::LowLevel`") !=
+        std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
 
@@ -1548,10 +1552,10 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   CHECK(callbackDoc.find("Execution Context") != std::string::npos);
   CHECK(callbackDoc.find("Rebuild/Layout Requests From Callbacks") != std::string::npos);
   CHECK(callbackDoc.find("Reentrancy Guardrails") != std::string::npos);
-  CHECK(callbackDoc.find("appendNodeOnEvent") != std::string::npos);
-  CHECK(callbackDoc.find("appendNodeOnFocus") != std::string::npos);
-  CHECK(callbackDoc.find("appendNodeOnBlur") != std::string::npos);
-  CHECK(callbackDoc.find("NodeCallbackHandle") != std::string::npos);
+  CHECK(callbackDoc.find("PrimeStage::LowLevel::appendNodeOnEvent") != std::string::npos);
+  CHECK(callbackDoc.find("PrimeStage::LowLevel::appendNodeOnFocus") != std::string::npos);
+  CHECK(callbackDoc.find("PrimeStage::LowLevel::appendNodeOnBlur") != std::string::npos);
+  CHECK(callbackDoc.find("PrimeStage::LowLevel::NodeCallbackHandle") != std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -1567,15 +1571,16 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
                      std::istreambuf_iterator<char>());
   REQUIRE(!design.empty());
   CHECK(design.find("docs/callback-reentrancy-threading.md") != std::string::npos);
-  CHECK(design.find("NodeCallbackHandle") != std::string::npos);
+  CHECK(design.find("LowLevel::NodeCallbackHandle") != std::string::npos);
 
   std::ifstream apiRefInput(apiRefPath);
   REQUIRE(apiRefInput.good());
   std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!apiRef.empty());
-  CHECK(apiRef.find("NodeCallbackTable") != std::string::npos);
-  CHECK(apiRef.find("NodeCallbackHandle") != std::string::npos);
+  CHECK(apiRef.find("PrimeStage::LowLevel::NodeCallbackTable") != std::string::npos);
+  CHECK(apiRef.find("PrimeStage::LowLevel::NodeCallbackHandle") != std::string::npos);
+  CHECK(apiRef.find("Low-Level API Quarantine") != std::string::npos);
 
   std::ifstream uiHeaderInput(uiHeaderPath);
   REQUIRE(uiHeaderInput.good());
@@ -1583,8 +1588,10 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
                        std::istreambuf_iterator<char>());
   REQUIRE(!uiHeader.empty());
   CHECK(uiHeader.find("Direct reentrant invocation of the same") != std::string::npos);
+  CHECK(uiHeader.find("namespace LowLevel") != std::string::npos);
   CHECK(uiHeader.find("struct NodeCallbackTable") != std::string::npos);
   CHECK(uiHeader.find("class NodeCallbackHandle") != std::string::npos);
+  CHECK(uiHeader.find("Use PrimeStage::LowLevel::NodeCallbackTable") != std::string::npos);
 
   std::ifstream sourceCppInput(sourceCppPath);
   REQUIRE(sourceCppInput.good());
@@ -1593,8 +1600,8 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   REQUIRE(!sourceCpp.empty());
   CHECK(sourceCpp.find("CallbackReentryScope") != std::string::npos);
   CHECK(sourceCpp.find("reentrant %s invocation suppressed") != std::string::npos);
-  CHECK(sourceCpp.find("NodeCallbackHandle::bind") != std::string::npos);
-  CHECK(sourceCpp.find("NodeCallbackHandle::reset") != std::string::npos);
+  CHECK(sourceCpp.find("LowLevel::NodeCallbackHandle::bind") != std::string::npos);
+  CHECK(sourceCpp.find("LowLevel::NodeCallbackHandle::reset") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wired") {
@@ -2583,7 +2590,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   CHECK(sourceCpp.find("AccessibilityRole::Tree") != std::string::npos);
   CHECK(sourceCpp.find("AccessibilityRole::Group") != std::string::npos);
   CHECK(sourceCpp.find("bool needsPatchState = enabled ||") != std::string::npos);
-  CHECK(sourceCpp.find("appendNodeOnEvent(frame(),") != std::string::npos);
+  CHECK(sourceCpp.find("LowLevel::appendNodeOnEvent(frame(),") != std::string::npos);
   CHECK(sourceCpp.find("tableRoot.nodeId()") != std::string::npos);
 
   std::ifstream interactionInput(interactionPath);
@@ -2662,7 +2669,7 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   CHECK(example.find("selectable.state = &app.state.selectableText") == std::string::npos);
 }
 
-TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
+TEST_CASE("PrimeStage LowLevel appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
   frame.addRoot(nodeId);
@@ -2678,7 +2685,7 @@ TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing cal
   node->callbacks = frame.addCallback(std::move(base));
 
   int appendedCalls = 0;
-  bool appended = PrimeStage::appendNodeOnEvent(
+  bool appended = PrimeStage::LowLevel::appendNodeOnEvent(
       frame,
       nodeId,
       [&](PrimeFrame::Event const& event) -> bool {
@@ -2706,7 +2713,7 @@ TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing cal
   CHECK(previousCalls == 1);
 }
 
-TEST_CASE("PrimeStage NodeCallbackHandle installs callbacks and restores previous table") {
+TEST_CASE("PrimeStage LowLevel NodeCallbackHandle installs callbacks and restores previous table") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
   frame.addRoot(nodeId);
@@ -2727,14 +2734,14 @@ TEST_CASE("PrimeStage NodeCallbackHandle installs callbacks and restores previou
   int handleEventCalls = 0;
   int handleFocusCalls = 0;
   {
-    PrimeStage::NodeCallbackTable table;
+    PrimeStage::LowLevel::NodeCallbackTable table;
     table.onEvent = [&](PrimeFrame::Event const&) -> bool {
       handleEventCalls += 1;
       return true;
     };
     table.onFocus = [&]() { handleFocusCalls += 1; };
 
-    PrimeStage::NodeCallbackHandle handle(frame, nodeId, std::move(table));
+    PrimeStage::LowLevel::NodeCallbackHandle handle(frame, nodeId, std::move(table));
     CHECK(handle.active());
     CHECK(node->callbacks != previousId);
 
@@ -2768,21 +2775,21 @@ TEST_CASE("PrimeStage NodeCallbackHandle installs callbacks and restores previou
   CHECK(previousFocusCalls == 1);
 }
 
-TEST_CASE("PrimeStage NodeCallbackHandle move and reset tolerate node destruction") {
+TEST_CASE("PrimeStage LowLevel NodeCallbackHandle move and reset tolerate node destruction") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId rootId = frame.createNode();
   frame.addRoot(rootId);
   PrimeFrame::NodeId childId = frame.createNode();
   REQUIRE(frame.addChild(rootId, childId));
 
-  PrimeStage::NodeCallbackTable table;
+  PrimeStage::LowLevel::NodeCallbackTable table;
   table.onEvent = [](PrimeFrame::Event const&) -> bool { return true; };
 
-  PrimeStage::NodeCallbackHandle first;
+  PrimeStage::LowLevel::NodeCallbackHandle first;
   CHECK(first.bind(frame, childId, std::move(table)));
   CHECK(first.active());
 
-  PrimeStage::NodeCallbackHandle second(std::move(first));
+  PrimeStage::LowLevel::NodeCallbackHandle second(std::move(first));
   CHECK_FALSE(first.active());
   CHECK(second.active());
 
@@ -2791,7 +2798,7 @@ TEST_CASE("PrimeStage NodeCallbackHandle move and reset tolerate node destructio
   CHECK_FALSE(second.active());
 }
 
-TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks") {
+TEST_CASE("PrimeStage LowLevel appendNodeOnFocus and appendNodeOnBlur compose callbacks") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
   frame.addRoot(nodeId);
@@ -2807,8 +2814,8 @@ TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks")
 
   int appendedFocus = 0;
   int appendedBlur = 0;
-  CHECK(PrimeStage::appendNodeOnFocus(frame, nodeId, [&]() { appendedFocus += 1; }));
-  CHECK(PrimeStage::appendNodeOnBlur(frame, nodeId, [&]() { appendedBlur += 1; }));
+  CHECK(PrimeStage::LowLevel::appendNodeOnFocus(frame, nodeId, [&]() { appendedFocus += 1; }));
+  CHECK(PrimeStage::LowLevel::appendNodeOnBlur(frame, nodeId, [&]() { appendedBlur += 1; }));
 
   PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
   REQUIRE(callback != nullptr);
@@ -2824,7 +2831,7 @@ TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks")
   CHECK(appendedBlur == 1);
 }
 
-TEST_CASE("PrimeStage appendNodeOnEvent suppresses direct reentrant recursion") {
+TEST_CASE("PrimeStage LowLevel appendNodeOnEvent suppresses direct reentrant recursion") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
   frame.addRoot(nodeId);
@@ -2833,7 +2840,7 @@ TEST_CASE("PrimeStage appendNodeOnEvent suppresses direct reentrant recursion") 
 
   int handlerCalls = 0;
   bool nestedHandled = true;
-  CHECK(PrimeStage::appendNodeOnEvent(
+  CHECK(PrimeStage::LowLevel::appendNodeOnEvent(
       frame,
       nodeId,
       [&](PrimeFrame::Event const& event) -> bool {
@@ -2861,7 +2868,7 @@ TEST_CASE("PrimeStage appendNodeOnEvent suppresses direct reentrant recursion") 
   CHECK_FALSE(nestedHandled);
 }
 
-TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur suppress direct reentrancy") {
+TEST_CASE("PrimeStage LowLevel appendNodeOnFocus and appendNodeOnBlur suppress direct reentrancy") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
   frame.addRoot(nodeId);
@@ -2877,7 +2884,7 @@ TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur suppress direct ree
 
   int appendedFocus = 0;
   int appendedBlur = 0;
-  CHECK(PrimeStage::appendNodeOnFocus(frame, nodeId, [&]() {
+  CHECK(PrimeStage::LowLevel::appendNodeOnFocus(frame, nodeId, [&]() {
     appendedFocus += 1;
     if (appendedFocus == 1) {
       PrimeFrame::Node const* currentNode = frame.getNode(nodeId);
@@ -2888,7 +2895,7 @@ TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur suppress direct ree
       callback->onFocus();
     }
   }));
-  CHECK(PrimeStage::appendNodeOnBlur(frame, nodeId, [&]() {
+  CHECK(PrimeStage::LowLevel::appendNodeOnBlur(frame, nodeId, [&]() {
     appendedBlur += 1;
     if (appendedBlur == 1) {
       PrimeFrame::Node const* currentNode = frame.getNode(nodeId);

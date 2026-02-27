@@ -28,6 +28,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
     (`registerAction`, `bindShortcut`, `invokeAction`) rather than raw key-switch plumbing.
 14. Prefer `form(...)` and `formField(...)` for settings-like pages instead of hand-built
     row/column stacks for label+control+validation/help composition.
+15. Keep canonical examples out of `PrimeStage::LowLevel`; low-level callback composition APIs are
+    advanced escape hatches only.
 
 ## Advanced Exceptions
 

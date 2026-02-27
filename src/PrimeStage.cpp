@@ -1758,13 +1758,13 @@ void report_callback_reentry(char const* callbackName) {
 #endif
 }
 
-NodeCallbackHandle::NodeCallbackHandle(PrimeFrame::Frame& frame,
-                                       PrimeFrame::NodeId nodeId,
-                                       NodeCallbackTable callbackTable) {
+LowLevel::NodeCallbackHandle::NodeCallbackHandle(PrimeFrame::Frame& frame,
+                                                 PrimeFrame::NodeId nodeId,
+                                                 LowLevel::NodeCallbackTable callbackTable) {
   bind(frame, nodeId, std::move(callbackTable));
 }
 
-NodeCallbackHandle::NodeCallbackHandle(NodeCallbackHandle&& other) noexcept
+LowLevel::NodeCallbackHandle::NodeCallbackHandle(NodeCallbackHandle&& other) noexcept
     : frame_(other.frame_),
       nodeId_(other.nodeId_),
       previousCallbackId_(other.previousCallbackId_),
@@ -1775,7 +1775,8 @@ NodeCallbackHandle::NodeCallbackHandle(NodeCallbackHandle&& other) noexcept
   other.active_ = false;
 }
 
-NodeCallbackHandle& NodeCallbackHandle::operator=(NodeCallbackHandle&& other) noexcept {
+LowLevel::NodeCallbackHandle& LowLevel::NodeCallbackHandle::operator=(
+    NodeCallbackHandle&& other) noexcept {
   if (this == &other) {
     return *this;
   }
@@ -1791,13 +1792,13 @@ NodeCallbackHandle& NodeCallbackHandle::operator=(NodeCallbackHandle&& other) no
   return *this;
 }
 
-NodeCallbackHandle::~NodeCallbackHandle() {
+LowLevel::NodeCallbackHandle::~NodeCallbackHandle() {
   reset();
 }
 
-bool NodeCallbackHandle::bind(PrimeFrame::Frame& frame,
-                              PrimeFrame::NodeId nodeId,
-                              NodeCallbackTable callbackTable) {
+bool LowLevel::NodeCallbackHandle::bind(PrimeFrame::Frame& frame,
+                                        PrimeFrame::NodeId nodeId,
+                                        LowLevel::NodeCallbackTable callbackTable) {
   reset();
   PrimeFrame::Node* node = frame.getNode(nodeId);
   if (!node) {
@@ -1815,7 +1816,7 @@ bool NodeCallbackHandle::bind(PrimeFrame::Frame& frame,
   return true;
 }
 
-void NodeCallbackHandle::reset() {
+void LowLevel::NodeCallbackHandle::reset() {
   if (!active_ || !frame_) {
     frame_ = nullptr;
     nodeId_ = PrimeFrame::NodeId{};
@@ -1850,9 +1851,9 @@ static PrimeFrame::Callback* ensureNodeCallback(PrimeFrame::Frame& frame, PrimeF
   return frame.getCallback(node->callbacks);
 }
 
-bool appendNodeOnEvent(PrimeFrame::Frame& frame,
-                       PrimeFrame::NodeId nodeId,
-                       std::function<bool(PrimeFrame::Event const&)> onEvent) {
+bool LowLevel::appendNodeOnEvent(PrimeFrame::Frame& frame,
+                                 PrimeFrame::NodeId nodeId,
+                                 std::function<bool(PrimeFrame::Event const&)> onEvent) {
   if (!onEvent) {
     return false;
   }
@@ -1882,9 +1883,9 @@ bool appendNodeOnEvent(PrimeFrame::Frame& frame,
   return true;
 }
 
-bool appendNodeOnFocus(PrimeFrame::Frame& frame,
-                       PrimeFrame::NodeId nodeId,
-                       std::function<void()> onFocus) {
+bool LowLevel::appendNodeOnFocus(PrimeFrame::Frame& frame,
+                                 PrimeFrame::NodeId nodeId,
+                                 std::function<void()> onFocus) {
   if (!onFocus) {
     return false;
   }
@@ -1912,9 +1913,9 @@ bool appendNodeOnFocus(PrimeFrame::Frame& frame,
   return true;
 }
 
-bool appendNodeOnBlur(PrimeFrame::Frame& frame,
-                      PrimeFrame::NodeId nodeId,
-                      std::function<void()> onBlur) {
+bool LowLevel::appendNodeOnBlur(PrimeFrame::Frame& frame,
+                                PrimeFrame::NodeId nodeId,
+                                std::function<void()> onBlur) {
   if (!onBlur) {
     return false;
   }
@@ -6240,9 +6241,9 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
       rowsNodePtr->callbacks = frame().addCallback(std::move(rowCallback));
     }
 
-    (void)appendNodeOnEvent(frame(),
-                            tableRoot.nodeId(),
-                            [interaction, selectRow](PrimeFrame::Event const& event) {
+    (void)LowLevel::appendNodeOnEvent(frame(),
+                                      tableRoot.nodeId(),
+                                      [interaction, selectRow](PrimeFrame::Event const& event) {
                               if (event.type != PrimeFrame::EventType::KeyDown) {
                                 return false;
                               }
@@ -6631,22 +6632,23 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
   }
 
   if (spec.callbacks.onFocusChanged) {
-    appendNodeOnFocus(frame(),
-                      windowId,
-                      [callbacks = spec.callbacks]() {
+    LowLevel::appendNodeOnFocus(frame(),
+                                windowId,
+                                [callbacks = spec.callbacks]() {
                         callbacks.onFocusChanged(true);
                       });
-    appendNodeOnBlur(frame(),
-                     windowId,
-                     [callbacks = spec.callbacks]() {
+    LowLevel::appendNodeOnBlur(frame(),
+                               windowId,
+                               [callbacks = spec.callbacks]() {
                        callbacks.onFocusChanged(false);
                      });
   }
 
   if (spec.callbacks.onFocusRequested) {
-    appendNodeOnEvent(frame(),
-                      windowId,
-                      [callbacks = spec.callbacks](PrimeFrame::Event const& event) -> bool {
+    LowLevel::appendNodeOnEvent(frame(),
+                                windowId,
+                                [callbacks = spec.callbacks](PrimeFrame::Event const& event)
+                                    -> bool {
                         if (event.type == PrimeFrame::EventType::PointerDown) {
                           callbacks.onFocusRequested();
                         }
@@ -6665,10 +6667,10 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
       (spec.callbacks.onMoveStarted || spec.callbacks.onMoved || spec.callbacks.onMoveEnded ||
        spec.callbacks.onFocusRequested)) {
     auto moveState = std::make_shared<PointerDeltaState>();
-    appendNodeOnEvent(frame(),
-                      titleBarId,
-                      [callbacks = spec.callbacks,
-                       moveState](PrimeFrame::Event const& event) -> bool {
+    LowLevel::appendNodeOnEvent(frame(),
+                                titleBarId,
+                                [callbacks = spec.callbacks,
+                                 moveState](PrimeFrame::Event const& event) -> bool {
                         switch (event.type) {
                           case PrimeFrame::EventType::PointerDown:
                             moveState->active = true;
@@ -6717,10 +6719,10 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
       (spec.callbacks.onResizeStarted || spec.callbacks.onResized || spec.callbacks.onResizeEnded ||
        spec.callbacks.onFocusRequested)) {
     auto resizeState = std::make_shared<PointerDeltaState>();
-    appendNodeOnEvent(frame(),
-                      resizeHandleId,
-                      [callbacks = spec.callbacks,
-                       resizeState](PrimeFrame::Event const& event) -> bool {
+    LowLevel::appendNodeOnEvent(frame(),
+                                resizeHandleId,
+                                [callbacks = spec.callbacks,
+                                 resizeState](PrimeFrame::Event const& event) -> bool {
                         switch (event.type) {
                           case PrimeFrame::EventType::PointerDown:
                             resizeState->active = true;

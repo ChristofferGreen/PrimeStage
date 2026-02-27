@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [70] Introduce low-level API quarantine and naming.
-  - explicitly separate stable high-level API from advanced/experimental low-level layers
-  - enforce naming/namespaces to prevent accidental use of internal primitives
-  - acceptance: public docs and examples default to high-level namespace only
-
 - ☐ [71] Add API review checklist for any new widget/control.
   - require default readability, minimal constructor path, optional callbacks, and state/binding story before merge
   - add checklist enforcement in PR template/docs
@@ -76,6 +71,26 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [70] Introduce low-level API quarantine and naming.
+  - quarantined advanced callback composition primitives under
+    `PrimeStage::LowLevel` in `include/PrimeStage/Ui.h`
+    (`LowLevel::NodeCallbackTable`, `LowLevel::NodeCallbackHandle`,
+    `LowLevel::appendNodeOnEvent`, `LowLevel::appendNodeOnFocus`, and
+    `LowLevel::appendNodeOnBlur`)
+  - preserved compatibility through deprecated root-level aliases/wrappers so
+    existing integrations keep compiling while new code migrates to
+    `PrimeStage::LowLevel`
+  - moved runtime implementation/call sites in `src/PrimeStage.cpp` to explicit
+    `LowLevel::...` names so high-level internals do not rely on root escape
+    hatches
+  - expanded API/docs guardrails and runtime coverage in
+    `tests/unit/test_api_ergonomics.cpp` to enforce the `namespace LowLevel`
+    contract and canonical-example high-level-only usage
+  - updated docs/guidance in `docs/callback-reentrancy-threading.md`,
+    `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`,
+    `docs/minimal-api-reference.md`, `docs/example-app-consumer-checklist.md`,
+    and `AGENTS.md`
 
 - ☑ [69] Add migration path toward retained-state widgets with owned defaults.
   - added owned-default text-widget state slots in public specs:

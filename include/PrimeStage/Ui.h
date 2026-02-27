@@ -1141,10 +1141,11 @@ bool selectableTextHasSelection(SelectableTextState const& state,
                                 uint32_t& end);
 void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor);
 
-// Callback composition helpers execute on the caller/dispatch thread and do not
-// provide cross-thread synchronization. Direct reentrant invocation of the same
-// composed callback chain is suppressed at runtime to avoid recursive callback
-// loops.
+namespace LowLevel {
+// Advanced callback-composition helpers execute on the caller/dispatch thread
+// and do not provide cross-thread synchronization. Direct reentrant invocation
+// of the same composed callback chain is suppressed at runtime to avoid
+// recursive callback loops.
 struct NodeCallbackTable {
   std::function<bool(PrimeFrame::Event const&)> onEvent;
   std::function<void()> onFocus;
@@ -1154,7 +1155,9 @@ struct NodeCallbackTable {
 class NodeCallbackHandle {
 public:
   NodeCallbackHandle() = default;
-  NodeCallbackHandle(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId, NodeCallbackTable callbackTable);
+  NodeCallbackHandle(PrimeFrame::Frame& frame,
+                     PrimeFrame::NodeId nodeId,
+                     NodeCallbackTable callbackTable);
   NodeCallbackHandle(NodeCallbackHandle const&) = delete;
   NodeCallbackHandle& operator=(NodeCallbackHandle const&) = delete;
   NodeCallbackHandle(NodeCallbackHandle&& other) noexcept;
@@ -1181,6 +1184,31 @@ bool appendNodeOnFocus(PrimeFrame::Frame& frame,
 bool appendNodeOnBlur(PrimeFrame::Frame& frame,
                       PrimeFrame::NodeId nodeId,
                       std::function<void()> onBlur);
+}  // namespace LowLevel
+
+using NodeCallbackTable [[deprecated("Use PrimeStage::LowLevel::NodeCallbackTable")]] =
+    LowLevel::NodeCallbackTable;
+using NodeCallbackHandle [[deprecated("Use PrimeStage::LowLevel::NodeCallbackHandle")]] =
+    LowLevel::NodeCallbackHandle;
+
+[[deprecated("Use PrimeStage::LowLevel::appendNodeOnEvent")]] inline bool appendNodeOnEvent(
+    PrimeFrame::Frame& frame,
+    PrimeFrame::NodeId nodeId,
+    std::function<bool(PrimeFrame::Event const&)> onEvent) {
+  return LowLevel::appendNodeOnEvent(frame, nodeId, std::move(onEvent));
+}
+[[deprecated("Use PrimeStage::LowLevel::appendNodeOnFocus")]] inline bool appendNodeOnFocus(
+    PrimeFrame::Frame& frame,
+    PrimeFrame::NodeId nodeId,
+    std::function<void()> onFocus) {
+  return LowLevel::appendNodeOnFocus(frame, nodeId, std::move(onFocus));
+}
+[[deprecated("Use PrimeStage::LowLevel::appendNodeOnBlur")]] inline bool appendNodeOnBlur(
+    PrimeFrame::Frame& frame,
+    PrimeFrame::NodeId nodeId,
+    std::function<void()> onBlur) {
+  return LowLevel::appendNodeOnBlur(frame, nodeId, std::move(onBlur));
+}
 
 class WidgetIdentityReconciler {
 public:

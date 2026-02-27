@@ -274,10 +274,20 @@ Callback semantics:
   - `registerNode(...)`
   - `findNode(...)`
   - `restoreFocus(...)`
-- `PrimeStage::NodeCallbackTable`
-- `PrimeStage::NodeCallbackHandle`
+- `PrimeStage::LowLevel::NodeCallbackTable`
+- `PrimeStage::LowLevel::NodeCallbackHandle`
   - `bind(...)`
   - `reset()`
+
+## Low-Level API Quarantine
+
+- Stable/canonical app code should stay in the high-level `PrimeStage` API surface.
+- Advanced callback-table composition lives under `PrimeStage::LowLevel`:
+  - `PrimeStage::LowLevel::appendNodeOnEvent(...)`
+  - `PrimeStage::LowLevel::appendNodeOnFocus(...)`
+  - `PrimeStage::LowLevel::appendNodeOnBlur(...)`
+- Legacy root-level callback composition names are compatibility aliases; new code should use
+  `PrimeStage::LowLevel` explicitly.
 
 ## Render Surface APIs
 
