@@ -9,6 +9,12 @@ namespace PrimeStage {
 
 UiNode UiNode::createList(ListSpec const& specInput) {
   ListSpec spec = Internal::normalizeListSpec(specInput);
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              spec.enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
 
   TableSpec table;
   table.accessibility = spec.accessibility;
@@ -49,7 +55,8 @@ UiNode UiNode::createList(ListSpec const& specInput) {
           callback(listInfo);
         };
   }
-  return createTable(table);
+  UiNode parentNode = Internal::makeParentNode(runtime);
+  return parentNode.createTable(table);
 }
 
 ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {

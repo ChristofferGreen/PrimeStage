@@ -3943,6 +3943,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
   CHECK(collections.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
   CHECK(collections.find("Internal::runtimeFrame(runtime)") != std::string::npos);
+  CHECK(collections.find("Internal::makeParentNode(runtime)") != std::string::npos);
 
   std::ifstream tableInput(tablePath);
   REQUIRE(tableInput.good());
