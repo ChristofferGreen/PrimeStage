@@ -3405,9 +3405,13 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::string core((std::istreambuf_iterator<char>(coreInput)), std::istreambuf_iterator<char>());
   REQUIRE(!core.empty());
   CHECK(core.find("UiNode UiNode::createList(ListSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") ==
+        std::string::npos);
   CHECK(core.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
         std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
+  CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
+        std::string::npos);
 
   std::ifstream collectionsInput(collectionsPath);
   REQUIRE(collectionsInput.good());
@@ -3417,9 +3421,12 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(collections.find("UiNode UiNode::createList(ListSpec const& specInput)") != std::string::npos);
   CHECK(collections.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
         std::string::npos);
+  CHECK(collections.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") !=
+        std::string::npos);
   CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
+  CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
 
   std::ifstream internalsInput(internalsPath);
   REQUIRE(internalsInput.good());
@@ -3427,6 +3434,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
                         std::istreambuf_iterator<char>());
   REQUIRE(!internals.empty());
   CHECK(internals.find("ListSpec normalizeListSpec(ListSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
 
   std::ifstream todoInput(todoPath);

@@ -1274,6 +1274,85 @@ ListSpec normalizeListSpec(ListSpec const& specInput) {
   return spec;
 }
 
+ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
+  ScrollViewSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ScrollViewSpec.size");
+  spec.vertical.thickness = clamp_non_negative(spec.vertical.thickness, "ScrollViewSpec.vertical", "thickness");
+  spec.vertical.inset = clamp_non_negative(spec.vertical.inset, "ScrollViewSpec.vertical", "inset");
+  spec.vertical.startPadding =
+      clamp_non_negative(spec.vertical.startPadding, "ScrollViewSpec.vertical", "startPadding");
+  spec.vertical.endPadding =
+      clamp_non_negative(spec.vertical.endPadding, "ScrollViewSpec.vertical", "endPadding");
+  spec.vertical.thumbLength =
+      clamp_non_negative(spec.vertical.thumbLength, "ScrollViewSpec.vertical", "thumbLength");
+  spec.vertical.thumbOffset =
+      clamp_non_negative(spec.vertical.thumbOffset, "ScrollViewSpec.vertical", "thumbOffset");
+  spec.horizontal.thickness =
+      clamp_non_negative(spec.horizontal.thickness, "ScrollViewSpec.horizontal", "thickness");
+  spec.horizontal.inset =
+      clamp_non_negative(spec.horizontal.inset, "ScrollViewSpec.horizontal", "inset");
+  spec.horizontal.startPadding =
+      clamp_non_negative(spec.horizontal.startPadding, "ScrollViewSpec.horizontal", "startPadding");
+  spec.horizontal.endPadding =
+      clamp_non_negative(spec.horizontal.endPadding, "ScrollViewSpec.horizontal", "endPadding");
+  spec.horizontal.thumbLength =
+      clamp_non_negative(spec.horizontal.thumbLength, "ScrollViewSpec.horizontal", "thumbLength");
+  spec.horizontal.thumbOffset =
+      clamp_non_negative(spec.horizontal.thumbOffset, "ScrollViewSpec.horizontal", "thumbOffset");
+  return spec;
+}
+
+InternalRect resolveRect(SizeSpec const& size) {
+  Rect resolved = resolve_rect(size);
+  return InternalRect{resolved.x, resolved.y, resolved.width, resolved.height};
+}
+
+float defaultScrollViewWidth() {
+  return DefaultScrollViewWidth;
+}
+
+float defaultScrollViewHeight() {
+  return DefaultScrollViewHeight;
+}
+
+PrimeFrame::NodeId createNode(PrimeFrame::Frame& frame,
+                              PrimeFrame::NodeId parent,
+                              InternalRect const& rect,
+                              SizeSpec const* size,
+                              PrimeFrame::LayoutType layout,
+                              PrimeFrame::Insets const& padding,
+                              float gap,
+                              bool clipChildren,
+                              bool visible,
+                              char const* context) {
+  return create_node(frame,
+                     parent,
+                     Rect{rect.x, rect.y, rect.width, rect.height},
+                     size,
+                     layout,
+                     padding,
+                     gap,
+                     clipChildren,
+                     visible,
+                     context);
+}
+
+PrimeFrame::NodeId createRectNode(PrimeFrame::Frame& frame,
+                                  PrimeFrame::NodeId parent,
+                                  InternalRect const& rect,
+                                  PrimeFrame::RectStyleToken token,
+                                  PrimeFrame::RectStyleOverride const& overrideStyle,
+                                  bool clipChildren,
+                                  bool visible) {
+  return create_rect_node(frame,
+                          parent,
+                          Rect{rect.x, rect.y, rect.width, rect.height},
+                          token,
+                          overrideStyle,
+                          clipChildren,
+                          visible);
+}
+
 } // namespace Internal
 
 void setScrollBarThumbPixels(ScrollBarSpec& spec,
@@ -6315,135 +6394,6 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   }
 
   return UiNode(frame(), tableRoot.nodeId(), allowAbsolute_);
-}
-
-ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
-  ScrollViewSpec spec = specInput;
-  sanitize_size_spec(spec.size, "ScrollViewSpec.size");
-  spec.vertical.thickness = clamp_non_negative(spec.vertical.thickness, "ScrollViewSpec.vertical", "thickness");
-  spec.vertical.inset = clamp_non_negative(spec.vertical.inset, "ScrollViewSpec.vertical", "inset");
-  spec.vertical.startPadding =
-      clamp_non_negative(spec.vertical.startPadding, "ScrollViewSpec.vertical", "startPadding");
-  spec.vertical.endPadding =
-      clamp_non_negative(spec.vertical.endPadding, "ScrollViewSpec.vertical", "endPadding");
-  spec.vertical.thumbLength =
-      clamp_non_negative(spec.vertical.thumbLength, "ScrollViewSpec.vertical", "thumbLength");
-  spec.vertical.thumbOffset =
-      clamp_non_negative(spec.vertical.thumbOffset, "ScrollViewSpec.vertical", "thumbOffset");
-  spec.horizontal.thickness =
-      clamp_non_negative(spec.horizontal.thickness, "ScrollViewSpec.horizontal", "thickness");
-  spec.horizontal.inset =
-      clamp_non_negative(spec.horizontal.inset, "ScrollViewSpec.horizontal", "inset");
-  spec.horizontal.startPadding =
-      clamp_non_negative(spec.horizontal.startPadding, "ScrollViewSpec.horizontal", "startPadding");
-  spec.horizontal.endPadding =
-      clamp_non_negative(spec.horizontal.endPadding, "ScrollViewSpec.horizontal", "endPadding");
-  spec.horizontal.thumbLength =
-      clamp_non_negative(spec.horizontal.thumbLength, "ScrollViewSpec.horizontal", "thumbLength");
-  spec.horizontal.thumbOffset =
-      clamp_non_negative(spec.horizontal.thumbOffset, "ScrollViewSpec.horizontal", "thumbOffset");
-
-  Rect bounds = resolve_rect(spec.size);
-  if (bounds.width <= 0.0f && !spec.size.preferredWidth.has_value()) {
-    bounds.width = DefaultScrollViewWidth;
-  }
-  if (bounds.height <= 0.0f && !spec.size.preferredHeight.has_value()) {
-    bounds.height = DefaultScrollViewHeight;
-  }
-  if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
-    return ScrollView{UiNode(frame(), id_, allowAbsolute_),
-                      UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute_)};
-  }
-
-  SizeSpec scrollSize = spec.size;
-  if (!scrollSize.preferredWidth.has_value() && bounds.width > 0.0f) {
-    scrollSize.preferredWidth = bounds.width;
-  }
-  if (!scrollSize.preferredHeight.has_value() && bounds.height > 0.0f) {
-    scrollSize.preferredHeight = bounds.height;
-  }
-  PrimeFrame::NodeId scrollId = create_node(frame(), id_, bounds,
-                                            &scrollSize,
-                                            PrimeFrame::LayoutType::None,
-                                            PrimeFrame::Insets{},
-                                            0.0f,
-                                            spec.clipChildren,
-                                            spec.visible);
-  SizeSpec contentSize;
-  contentSize.stretchX = 1.0f;
-  contentSize.stretchY = 1.0f;
-  PrimeFrame::NodeId contentId = create_node(frame(), scrollId, Rect{},
-                                             &contentSize,
-                                             PrimeFrame::LayoutType::Overlay,
-                                             PrimeFrame::Insets{},
-                                             0.0f,
-                                             false,
-                                             spec.visible);
-
-  if (spec.showVertical && spec.vertical.enabled) {
-    float trackW = spec.vertical.thickness;
-    float trackH = std::max(0.0f, bounds.height - spec.vertical.startPadding - spec.vertical.endPadding);
-    float trackX = bounds.width - spec.vertical.inset;
-    float trackY = spec.vertical.startPadding;
-    create_rect_node(frame(),
-                     scrollId,
-                     Rect{trackX, trackY, trackW, trackH},
-                     spec.vertical.trackStyle,
-                     {},
-                     false,
-                     spec.visible);
-
-    float thumbH = std::min(trackH, spec.vertical.thumbLength);
-    float maxOffset = std::max(0.0f, trackH - thumbH);
-    float thumbOffset = std::clamp(spec.vertical.thumbOffset, 0.0f, maxOffset);
-    float thumbY = trackY + thumbOffset;
-    create_rect_node(frame(),
-                     scrollId,
-                     Rect{trackX, thumbY, trackW, thumbH},
-                     spec.vertical.thumbStyle,
-                     {},
-                     false,
-                     spec.visible);
-  }
-
-  if (spec.showHorizontal && spec.horizontal.enabled) {
-    float trackH = spec.horizontal.thickness;
-    float trackW = std::max(0.0f, bounds.width - spec.horizontal.startPadding - spec.horizontal.endPadding);
-    float trackX = spec.horizontal.startPadding;
-    float trackY = bounds.height - spec.horizontal.inset;
-    create_rect_node(frame(),
-                     scrollId,
-                     Rect{trackX, trackY, trackW, trackH},
-                     spec.horizontal.trackStyle,
-                     {},
-                     false,
-                     spec.visible);
-
-    float thumbW = std::min(trackW, spec.horizontal.thumbLength);
-    float maxOffset = std::max(0.0f, trackW - thumbW);
-    float thumbOffset = std::clamp(spec.horizontal.thumbOffset, 0.0f, maxOffset);
-    float thumbX = trackX + thumbOffset;
-    create_rect_node(frame(),
-                     scrollId,
-                     Rect{thumbX, trackY, thumbW, trackH},
-                     spec.horizontal.thumbStyle,
-                     {},
-                     false,
-                     spec.visible);
-  }
-
-  return ScrollView{UiNode(frame(), scrollId, allowAbsolute_),
-                    UiNode(frame(), contentId, allowAbsolute_)};
-}
-
-ScrollView UiNode::createScrollView(SizeSpec const& size,
-                                    bool showVertical,
-                                    bool showHorizontal) {
-  ScrollViewSpec spec;
-  spec.size = size;
-  spec.showVertical = showVertical;
-  spec.showHorizontal = showHorizontal;
-  return createScrollView(spec);
 }
 
 Window UiNode::createWindow(WindowSpec const& specInput) {

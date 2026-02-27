@@ -32,6 +32,9 @@ Release Exit Criteria (for API-quality milestone):
   - preserve existing public API surface and behavior contracts while improving internal module boundaries
   - vertical slice shipped: moved `List` collection entrypoints into `src/PrimeStageCollections.cpp`
     with shared list-spec normalization routed through `PrimeStage::Internal::normalizeListSpec(...)`
+  - vertical slice shipped: moved `ScrollView` entrypoints into `src/PrimeStageCollections.cpp`
+    with shared scroll-spec normalization and node-construction seams routed via
+    `PrimeStage::Internal` helpers
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
