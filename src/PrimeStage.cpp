@@ -1321,6 +1321,14 @@ ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput) {
   return spec;
 }
 
+PanelSpec normalizePanelSpec(PanelSpec const& specInput) {
+  PanelSpec spec = specInput;
+  sanitize_size_spec(spec.size, "PanelSpec.size");
+  spec.padding = sanitize_insets(spec.padding, "PanelSpec");
+  spec.gap = clamp_non_negative(spec.gap, "PanelSpec", "gap");
+  return spec;
+}
+
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = specInput;
   sanitize_size_spec(spec.size, "ScrollViewSpec.size");
@@ -2299,76 +2307,6 @@ UiNode& UiNode::setHitTestVisible(bool visible) {
   node->hitTestVisible = visible;
   return *this;
 }
-
-UiNode UiNode::createVerticalStack(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::VerticalStack,
-                                          spec.padding,
-                                          spec.gap,
-                                          spec.clipChildren,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createHorizontalStack(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::HorizontalStack,
-                                          spec.padding,
-                                          spec.gap,
-                                          spec.clipChildren,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createOverlay(StackSpec const& spec) {
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::Overlay,
-                                          spec.padding,
-                                          spec.gap,
-                                          spec.clipChildren,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createPanel(PanelSpec const& specInput) {
-  PanelSpec spec = specInput;
-  sanitize_size_spec(spec.size, "PanelSpec.size");
-  spec.padding = sanitize_insets(spec.padding, "PanelSpec");
-  spec.gap = clamp_non_negative(spec.gap, "PanelSpec", "gap");
-
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
-                                          &spec.size,
-                                          spec.layout,
-                                          spec.padding,
-                                          spec.gap,
-                                          spec.clipChildren,
-                                          spec.visible);
-  add_rect_primitive(frame(), nodeId, spec.rectStyle, spec.rectStyleOverride);
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size) {
-  PanelSpec spec;
-  spec.rectStyle = rectStyle;
-  spec.size = size;
-  return createPanel(spec);
-}
-
 
 UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) {
   Rect bounds = resolve_rect(spec.size);

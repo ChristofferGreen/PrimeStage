@@ -109,6 +109,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageButton.cpp
   src/PrimeStageBooleanWidgets.cpp
   src/PrimeStageCollections.cpp
+  src/PrimeStageContainers.cpp
   src/PrimeStageDropdown.cpp
   src/PrimeStageLabel.cpp
   src/PrimeStageLayoutPrimitives.cpp

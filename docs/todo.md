@@ -72,6 +72,10 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createParagraph(ParagraphSpec)` runtime into
     `src/PrimeStageParagraph.cpp`, with shared paragraph normalization routed
     via `PrimeStage::Internal`
+  - vertical slice shipped: moved stack/container entrypoints (`createVerticalStack`,
+    `createHorizontalStack`, `createOverlay`, `createPanel`) into
+    `src/PrimeStageContainers.cpp`, with shared panel normalization routed via
+    `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit
