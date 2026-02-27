@@ -44,7 +44,10 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep runtime version reporting (`getVersion()` / `getVersionString()`) derived from CMake project metadata via generated version headers; avoid hard-coded version literals in source/tests.
 - Keep FetchContent dependency defaults pinned to immutable commits and update `docs/dependency-resolution-policy.md` whenever `*_GIT_TAG` values change.
 - Keep input/focus fuzz/property tests deterministic (fixed RNG seeds + explicit regression corpus) so failures are reproducible.
-- Keep examples as canonical PrimeStage API consumers; direct PrimeFrame integrations must be explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and aligned with `docs/example-app-consumer-checklist.md`.
+- Keep examples split by tier: `examples/canonical` must stay high-level PrimeStage-only, while
+  host/frame internals live in `examples/advanced`; any direct PrimeFrame integration must be
+  explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and
+  aligned with `docs/example-app-consumer-checklist.md`.
 - For canonical example composition, prefer intrinsic widget defaults plus `size.maxWidth` container/text constraints over repeated per-widget `preferredWidth` micromanagement.
 - For settings-like canonical UI flows, prefer `UiNode::form(...)` + `UiNode::formField(...)` over manual row/column label-control-help assembly.
 - Keep canonical API ergonomics within `docs/api-ergonomics-scorecard.md` thresholds; update scorecard docs and enforcing tests together when intentionally changing budgets.

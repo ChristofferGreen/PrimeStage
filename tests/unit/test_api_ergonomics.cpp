@@ -800,13 +800,13 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(guidelines.find("onSelect") != std::string::npos);
 }
 
-TEST_CASE("PrimeStage examples stay canonical API consumers") {
+TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
-  std::filesystem::path modernExamplePath = repoRoot / "examples" / "primestage_modern_api.cpp";
-  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
-  std::filesystem::path basicExamplePath = repoRoot / "examples" / "primestage_example.cpp";
-  std::filesystem::path sceneExamplePath = repoRoot / "examples" / "primestage_scene.cpp";
+  std::filesystem::path modernExamplePath = repoRoot / "examples" / "canonical" / "primestage_modern_api.cpp";
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
+  std::filesystem::path basicExamplePath = repoRoot / "examples" / "canonical" / "primestage_example.cpp";
+  std::filesystem::path sceneExamplePath = repoRoot / "examples" / "advanced" / "primestage_scene.cpp";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
@@ -873,6 +873,10 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   size_t modernLines =
       static_cast<size_t>(std::count(modernSource.begin(), modernSource.end(), '\n')) + 1u;
   CHECK(modernLines <= 220u);
+
+  // Advanced tier carries host/runtime integration concerns.
+  CHECK(widgetsSource.find("#include \"PrimeHost/PrimeHost.h\"") != std::string::npos);
+  CHECK(widgetsSource.find("PrimeHost::EventBuffer") != std::string::npos);
 
   CHECK(widgetsSource.find("tabs.callbacks.onSelect") == std::string::npos);
   CHECK(widgetsSource.find("tabs.callbacks.onTabChanged") == std::string::npos);
@@ -959,7 +963,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("slider.callbacks.onValueChanged") == std::string::npos);
   CHECK(widgetsSource.find("progress.callbacks.onValueChanged") == std::string::npos);
 
-  // [51] canonical examples must not bootstrap theme/palette defaults in app code.
+  // Examples must not bootstrap theme/palette defaults in app code.
   CHECK(widgetsSource.find("getTheme(PrimeFrame::DefaultThemeId)") == std::string::npos);
   CHECK(widgetsSource.find("theme->palette") == std::string::npos);
   CHECK(widgetsSource.find("theme->rectStyles") == std::string::npos);
@@ -985,6 +989,11 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                            std::istreambuf_iterator<char>());
   REQUIRE(!basicExample.empty());
   CHECK(basicExample.find("#include \"PrimeFrame/") == std::string::npos);
+  CHECK(basicExample.find("#include \"PrimeHost/") == std::string::npos);
+  CHECK(basicExample.find("PrimeFrame::") == std::string::npos);
+  CHECK(basicExample.find("PrimeHost::") == std::string::npos);
+  CHECK(basicExample.find("PrimeStage::LowLevel::") == std::string::npos);
+  CHECK(basicExample.find(".nodeId(") == std::string::npos);
   CHECK(basicExample.find("PrimeStage::getVersionString") != std::string::npos);
 
   std::ifstream sceneExampleInput(sceneExamplePath);
@@ -1001,6 +1010,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(sceneExample.find("createList(") != std::string::npos);
   CHECK(sceneExample.find("createTreeView(") != std::string::npos);
   CHECK(sceneExample.find("createScrollView(") != std::string::npos);
+  CHECK(sceneExample.find("#include \"PrimeFrame/Frame.h\"") != std::string::npos);
   CHECK(sceneExample.find("PrimeFrame::LayoutEngine") != std::string::npos);
 
   std::ifstream cmakeInput(cmakePath);
@@ -1009,7 +1019,11 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
                           std::istreambuf_iterator<char>());
   REQUIRE(!cmakeSource.empty());
   CHECK(cmakeSource.find("add_executable(primestage_modern_api") != std::string::npos);
+  CHECK(cmakeSource.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
+  CHECK(cmakeSource.find("examples/canonical/primestage_example.cpp") != std::string::npos);
+  CHECK(cmakeSource.find("examples/advanced/primestage_widgets.cpp") != std::string::npos);
   CHECK(cmakeSource.find("add_executable(primestage_scene") != std::string::npos);
+  CHECK(cmakeSource.find("examples/advanced/primestage_scene.cpp") != std::string::npos);
 
   std::ifstream checklistInput(checklistPath);
   REQUIRE(checklistInput.good());
@@ -1025,6 +1039,8 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(checklist.find("bindShortcut") != std::string::npos);
   CHECK(checklist.find("form(...)") != std::string::npos);
   CHECK(checklist.find("formField(...)") != std::string::npos);
+  CHECK(checklist.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
+  CHECK(checklist.find("examples/advanced/*.cpp") != std::string::npos);
   CHECK(checklist.find("Keep canonical examples out of `PrimeStage::LowLevel`") !=
         std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
@@ -1037,11 +1053,18 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::string readme((std::istreambuf_iterator<char>(readmeInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!readme.empty());
+  CHECK(readme.find("Canonical tier (start here)") != std::string::npos);
+  CHECK(readme.find("Advanced tier (host/frame integration samples)") != std::string::npos);
   CHECK(readme.find("primestage_modern_api") != std::string::npos);
+  size_t canonicalTierPos = readme.find("Canonical tier (start here)");
+  size_t advancedTierPos = readme.find("Advanced tier (host/frame integration samples)");
   size_t modernPos = readme.find("primestage_modern_api");
   size_t widgetsPos = readme.find("primestage_widgets");
+  REQUIRE(canonicalTierPos != std::string::npos);
+  REQUIRE(advancedTierPos != std::string::npos);
   REQUIRE(modernPos != std::string::npos);
   REQUIRE(widgetsPos != std::string::npos);
+  CHECK(canonicalTierPos < advancedTierPos);
   CHECK(modernPos < widgetsPos);
 }
 
@@ -1058,8 +1081,8 @@ TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
-  std::filesystem::path modernExamplePath = repoRoot / "examples" / "primestage_modern_api.cpp";
-  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  std::filesystem::path modernExamplePath = repoRoot / "examples" / "canonical" / "primestage_modern_api.cpp";
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(scorecardPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(checklistPath));
@@ -1072,9 +1095,9 @@ TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {
                         std::istreambuf_iterator<char>());
   REQUIRE(!scorecard.empty());
   CHECK(scorecard.find("Canonical UI LOC (modern)") != std::string::npos);
-  CHECK(scorecard.find("Canonical UI LOC (widgets)") != std::string::npos);
+  CHECK(scorecard.find("Advanced UI LOC (widgets)") != std::string::npos);
   CHECK(scorecard.find("Average lines per widget instantiation (modern)") != std::string::npos);
-  CHECK(scorecard.find("Average lines per widget instantiation (widgets)") != std::string::npos);
+  CHECK(scorecard.find("Average lines per widget instantiation (advanced widgets)") != std::string::npos);
   CHECK(scorecard.find("Required spec fields per standard widget") != std::string::npos);
   CHECK(scorecard.find("`<= 70`") != std::string::npos);
   CHECK(scorecard.find("`<= 220`") != std::string::npos);
@@ -1282,7 +1305,7 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
-  std::filesystem::path examplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  std::filesystem::path examplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -2727,7 +2750,7 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
-  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));

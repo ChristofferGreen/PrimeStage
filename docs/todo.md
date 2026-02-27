@@ -26,11 +26,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P1 (Do Next)
 
-- ☐ [73] Split examples into `canonical` and `advanced` tiers.
-  - keep one minimal canonical path for normal users and isolate host/frame internals to advanced samples
-  - make README point only to canonical tier for first use
-  - acceptance: canonical tier contains no low-level integration primitives
-
 - ☐ [74] Add dedicated docs for "5-minute app" and "advanced escape hatches".
   - include a concise getting-started API that maps directly to canonical sample code
   - separately document when/why to drop to low-level APIs
@@ -59,6 +54,23 @@ _No open items._
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
+
+### P1 (Do Next)
+
+- ☑ [73] Split examples into `canonical` and `advanced` tiers.
+  - moved example sources into explicit tier directories:
+    `examples/canonical/primestage_modern_api.cpp`,
+    `examples/canonical/primestage_example.cpp`,
+    `examples/advanced/primestage_widgets.cpp`, and
+    `examples/advanced/primestage_scene.cpp`
+  - rewired example targets in `CMakeLists.txt` and updated `README.md` first-use
+    guidance to point to canonical tier before advanced samples
+  - updated canonical-consumer/docs scorecard guidance in
+    `docs/example-app-consumer-checklist.md`,
+    `docs/api-ergonomics-scorecard.md`, and
+    `docs/api-ergonomics-guidelines.md`
+  - expanded tier guardrails in `tests/unit/test_api_ergonomics.cpp` to assert
+    canonical low-level exclusions plus canonical/advanced source wiring in CMake/docs
 
 ### P0 (Do First)
 

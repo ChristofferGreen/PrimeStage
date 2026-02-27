@@ -308,6 +308,6 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Canonical/advanced example split and onboarding docs (`[73]`/`[74]`).
+- Onboarding docs for "5-minute app" and advanced escape hatches (`[74]`).
 - Automated API surface linting and defaults audit (`[75]`/`[76]`).
 - Additional compile-time ergonomics diagnostics (`[77]`).

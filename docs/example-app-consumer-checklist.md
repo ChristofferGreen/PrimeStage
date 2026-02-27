@@ -21,7 +21,7 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
     manual `std::vector<std::string_view>` conversion loops in canonical examples.
 11. Avoid manual `requestRebuild`/`requestLayout`/`requestFrame` calls for ordinary widget
     interactions in canonical examples; rely on `PrimeStage::App` default event-driven scheduling.
-12. Keep `examples/primestage_modern_api.cpp` as the strict default canonical example:
+12. Keep `examples/canonical/primestage_modern_api.cpp` as the strict default canonical example:
     no low-level PrimeFrame/PrimeHost internals and complexity constrained by
     `docs/api-ergonomics-scorecard.md` CI thresholds.
 13. Route keyboard shortcuts through `PrimeStage::App` action APIs
@@ -46,6 +46,9 @@ These exceptions must be clearly tagged inline in the example source with
 
 - Confirm canonical rules above are followed.
 - Confirm any direct PrimeFrame internals are covered by the advanced-exception tag.
-- Confirm simple examples (for example `examples/primestage_example.cpp`) avoid direct
+- Confirm simple canonical examples (for example `examples/canonical/primestage_example.cpp`)
+  avoid direct
   `PrimeFrame` headers and internals.
+- Confirm advanced examples (`examples/advanced/*.cpp`) are the only place host/frame internals are
+  demonstrated.
 - Confirm new example logic is covered by unit guard checks in `tests/unit/test_api_ergonomics.cpp`.

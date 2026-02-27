@@ -57,10 +57,14 @@ Optional configuration:
 ## Example Binaries
 
 With examples enabled (`-DPRIMESTAGE_BUILD_EXAMPLES=ON`), the build provides:
+
+Canonical tier (start here):
 - `primestage_modern_api` (default strict high-level canonical example; writes a PNG snapshot)
 - `primestage_example` (version smoke example)
-- `primestage_scene` (window + widgets scene composition example)
+
+Advanced tier (host/frame integration samples):
 - `primestage_widgets` (full host/render interactive demo)
+- `primestage_scene` (window + widgets scene composition example with direct frame/layout wiring)
 
 Default quick start:
 
