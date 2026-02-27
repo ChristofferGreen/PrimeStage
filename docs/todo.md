@@ -104,9 +104,15 @@ Release Exit Criteria (for API-quality milestone):
     into `src/PrimeStageTreeView.cpp`, keeping list/scroll runtime in
     `src/PrimeStageCollections.cpp`
 
-- ☐ [120] Continue interactive widget extraction from `src/PrimeStage.cpp`.
+- ☑ [120] Continue interactive widget extraction from `src/PrimeStage.cpp`.
   - move `TextField`/`SelectableText` build and interaction runtime into dedicated text translation units
   - extract shared text interaction patch helpers into focused internal modules
+  - completed with dedicated text translation units
+    (`src/PrimeStageTextField.cpp`, `src/PrimeStageSelectableText.cpp`) and
+    shared text interaction helpers moved into
+    `src/PrimeStageTextInteraction.cpp` (`measureTextWidth`, UTF-8 caret
+    navigation helpers, selection helpers, and text-selection layout/caret-hit
+    utilities)
 
 - ☐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
   - centralize shared patch/focus/callback helper state used across widget implementations

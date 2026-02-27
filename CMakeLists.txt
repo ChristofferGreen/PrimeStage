@@ -121,6 +121,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageTreeView.cpp
   src/PrimeStageTabs.cpp
   src/PrimeStageTextField.cpp
+  src/PrimeStageTextInteraction.cpp
   src/PrimeStageSelectableText.cpp
   src/PrimeStageTextSelectionOverlay.cpp
   src/PrimeStageTextLine.cpp

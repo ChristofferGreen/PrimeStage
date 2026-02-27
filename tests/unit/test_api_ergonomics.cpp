@@ -3584,6 +3584,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path textFieldPath = repoRoot / "src" / "PrimeStageTextField.cpp";
+  std::filesystem::path textInteractionPath = repoRoot / "src" / "PrimeStageTextInteraction.cpp";
   std::filesystem::path selectableTextPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
@@ -3607,6 +3608,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(textFieldPath));
+  REQUIRE(std::filesystem::exists(textInteractionPath));
   REQUIRE(std::filesystem::exists(selectableTextPath));
   REQUIRE(std::filesystem::exists(textLinePath));
   REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
@@ -3667,6 +3669,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createTextField(TextFieldSpec const& specInput)") ==
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createTextField(TextFieldState& state,") ==
+        std::string::npos);
+  CHECK(core.find("float measureTextWidth(PrimeFrame::Frame& frame,") == std::string::npos);
+  CHECK(core.find("uint32_t caretIndexForClick(PrimeFrame::Frame& frame,") == std::string::npos);
+  CHECK(core.find("uint32_t caretIndexForClickInLayout(PrimeFrame::Frame& frame,") ==
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput)") ==
         std::string::npos);
@@ -3783,6 +3789,20 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(textFieldSource.find("UiNode UiNode::createTextField(TextFieldState& state,") !=
         std::string::npos);
   CHECK(textFieldSource.find("Internal::normalizeTextFieldSpec(specInput)") !=
+        std::string::npos);
+
+  std::ifstream textInteractionInput(textInteractionPath);
+  REQUIRE(textInteractionInput.good());
+  std::string textInteractionSource((std::istreambuf_iterator<char>(textInteractionInput)),
+                                    std::istreambuf_iterator<char>());
+  REQUIRE(!textInteractionSource.empty());
+  CHECK(textInteractionSource.find("float measureTextWidth(PrimeFrame::Frame& frame,") !=
+        std::string::npos);
+  CHECK(textInteractionSource.find("bool textFieldHasSelection(TextFieldState const& state,") !=
+        std::string::npos);
+  CHECK(textInteractionSource.find("bool selectableTextHasSelection(SelectableTextState const& state,") !=
+        std::string::npos);
+  CHECK(textInteractionSource.find("uint32_t caretIndexForClickInLayout(PrimeFrame::Frame& frame,") !=
         std::string::npos);
 
   std::ifstream selectableTextInput(selectableTextPath);
@@ -4011,6 +4031,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageTable.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTreeView.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextField.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageTextInteraction.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageWindow.cpp") != std::string::npos);
