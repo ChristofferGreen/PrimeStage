@@ -138,6 +138,16 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [90] Keep advanced exception tags out of canonical docs surfaces.
+  - expanded `tests/unit/test_api_ergonomics.cpp` to assert canonical-facing
+    docs (`README.md` and `docs/5-minute-app.md`) do not contain advanced
+    exception markers:
+    `Advanced PrimeFrame integration (documented exception):` and
+    `Advanced lifecycle orchestration (documented exception):`
+  - added explicit `docs/5-minute-app.md` coverage checks for canonical-to-
+    advanced mapping links while guarding against advanced exception-tag bleed
+    into canonical onboarding content
+
 - ☑ [89] Keep advanced exception tags out of canonical examples.
   - expanded `tests/unit/test_api_ergonomics.cpp` to assert canonical example
     sources do not contain advanced exception markers:

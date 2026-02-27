@@ -827,6 +827,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   std::filesystem::path sceneExamplePath = repoRoot / "examples" / "advanced" / "primestage_scene.cpp";
   std::filesystem::path advancedExamplesPath = repoRoot / "examples" / "advanced";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path fiveMinutePath = repoRoot / "docs" / "5-minute-app.md";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
   REQUIRE(std::filesystem::exists(modernExamplePath));
@@ -835,6 +836,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   REQUIRE(std::filesystem::exists(sceneExamplePath));
   REQUIRE(std::filesystem::exists(advancedExamplesPath));
   REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(fiveMinutePath));
   REQUIRE(std::filesystem::exists(checklistPath));
 
   std::ifstream widgetsInput(widgetsExamplePath);
@@ -1231,6 +1233,18 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   REQUIRE(widgetsPos != std::string::npos);
   CHECK(canonicalTierPos < advancedTierPos);
   CHECK(modernPos < widgetsPos);
+  CHECK(readme.find(PrimeFrameIntegrationTag) == std::string::npos);
+  CHECK(readme.find(LifecycleOrchestrationTag) == std::string::npos);
+
+  std::ifstream fiveMinuteInput(fiveMinutePath);
+  REQUIRE(fiveMinuteInput.good());
+  std::string fiveMinute((std::istreambuf_iterator<char>(fiveMinuteInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!fiveMinute.empty());
+  CHECK(fiveMinute.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
+  CHECK(fiveMinute.find("docs/advanced-escape-hatches.md") != std::string::npos);
+  CHECK(fiveMinute.find(PrimeFrameIntegrationTag) == std::string::npos);
+  CHECK(fiveMinute.find(LifecycleOrchestrationTag) == std::string::npos);
 }
 
 TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {
