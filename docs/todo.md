@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [64] Add ergonomic convenience overloads for common widgets.
-  - provide concise constructors/helpers (`button("Save", onClick)`, `checkbox("Enabled", bind(flag))`, `tabs({"A","B"}, bind(index))`)
-  - maintain `Spec` APIs for advanced control, but optimize default path for brevity
-  - acceptance: gallery code demonstrates concise overloads for all major widgets
-
 - ☐ [65] Add standardized command/action routing.
   - provide app-level action registry and keyboard shortcut binding independent of widget-local event code
   - unify command invocation across menu/button/shortcut entrypoints
@@ -106,6 +101,18 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [64] Add ergonomic convenience overloads for common widgets.
+  - added concise declarative `UiNode` helpers for common value widgets:
+    `toggle(bind)`, `checkbox(label, bind)`, `slider(bind, vertical)`,
+    `tabs(labels, bind)`, `dropdown(options, bind)`, and `progressBar(bind)`
+  - updated `examples/primestage_widgets.cpp` to use concise overloads across major interactive
+    controls instead of repetitive default `Spec` boilerplate
+  - expanded regression coverage in `tests/unit/test_builder_api.cpp` for helper behavior and
+    empty-options clamping diagnostics, and in `tests/unit/test_api_ergonomics.cpp` to enforce
+    canonical helper usage plus docs/header discoverability
+  - updated API docs (`docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`,
+    `docs/prime-stage-design.md`) to document the concise overload surface
 
 - ☑ [63] Publish a strict "Modern API" canonical example and gate it in CI.
   - added `examples/primestage_modern_api.cpp` as a strict high-level canonical sample using only

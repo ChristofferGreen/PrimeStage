@@ -159,7 +159,10 @@ after invoking `fn(createdNode)`. For composed return types, `createScrollView(s
 For low-ceremony composition, `UiNode` also exposes declarative helpers:
 - `column(...)`, `row(...)`, `overlay(...)`, `panel(...)`
 - `label(text)`, `paragraph(text, maxWidth)`, `textLine(text)`
-- `divider(height)`, `spacer(height)`, `button(text, onActivate)`, `window(spec, fn)`
+- `divider(height)`, `spacer(height)`, `button(text, onActivate)`
+- `toggle(binding)`, `checkbox(label, binding)`, `slider(binding, vertical)`
+- `tabs(labels, binding)`, `dropdown(options, binding)`, `progressBar(binding)`
+- `window(spec, fn)`
 
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`, but app-facing focus,
 visibility, and imperative flows should use typed handles (`WidgetFocusHandle`,
@@ -207,6 +210,12 @@ struct UiNode {
   UiNode createButton(ButtonSpec const& spec);
   UiNode createTextField(TextFieldSpec const& spec);
   UiNode createSelectableText(SelectableTextSpec const& spec);
+  UiNode toggle(Binding<bool> binding);
+  UiNode checkbox(std::string_view label, Binding<bool> binding);
+  UiNode slider(Binding<float> binding, bool vertical = false);
+  UiNode tabs(std::vector<std::string_view> labels, Binding<int> binding);
+  UiNode dropdown(std::vector<std::string_view> options, Binding<int> binding);
+  UiNode progressBar(Binding<float> binding);
   UiNode createToggle(ToggleSpec const& spec);
   UiNode createCheckbox(CheckboxSpec const& spec);
   UiNode createSlider(SliderSpec const& spec);

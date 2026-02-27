@@ -478,6 +478,16 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode textLine(std::string_view text)") != std::string::npos);
   CHECK(uiHeader.find("UiNode button(std::string_view text, std::function<void()> onActivate = {})") !=
         std::string::npos);
+  CHECK(uiHeader.find("UiNode toggle(Binding<bool> binding)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode checkbox(std::string_view label, Binding<bool> binding)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode slider(Binding<float> binding, bool vertical = false)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode tabs(std::vector<std::string_view> labels, Binding<int> binding)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode dropdown(std::vector<std::string_view> options, Binding<int> binding)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("UiNode progressBar(Binding<float> binding)") != std::string::npos);
   CHECK(uiHeader.find("Window window(WindowSpec const& spec)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createPanel(PanelSpec const& spec, Fn&& fn)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createButton(ButtonSpec const& spec, Fn&& fn)") != std::string::npos);
@@ -552,6 +562,11 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("onChange") != std::string::npos);
   CHECK(apiRef.find("onOpen") != std::string::npos);
   CHECK(apiRef.find("onSelect") != std::string::npos);
+  CHECK(apiRef.find("toggle(binding)") != std::string::npos);
+  CHECK(apiRef.find("checkbox(label, binding)") != std::string::npos);
+  CHECK(apiRef.find("tabs(labels, binding)") != std::string::npos);
+  CHECK(apiRef.find("dropdown(options, binding)") != std::string::npos);
+  CHECK(apiRef.find("progressBar(binding)") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -575,6 +590,8 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
   CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
   CHECK(guidelines.find("Declarative Composition Helpers") != std::string::npos);
+  CHECK(guidelines.find("toggle(bind(flag))") != std::string::npos);
+  CHECK(guidelines.find("tabs({\"A\", \"B\"}, bind(index))") != std::string::npos);
   CHECK(guidelines.find("onActivate") != std::string::npos);
   CHECK(guidelines.find("onChange") != std::string::npos);
   CHECK(guidelines.find("onOpen") != std::string::npos);
@@ -692,16 +709,26 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeStage::State<bool> toggle{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<int> tabs{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<float> sliderValue{};") != std::string::npos);
-  CHECK(widgetsSource.find("toggle.binding = PrimeStage::bind(app.state.toggle);") != std::string::npos);
-  CHECK(widgetsSource.find("checkbox.binding = PrimeStage::bind(app.state.checkbox);") !=
+  CHECK(widgetsSource.find("row.toggle(PrimeStage::bind(app.state.toggle));") !=
         std::string::npos);
-  CHECK(widgetsSource.find("tabs.binding = PrimeStage::bind(app.state.tabs);") != std::string::npos);
-  CHECK(widgetsSource.find("dropdown.binding = PrimeStage::bind(app.state.dropdown);") !=
+  CHECK(widgetsSource.find("row.checkbox(\"Checkbox\", PrimeStage::bind(app.state.checkbox));") !=
         std::string::npos);
-  CHECK(widgetsSource.find("slider.binding = PrimeStage::bind(app.state.sliderValue);") !=
+  CHECK(widgetsSource.find("range.slider(PrimeStage::bind(app.state.sliderValue));") !=
         std::string::npos);
-  CHECK(widgetsSource.find("progress.binding = PrimeStage::bind(app.state.progressValue);") !=
+  CHECK(widgetsSource.find("range.progressBar(PrimeStage::bind(app.state.progressValue));") !=
         std::string::npos);
+  CHECK(widgetsSource.find("choice.tabs({\"Overview\", \"Assets\", \"Settings\"},") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("choice.dropdown({\"Preview\", \"Edit\", \"Export\", \"Publish\"},") !=
+        std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::ToggleSpec toggle;") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::CheckboxSpec checkbox;") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::SliderSpec slider;") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::ProgressBarSpec progress;") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::TabsSpec tabs;") == std::string::npos);
+  CHECK(widgetsSource.find("PrimeStage::DropdownSpec dropdown;") == std::string::npos);
+  CHECK(widgetsSource.find("tabViews.reserve(") == std::string::npos);
+  CHECK(widgetsSource.find("dropdownViews.reserve(") == std::string::npos);
   CHECK(widgetsSource.find("app.ui.connectHostServices(*app.host, app.surfaceId);") !=
         std::string::npos);
   CHECK(widgetsSource.find("app.ui.applyPlatformServices(field);") != std::string::npos);

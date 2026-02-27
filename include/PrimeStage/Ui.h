@@ -1356,6 +1356,20 @@ public:
     spec.callbacks.onActivate = std::move(onActivate);
     return createButton(spec);
   }
+  UiNode toggle(Binding<bool> binding) { return createToggle(binding); }
+  UiNode checkbox(std::string_view label, Binding<bool> binding) {
+    return createCheckbox(label, binding);
+  }
+  UiNode slider(Binding<float> binding, bool vertical = false) {
+    return createSlider(binding, vertical);
+  }
+  UiNode tabs(std::vector<std::string_view> labels, Binding<int> binding) {
+    return createTabs(std::move(labels), binding);
+  }
+  UiNode dropdown(std::vector<std::string_view> options, Binding<int> binding) {
+    return createDropdown(std::move(options), binding);
+  }
+  UiNode progressBar(Binding<float> binding) { return createProgressBar(binding); }
 
   Window window(WindowSpec const& spec);
   template <typename Fn>

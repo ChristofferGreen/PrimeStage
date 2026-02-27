@@ -139,6 +139,12 @@ Declarative helpers:
 - `divider(height)`
 - `spacer(height)`
 - `button(text, onActivate)`
+- `toggle(binding)`
+- `checkbox(label, binding)`
+- `slider(binding, vertical)`
+- `tabs(labels, binding)`
+- `dropdown(options, binding)`
+- `progressBar(binding)`
 - `window(spec, lambda)`
 
 Container/base:

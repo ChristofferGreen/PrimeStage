@@ -189,3 +189,95 @@ TEST_CASE("PrimeStage declarative helpers support nested composition ergonomics"
   REQUIRE(spacerOut != nullptr);
   CHECK(spacerOut->absH >= 0.0f);
 }
+
+TEST_CASE("PrimeStage declarative value helpers bind common widgets") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> toggleState{false};
+  PrimeStage::State<bool> checkboxState{false};
+  PrimeStage::State<float> sliderState{0.2f};
+  PrimeStage::State<int> tabsState{2};
+  PrimeStage::State<int> dropdownState{0};
+  PrimeStage::State<float> progressState{0.1f};
+
+  PrimeFrame::NodeId toggleId{};
+  PrimeFrame::NodeId checkboxId{};
+  PrimeFrame::NodeId tabsId{};
+  PrimeFrame::NodeId dropdownId{};
+  PrimeFrame::NodeId sliderId{};
+  PrimeFrame::NodeId progressId{};
+
+  root.column([&](PrimeStage::UiNode& column) {
+    toggleId = column.toggle(PrimeStage::bind(toggleState)).nodeId();
+    checkboxId = column.checkbox("Enabled", PrimeStage::bind(checkboxState)).nodeId();
+    tabsId = column.tabs({"One", "Two", "Three"}, PrimeStage::bind(tabsState)).nodeId();
+    dropdownId =
+        column.dropdown({"Preview", "Edit", "Export"}, PrimeStage::bind(dropdownState)).nodeId();
+    sliderId = column.slider(PrimeStage::bind(sliderState)).nodeId();
+    progressId = column.progressBar(PrimeStage::bind(progressState)).nodeId();
+  });
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto dispatchPointer = [&](PrimeFrame::EventType type,
+                             PrimeFrame::NodeId target,
+                             float xRatio,
+                             int pointerId = 1) {
+    PrimeFrame::LayoutOut const* out = layout.get(target);
+    REQUIRE(out != nullptr);
+    PrimeFrame::Event event;
+    event.type = type;
+    event.pointerId = pointerId;
+    event.x = out->absX + out->absW * xRatio;
+    event.y = out->absY + out->absH * 0.5f;
+    router.dispatch(event, frame, layout, &focus);
+  };
+
+  auto clickNode = [&](PrimeFrame::NodeId target, int pointerId = 1) {
+    dispatchPointer(PrimeFrame::EventType::PointerDown, target, 0.5f, pointerId);
+    dispatchPointer(PrimeFrame::EventType::PointerUp, target, 0.5f, pointerId);
+  };
+
+  clickNode(toggleId, 1);
+  clickNode(checkboxId, 2);
+  clickNode(dropdownId, 3);
+
+  PrimeFrame::Node const* tabsNode = frame.getNode(tabsId);
+  REQUIRE(tabsNode != nullptr);
+  REQUIRE(!tabsNode->children.empty());
+  clickNode(tabsNode->children.front(), 4);
+
+  dispatchPointer(PrimeFrame::EventType::PointerDown, sliderId, 0.05f, 5);
+  dispatchPointer(PrimeFrame::EventType::PointerDrag, sliderId, 0.9f, 5);
+  dispatchPointer(PrimeFrame::EventType::PointerUp, sliderId, 0.9f, 5);
+
+  dispatchPointer(PrimeFrame::EventType::PointerDown, progressId, 0.05f, 6);
+  dispatchPointer(PrimeFrame::EventType::PointerDrag, progressId, 0.9f, 6);
+  dispatchPointer(PrimeFrame::EventType::PointerUp, progressId, 0.9f, 6);
+
+  CHECK(toggleState.value);
+  CHECK(checkboxState.value);
+  CHECK(dropdownState.value == 1);
+  CHECK(tabsState.value == 0);
+  CHECK(sliderState.value > 0.8f);
+  CHECK(progressState.value > 0.8f);
+}
+
+TEST_CASE("PrimeStage declarative tabs/dropdown helpers clamp empty choices") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<int> tabsState{5};
+  PrimeStage::State<int> dropdownState{-4};
+
+  PrimeStage::UiNode tabs = root.tabs({}, PrimeStage::bind(tabsState));
+  PrimeStage::UiNode dropdown = root.dropdown({}, PrimeStage::bind(dropdownState));
+
+  CHECK(frame.getNode(tabs.nodeId()) != nullptr);
+  CHECK(frame.getNode(dropdown.nodeId()) != nullptr);
+  CHECK(tabsState.value == 0);
+  CHECK(dropdownState.value == 0);
+}

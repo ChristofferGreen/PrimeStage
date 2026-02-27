@@ -42,8 +42,6 @@ struct DemoState {
   std::vector<AssetRow> tableRows;
   std::vector<AssetTreeNode> tree;
   std::string selectableTextContent;
-  std::vector<std::string> dropdownItems;
-  std::vector<std::string> tabLabels;
   std::vector<std::string> listItems;
 };
 
@@ -75,8 +73,6 @@ void initializeState(DemoState& state) {
   state.selectableTextContent =
       "Selectable text supports drag selection, keyboard movement, and clipboard shortcuts.";
 
-  state.dropdownItems = {"Preview", "Edit", "Export", "Publish"};
-  state.tabLabels = {"Overview", "Assets", "Settings"};
   state.listItems = {"Alpha", "Beta", "Gamma", "Delta"};
   state.tableRows = {
       {"icons.png", "Texture", "512 KB"},
@@ -159,16 +155,8 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     rowSpec.gap = 12.0f;
     PrimeStage::UiNode row = actions.row(rowSpec);
     row.button("Button");
-
-    PrimeStage::ToggleSpec toggle;
-    toggle.binding = PrimeStage::bind(app.state.toggle);
-    row.createToggle(toggle);
-
-    PrimeStage::CheckboxSpec checkbox;
-    checkbox.binding = PrimeStage::bind(app.state.checkbox);
-    checkbox.label = "Checkbox";
-    row.createCheckbox(checkbox);
-
+    row.toggle(PrimeStage::bind(app.state.toggle));
+    row.checkbox("Checkbox", PrimeStage::bind(app.state.checkbox));
   }
 
   PrimeStage::UiNode textInput = createSection(leftColumn, "Text Field + Selectable Text");
@@ -188,38 +176,15 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
 
   PrimeStage::UiNode range = createSection(rightColumn, "Slider + Progress");
   {
-    PrimeStage::SliderSpec slider;
-    slider.binding = PrimeStage::bind(app.state.sliderValue);
-    range.createSlider(slider);
-
-    PrimeStage::ProgressBarSpec progress;
-    progress.binding = PrimeStage::bind(app.state.progressValue);
-    range.createProgressBar(progress);
+    range.slider(PrimeStage::bind(app.state.sliderValue));
+    range.progressBar(PrimeStage::bind(app.state.progressValue));
   }
 
   PrimeStage::UiNode choice = createSection(rightColumn, "Tabs, Dropdown, List");
   {
-    std::vector<std::string_view> tabViews;
-    tabViews.reserve(app.state.tabLabels.size());
-    for (const std::string& label : app.state.tabLabels) {
-      tabViews.push_back(label);
-    }
-
-    PrimeStage::TabsSpec tabs;
-    tabs.binding = PrimeStage::bind(app.state.tabs);
-    tabs.labels = tabViews;
-    choice.createTabs(tabs);
-
-    std::vector<std::string_view> dropdownViews;
-    dropdownViews.reserve(app.state.dropdownItems.size());
-    for (const std::string& item : app.state.dropdownItems) {
-      dropdownViews.push_back(item);
-    }
-
-    PrimeStage::DropdownSpec dropdown;
-    dropdown.binding = PrimeStage::bind(app.state.dropdown);
-    dropdown.options = dropdownViews;
-    choice.createDropdown(dropdown);
+    choice.tabs({"Overview", "Assets", "Settings"}, PrimeStage::bind(app.state.tabs));
+    choice.dropdown({"Preview", "Edit", "Export", "Publish"},
+                    PrimeStage::bind(app.state.dropdown));
 
     PrimeStage::ListSpec list;
     PrimeStage::ListModelAdapter listModel = PrimeStage::makeListModel(
