@@ -69,11 +69,16 @@ Container/base:
 
 Interactive:
 - `createButton(...)`
+- `createButton(label, backgroundStyle, textStyle, size)`
 - `createTextField(...)`
+- `createTextField(state, placeholder, backgroundStyle, textStyle, size)`
 - `createSelectableText(...)`
 - `createToggle(...)`
+- `createToggle(on, trackStyle, knobStyle, size)`
 - `createCheckbox(...)`
+- `createCheckbox(label, checked, boxStyle, checkStyle, textStyle, size)`
 - `createSlider(...)`
+- `createSlider(value, vertical, trackStyle, fillStyle, thumbStyle, size)`
 - `createTabs(...)`
 - `createDropdown(...)`
 - `createProgressBar(...)`

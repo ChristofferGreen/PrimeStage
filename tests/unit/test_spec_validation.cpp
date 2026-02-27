@@ -208,6 +208,62 @@ TEST_CASE("PrimeStage helper widgets clamp invalid helper spec inputs") {
   CHECK_FALSE(spacerFrameNode->hitTestVisible);
 }
 
+TEST_CASE("PrimeStage interactive helper overloads build expected widgets") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec buttonSize;
+  buttonSize.preferredWidth = 120.0f;
+  buttonSize.preferredHeight = 28.0f;
+  PrimeStage::UiNode button = root.createButton("Apply", 601u, 602u, buttonSize);
+  PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
+  REQUIRE(buttonNode != nullptr);
+  CHECK(firstRectToken(frame, button.nodeId()) == 601u);
+  CHECK(firstChildText(frame, button.nodeId()) == "Apply");
+  CHECK(buttonNode->focusable);
+
+  PrimeStage::TextFieldState fieldState;
+  fieldState.text = "Prime";
+  fieldState.cursor = static_cast<uint32_t>(fieldState.text.size());
+  PrimeStage::SizeSpec fieldSize;
+  fieldSize.preferredWidth = 180.0f;
+  fieldSize.preferredHeight = 24.0f;
+  PrimeStage::UiNode field = root.createTextField(fieldState, "Name", 611u, 612u, fieldSize);
+  PrimeFrame::Node const* fieldNode = frame.getNode(field.nodeId());
+  REQUIRE(fieldNode != nullptr);
+  CHECK(firstRectToken(frame, field.nodeId()) == 611u);
+  CHECK(firstChildText(frame, field.nodeId()) == "Prime");
+  CHECK(fieldNode->focusable);
+
+  PrimeStage::SizeSpec toggleSize;
+  toggleSize.preferredWidth = 48.0f;
+  toggleSize.preferredHeight = 24.0f;
+  PrimeStage::UiNode toggle = root.createToggle(true, 621u, 622u, toggleSize);
+  CHECK(firstRectToken(frame, toggle.nodeId()) == 621u);
+  CHECK(findRectPrimitiveByToken(frame, toggle.nodeId(), 622u) != nullptr);
+
+  PrimeStage::SizeSpec checkboxSize;
+  checkboxSize.preferredWidth = 180.0f;
+  checkboxSize.preferredHeight = 24.0f;
+  PrimeStage::UiNode checkbox =
+      root.createCheckbox("Enable", true, 631u, 632u, 633u, checkboxSize);
+  CHECK(findRectPrimitiveByToken(frame, checkbox.nodeId(), 631u) != nullptr);
+  CHECK(findRectPrimitiveByToken(frame, checkbox.nodeId(), 632u) != nullptr);
+  CHECK(firstChildText(frame, checkbox.nodeId()) == "Enable");
+
+  PrimeStage::SizeSpec sliderSize;
+  sliderSize.preferredWidth = 120.0f;
+  sliderSize.preferredHeight = 20.0f;
+  PrimeStage::UiNode slider =
+      root.createSlider(2.0f, false, 641u, 642u, 643u, sliderSize);
+  CHECK(firstRectToken(frame, slider.nodeId()) == 641u);
+  PrimeFrame::Primitive const* fill = findRectPrimitiveByToken(frame, slider.nodeId(), 642u);
+  PrimeFrame::Primitive const* thumb = findRectPrimitiveByToken(frame, slider.nodeId(), 643u);
+  REQUIRE(fill != nullptr);
+  REQUIRE(thumb != nullptr);
+  CHECK(fill->width == doctest::Approx(120.0f));
+}
+
 TEST_CASE("PrimeStage tabs clamp invalid selected index") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);

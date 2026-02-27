@@ -2463,6 +2463,18 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   return UiNode(frame(), button.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createButton(std::string_view label,
+                            PrimeFrame::RectStyleToken backgroundStyle,
+                            PrimeFrame::TextStyleToken textStyle,
+                            SizeSpec const& size) {
+  ButtonSpec spec;
+  spec.label = label;
+  spec.backgroundStyle = backgroundStyle;
+  spec.textStyle = textStyle;
+  spec.size = size;
+  return createButton(spec);
+}
+
 UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   TextFieldSpec spec = specInput;
   sanitize_size_spec(spec.size, "TextFieldSpec.size");
@@ -3337,6 +3349,20 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   return UiNode(frame(), field.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createTextField(TextFieldState& state,
+                               std::string_view placeholder,
+                               PrimeFrame::RectStyleToken backgroundStyle,
+                               PrimeFrame::TextStyleToken textStyle,
+                               SizeSpec const& size) {
+  TextFieldSpec spec;
+  spec.state = &state;
+  spec.placeholder = placeholder;
+  spec.backgroundStyle = backgroundStyle;
+  spec.textStyle = textStyle;
+  spec.size = size;
+  return createTextField(spec);
+}
+
 UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   SelectableTextSpec spec = specInput;
   sanitize_size_spec(spec.size, "SelectableTextSpec.size");
@@ -4058,6 +4084,18 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createToggle(bool on,
+                            PrimeFrame::RectStyleToken trackStyle,
+                            PrimeFrame::RectStyleToken knobStyle,
+                            SizeSpec const& size) {
+  ToggleSpec spec;
+  spec.on = on;
+  spec.trackStyle = trackStyle;
+  spec.knobStyle = knobStyle;
+  spec.size = size;
+  return createToggle(spec);
+}
+
 UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   CheckboxSpec spec = specInput;
   sanitize_size_spec(spec.size, "CheckboxSpec.size");
@@ -4248,6 +4286,22 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   }
 
   return UiNode(frame(), row.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createCheckbox(std::string_view label,
+                              bool checked,
+                              PrimeFrame::RectStyleToken boxStyle,
+                              PrimeFrame::RectStyleToken checkStyle,
+                              PrimeFrame::TextStyleToken textStyle,
+                              SizeSpec const& size) {
+  CheckboxSpec spec;
+  spec.label = label;
+  spec.checked = checked;
+  spec.boxStyle = boxStyle;
+  spec.checkStyle = checkStyle;
+  spec.textStyle = textStyle;
+  spec.size = size;
+  return createCheckbox(spec);
 }
 
 UiNode UiNode::createSlider(SliderSpec const& specInput) {
@@ -4614,6 +4668,22 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
   }
 
   return UiNode(frame(), slider.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createSlider(float value,
+                            bool vertical,
+                            PrimeFrame::RectStyleToken trackStyle,
+                            PrimeFrame::RectStyleToken fillStyle,
+                            PrimeFrame::RectStyleToken thumbStyle,
+                            SizeSpec const& size) {
+  SliderSpec spec;
+  spec.value = value;
+  spec.vertical = vertical;
+  spec.trackStyle = trackStyle;
+  spec.fillStyle = fillStyle;
+  spec.thumbStyle = thumbStyle;
+  spec.size = size;
+  return createSlider(spec);
 }
 
 UiNode UiNode::createTabs(TabsSpec const& specInput) {

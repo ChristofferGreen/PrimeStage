@@ -960,6 +960,10 @@ public:
   }
   UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
+  UiNode createButton(std::string_view label,
+                      PrimeFrame::RectStyleToken backgroundStyle,
+                      PrimeFrame::TextStyleToken textStyle,
+                      SizeSpec const& size);
   template <typename Fn>
   UiNode createButton(ButtonSpec const& spec, Fn&& fn) {
     UiNode child = createButton(spec);
@@ -967,6 +971,11 @@ public:
     return child;
   }
   UiNode createTextField(TextFieldSpec const& spec);
+  UiNode createTextField(TextFieldState& state,
+                         std::string_view placeholder,
+                         PrimeFrame::RectStyleToken backgroundStyle,
+                         PrimeFrame::TextStyleToken textStyle,
+                         SizeSpec const& size);
   template <typename Fn>
   UiNode createTextField(TextFieldSpec const& spec, Fn&& fn) {
     UiNode child = createTextField(spec);
@@ -981,6 +990,10 @@ public:
     return child;
   }
   UiNode createToggle(ToggleSpec const& spec);
+  UiNode createToggle(bool on,
+                      PrimeFrame::RectStyleToken trackStyle,
+                      PrimeFrame::RectStyleToken knobStyle,
+                      SizeSpec const& size);
   template <typename Fn>
   UiNode createToggle(ToggleSpec const& spec, Fn&& fn) {
     UiNode child = createToggle(spec);
@@ -988,6 +1001,12 @@ public:
     return child;
   }
   UiNode createCheckbox(CheckboxSpec const& spec);
+  UiNode createCheckbox(std::string_view label,
+                        bool checked,
+                        PrimeFrame::RectStyleToken boxStyle,
+                        PrimeFrame::RectStyleToken checkStyle,
+                        PrimeFrame::TextStyleToken textStyle,
+                        SizeSpec const& size);
   template <typename Fn>
   UiNode createCheckbox(CheckboxSpec const& spec, Fn&& fn) {
     UiNode child = createCheckbox(spec);
@@ -995,6 +1014,12 @@ public:
     return child;
   }
   UiNode createSlider(SliderSpec const& spec);
+  UiNode createSlider(float value,
+                      bool vertical,
+                      PrimeFrame::RectStyleToken trackStyle,
+                      PrimeFrame::RectStyleToken fillStyle,
+                      PrimeFrame::RectStyleToken thumbStyle,
+                      SizeSpec const& size);
   template <typename Fn>
   UiNode createSlider(SliderSpec const& spec, Fn&& fn) {
     UiNode child = createSlider(spec);

@@ -293,6 +293,11 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode with(Fn&& fn)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createPanel(PanelSpec const& spec, Fn&& fn)") != std::string::npos);
   CHECK(uiHeader.find("UiNode createButton(ButtonSpec const& spec, Fn&& fn)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createButton(std::string_view label,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createTextField(TextFieldState& state,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createToggle(bool on,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createSlider(float value,") != std::string::npos);
   CHECK(uiHeader.find("ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn)") !=
         std::string::npos);
   CHECK(uiHeader.find("Window createWindow(WindowSpec const& spec, Fn&& fn)") !=
@@ -629,6 +634,14 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(apiRef.find("createLabel(text, textStyle, size)") != std::string::npos);
   CHECK(apiRef.find("createDivider(rectStyle, size)") != std::string::npos);
   CHECK(apiRef.find("createSpacer(size)") != std::string::npos);
+  CHECK(apiRef.find("createButton(label, backgroundStyle, textStyle, size)") != std::string::npos);
+  CHECK(apiRef.find("createTextField(state, placeholder, backgroundStyle, textStyle, size)") !=
+        std::string::npos);
+  CHECK(apiRef.find("createToggle(on, trackStyle, knobStyle, size)") != std::string::npos);
+  CHECK(apiRef.find("createCheckbox(label, checked, boxStyle, checkStyle, textStyle, size)") !=
+        std::string::npos);
+  CHECK(apiRef.find("createSlider(value, vertical, trackStyle, fillStyle, thumbStyle, size)") !=
+        std::string::npos);
   CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
 }
 

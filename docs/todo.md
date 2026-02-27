@@ -254,7 +254,12 @@ Release Exit Criteria (for API-quality milestone):
     `createLabel`, `createDivider`, `createSpacer`) with clamped helper inputs, focused helper
     validation coverage in `tests/unit/test_spec_validation.cpp`, and helper-overload reference
     updates in `docs/minimal-api-reference.md`
-- ☐ [5] Implement interactive widgets (button, edit box, toggle, checkbox, slider).
+- ☑ [5] Implement interactive widgets (button, edit box, toggle, checkbox, slider).
+  - delivered via interactive helper overloads in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp`
+    (`createButton`, state-backed `createTextField` as the edit-box helper path, `createToggle`,
+    `createCheckbox`, `createSlider`), overload behavior/clamp regression coverage in
+    `tests/unit/test_spec_validation.cpp`, and API reference + guard updates in
+    `docs/minimal-api-reference.md` and `tests/unit/test_api_ergonomics.cpp`
 - ☐ [6] Implement collection widgets (scroll view, list, table, tree).
 - ☐ [8] Add minimal unit tests for builder API.
 - ☐ [9] Add example scene build demonstrating window + widgets.
