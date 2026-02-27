@@ -198,9 +198,10 @@ Release Exit Criteria (for API-quality milestone):
   - include headless (`PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF`) behavior expectations
   - delivered via expanded render-path regression coverage in `tests/unit/test_render.cpp` (target/png overload success paths, PNG write failure path, and explicit headless expectations), source/docs guard updates in `tests/unit/test_api_ergonomics.cpp`, and render diagnostics coverage notes in `docs/render-diagnostics.md`
 
-- ☐ [46] Establish single-source versioning.
+- ☑ [46] Establish single-source versioning.
   - derive runtime version string from project version metadata
   - add checks to prevent drift between CMake version, `getVersionString()`, and tests
+  - delivered via generated CMake version header template `cmake/PrimeStageVersion.h.in`, configure/include wiring in `CMakeLists.txt`, runtime version derivation in `src/PrimeStage.cpp`, CMake-sourced version assertions in `tests/unit/test_sanity.cpp`, source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`, and contributor guidance update in `AGENTS.md`
 
 - ☐ [47] Make dependency resolution reproducible.
   - avoid floating `master` defaults for fetched dependencies in release-grade workflows

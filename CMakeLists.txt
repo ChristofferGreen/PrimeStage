@@ -109,6 +109,14 @@ set(PRIMESTAGE_SOURCES
   src/Render.cpp
 )
 
+set(PRIMESTAGE_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${PRIMESTAGE_GENERATED_INCLUDE_DIR}/PrimeStage")
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PrimeStageVersion.h.in"
+  "${PRIMESTAGE_GENERATED_INCLUDE_DIR}/PrimeStage/GeneratedVersion.h"
+  @ONLY
+)
+
 add_library(PrimeStage ${PRIMESTAGE_SOURCES})
 
 target_include_directories(PrimeStage
@@ -117,6 +125,7 @@ target_include_directories(PrimeStage
     $<INSTALL_INTERFACE:include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PRIMESTAGE_GENERATED_INCLUDE_DIR}
 )
 
 ps_require_cxx23(PrimeStage)

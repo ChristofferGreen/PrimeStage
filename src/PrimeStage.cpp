@@ -1,4 +1,5 @@
 #include "PrimeStage/PrimeStage.h"
+#include "PrimeStage/GeneratedVersion.h"
 #include "PrimeStage/TextSelection.h"
 #include "PrimeFrame/Events.h"
 #include "PrimeFrame/Focus.h"
@@ -6285,11 +6286,15 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
 
 
 Version getVersion() {
-  return Version{};
+  Version version;
+  version.major = static_cast<uint32_t>(PRIMESTAGE_VERSION_MAJOR);
+  version.minor = static_cast<uint32_t>(PRIMESTAGE_VERSION_MINOR);
+  version.patch = static_cast<uint32_t>(PRIMESTAGE_VERSION_PATCH);
+  return version;
 }
 
 std::string_view getVersionString() {
-  return "0.1.0";
+  return PRIMESTAGE_VERSION_STRING;
 }
 
 } // namespace PrimeStage

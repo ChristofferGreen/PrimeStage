@@ -824,6 +824,69 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   CHECK(todo.find("[45] Add render-path test coverage.") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage versioning derives runtime version from CMake metadata") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path versionTemplatePath = repoRoot / "cmake" / "PrimeStageVersion.h.in";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path sanityTestPath = repoRoot / "tests" / "unit" / "test_sanity.cpp";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(versionTemplatePath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(sanityTestPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("project(PrimeStage VERSION") != std::string::npos);
+  CHECK(cmake.find("PrimeStageVersion.h.in") != std::string::npos);
+  CHECK(cmake.find("GeneratedVersion.h") != std::string::npos);
+  CHECK(cmake.find("PRIMESTAGE_GENERATED_INCLUDE_DIR") != std::string::npos);
+
+  std::ifstream versionTemplateInput(versionTemplatePath);
+  REQUIRE(versionTemplateInput.good());
+  std::string versionTemplate((std::istreambuf_iterator<char>(versionTemplateInput)),
+                              std::istreambuf_iterator<char>());
+  REQUIRE(!versionTemplate.empty());
+  CHECK(versionTemplate.find("PRIMESTAGE_VERSION_MAJOR @PROJECT_VERSION_MAJOR@") !=
+        std::string::npos);
+  CHECK(versionTemplate.find("PRIMESTAGE_VERSION_MINOR @PROJECT_VERSION_MINOR@") !=
+        std::string::npos);
+  CHECK(versionTemplate.find("PRIMESTAGE_VERSION_PATCH @PROJECT_VERSION_PATCH@") !=
+        std::string::npos);
+  CHECK(versionTemplate.find("PRIMESTAGE_VERSION_STRING \"@PROJECT_VERSION@\"") !=
+        std::string::npos);
+
+  std::ifstream sourceCppInput(sourceCppPath);
+  REQUIRE(sourceCppInput.good());
+  std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sourceCpp.empty());
+  CHECK(sourceCpp.find("PrimeStage/GeneratedVersion.h") != std::string::npos);
+  CHECK(sourceCpp.find("PRIMESTAGE_VERSION_MAJOR") != std::string::npos);
+  CHECK(sourceCpp.find("PRIMESTAGE_VERSION_STRING") != std::string::npos);
+  CHECK(sourceCpp.find("return \"0.1.0\";") == std::string::npos);
+
+  std::ifstream sanityTestInput(sanityTestPath);
+  REQUIRE(sanityTestInput.good());
+  std::string sanityTest((std::istreambuf_iterator<char>(sanityTestInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!sanityTest.empty());
+  CHECK(sanityTest.find("project(PrimeStage VERSION") != std::string::npos);
+  CHECK(sanityTest.find("PrimeStage::getVersionString()") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[46] Establish single-source versioning.") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
