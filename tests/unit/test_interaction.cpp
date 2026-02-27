@@ -67,6 +67,27 @@ static PrimeFrame::Primitive const* findRectPrimitiveByTokenInSubtree(PrimeFrame
   return nullptr;
 }
 
+static PrimeFrame::NodeId findFirstNodeWithOnEventInSubtree(PrimeFrame::Frame const& frame,
+                                                             PrimeFrame::NodeId nodeId) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return PrimeFrame::NodeId{};
+  }
+  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+    if (callback && callback->onEvent) {
+      return nodeId;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    PrimeFrame::NodeId candidate = findFirstNodeWithOnEventInSubtree(frame, childId);
+    if (candidate.isValid()) {
+      return candidate;
+    }
+  }
+  return PrimeFrame::NodeId{};
+}
+
 TEST_CASE("PrimeStage disabled controls are not focusable or interactive") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
@@ -1202,4 +1223,67 @@ TEST_CASE("PrimeStage vertical slider maps top to 1 and bottom to 0") {
   router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, centerX, bottomY), frame, layout);
   REQUIRE(values.size() >= 2);
   CHECK(values.back() <= 0.02f);
+}
+
+TEST_CASE("PrimeStage table callbacks keep row text alive for short-lived source buffers") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 180.0f);
+
+  PrimeStage::TableSpec spec;
+  spec.columns = {{"Name", 120.0f, 0u, 0u}, {"Value", 120.0f, 0u, 0u}};
+  spec.size.preferredWidth = 260.0f;
+  spec.size.preferredHeight = 120.0f;
+  spec.rowHeight = 24.0f;
+  spec.rowGap = 0.0f;
+  spec.headerHeight = 20.0f;
+
+  std::vector<std::string> sourceCells = {"Alpha", "One", "Beta", "Two"};
+  spec.rows = {
+      {sourceCells[0], sourceCells[1]},
+      {sourceCells[2], sourceCells[3]},
+  };
+
+  int clickedRow = -1;
+  std::vector<std::string> clickedCells;
+  spec.callbacks.onRowClicked = [&](PrimeStage::TableRowInfo const& info) {
+    clickedRow = info.rowIndex;
+    clickedCells.clear();
+    clickedCells.reserve(info.row.size());
+    for (std::string_view cell : info.row) {
+      clickedCells.emplace_back(cell);
+    }
+  };
+
+  PrimeStage::UiNode table = root.createTable(spec);
+
+  sourceCells[0] = "omega";
+  sourceCells[1] = "uno";
+  sourceCells[2] = "zeta";
+  sourceCells[3] = "dos";
+
+  PrimeFrame::NodeId callbackNodeId = findFirstNodeWithOnEventInSubtree(frame, table.nodeId());
+  REQUIRE(callbackNodeId.isValid());
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 180.0f);
+  PrimeFrame::LayoutOut const* callbackOut = layout.get(callbackNodeId);
+  REQUIRE(callbackOut != nullptr);
+
+  float clickX = callbackOut->absX + callbackOut->absW * 0.5f;
+  float clickY = callbackOut->absY + spec.rowHeight * 0.5f;
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, clickX, clickY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, clickX, clickY),
+                  frame,
+                  layout,
+                  &focus);
+
+  CHECK(clickedRow == 0);
+  REQUIRE(clickedCells.size() == 2u);
+  CHECK(clickedCells[0] == "Alpha");
+  CHECK(clickedCells[1] == "One");
 }

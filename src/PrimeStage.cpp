@@ -4968,7 +4968,8 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     std::vector<PrimeFrame::RectStyleToken> baseStyles;
     PrimeFrame::RectStyleToken selectionStyle = 0;
     TableCallbacks callbacks{};
-    std::vector<std::vector<std::string_view>> rows;
+    std::vector<std::vector<std::string>> ownedRows;
+    std::vector<std::string_view> rowViewScratch;
     int selectedRow = -1;
     float rowHeight = 0.0f;
     float rowGap = 0.0f;
@@ -4978,7 +4979,15 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   interaction->frame = &frame();
   interaction->selectionStyle = spec.selectionStyle;
   interaction->callbacks = spec.callbacks;
-  interaction->rows = spec.rows;
+  interaction->ownedRows.reserve(spec.rows.size());
+  for (auto const& sourceRow : spec.rows) {
+    std::vector<std::string> ownedRow;
+    ownedRow.reserve(sourceRow.size());
+    for (std::string_view cell : sourceRow) {
+      ownedRow.emplace_back(cell);
+    }
+    interaction->ownedRows.push_back(std::move(ownedRow));
+  }
   interaction->selectedRow = spec.selectedRow;
   interaction->rowHeight = spec.rowHeight;
   interaction->rowGap = spec.rowGap;
@@ -5078,8 +5087,14 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
       if (interaction->callbacks.onRowClicked) {
         TableRowInfo info;
         info.rowIndex = index;
-        if (index >= 0 && index < static_cast<int>(interaction->rows.size())) {
-          info.row = std::span<const std::string_view>(interaction->rows[static_cast<size_t>(index)]);
+        if (index >= 0 && index < static_cast<int>(interaction->ownedRows.size())) {
+          auto const& row = interaction->ownedRows[static_cast<size_t>(index)];
+          interaction->rowViewScratch.clear();
+          interaction->rowViewScratch.reserve(row.size());
+          for (std::string const& cell : row) {
+            interaction->rowViewScratch.push_back(cell);
+          }
+          info.row = std::span<const std::string_view>(interaction->rowViewScratch);
         }
         interaction->callbacks.onRowClicked(info);
       }

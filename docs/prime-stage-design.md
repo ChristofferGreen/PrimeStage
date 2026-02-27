@@ -65,6 +65,8 @@ For advanced extension points, use PrimeStage callback composition helpers:
 - `appendNodeOnBlur(...)`
 Callback reentrancy/threading guarantees are documented in
 `docs/callback-reentrancy-threading.md`.
+Data ownership/lifetime guarantees for `std::string_view` specs and callback captures are
+documented in `docs/data-ownership-lifetime.md`.
 
 ## Controlled vs State-Backed Widgets
 PrimeStage supports two widget value models for interactive controls:

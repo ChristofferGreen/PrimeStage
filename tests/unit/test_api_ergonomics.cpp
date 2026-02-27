@@ -407,6 +407,90 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   CHECK(sourceCpp.find("reentrant %s invocation suppressed") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wired") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path ownershipDocPath =
+      repoRoot / "docs" / "data-ownership-lifetime.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(ownershipDocPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream ownershipInput(ownershipDocPath);
+  REQUIRE(ownershipInput.good());
+  std::string ownershipDoc((std::istreambuf_iterator<char>(ownershipInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!ownershipDoc.empty());
+  CHECK(ownershipDoc.find("In Widget Specs") != std::string::npos);
+  CHECK(ownershipDoc.find("Callback Capture Ownership") != std::string::npos);
+  CHECK(ownershipDoc.find("TableRowInfo::row") != std::string::npos);
+  CHECK(ownershipDoc.find("callback payload data that can outlive build-call source buffers") !=
+        std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("callback-capture lifetime rules") != std::string::npos);
+  CHECK(guidelines.find("Lifetime Contract") != std::string::npos);
+  CHECK(guidelines.find("TableRowInfo::row") != std::string::npos);
+  CHECK(guidelines.find("docs/data-ownership-lifetime.md") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("docs/data-ownership-lifetime.md") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("docs/data-ownership-lifetime.md") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("docs/data-ownership-lifetime.md") != std::string::npos);
+
+  std::ifstream sourceCppInput(sourceCppPath);
+  REQUIRE(sourceCppInput.good());
+  std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sourceCpp.empty());
+  CHECK(sourceCpp.find("ownedRows") != std::string::npos);
+  CHECK(sourceCpp.find("rowViewScratch") != std::string::npos);
+  CHECK(sourceCpp.find("interaction->ownedRows.push_back(std::move(ownedRow));") !=
+        std::string::npos);
+  CHECK(sourceCpp.find("info.row = std::span<const std::string_view>(interaction->rowViewScratch);") !=
+        std::string::npos);
+  CHECK(sourceCpp.find("interaction->rows = spec.rows;") == std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[48] Define data ownership/lifetime contracts in public specs.") !=
+        std::string::npos);
+  CHECK(todo.find("docs/data-ownership-lifetime.md") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage install export package workflow supports find_package consumers") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

@@ -41,6 +41,7 @@ What app code should avoid:
   node-id tracking enums.
 - For text composition/IME planning, see `docs/ime-composition-plan.md`.
 - For accessibility role/state planning, see `docs/accessibility-semantics-roadmap.md`.
+- For `std::string_view`/callback-capture lifetime rules, see `docs/data-ownership-lifetime.md`.
 
 Example (`TextField` with app-owned state):
 
@@ -113,6 +114,13 @@ void afterLayout(App& app) {
 - Prefer requesting rebuild/layout work from callbacks instead of rebuilding synchronously inside
   callbacks.
 - See `docs/callback-reentrancy-threading.md` for the full contract and guardrail details.
+
+### `std::string_view` Lifetime Contract
+- Spec `std::string_view` fields are build-time inputs; caller data must stay valid through the
+  widget build call.
+- Do not capture references to short-lived local strings in callbacks that may run after rebuild.
+- For callback payloads requiring stable post-build data, PrimeStage uses internal owned storage
+  (for example `TableRowInfo::row` in row-click callbacks).
 
 Example (`Button` callback wiring):
 

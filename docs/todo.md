@@ -177,10 +177,11 @@ Release Exit Criteria (for API-quality milestone):
   - add guardrails/tests for callback-triggered state changes to avoid reentrancy bugs
   - delivered via callback contract doc `docs/callback-reentrancy-threading.md`, docs alignment in `docs/api-ergonomics-guidelines.md` + `docs/prime-stage-design.md`, runtime reentrancy suppression guardrails in `src/PrimeStage.cpp`/`include/PrimeStage/Ui.h` for callback composition helpers, and regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [48] Define data ownership/lifetime contracts in public specs.
+- ☑ [48] Define data ownership/lifetime contracts in public specs.
   - document safe usage rules for `std::string_view` fields and callback captures
   - eliminate dangling-view hazards by copying where required or introducing owned-string alternatives
   - add tests that exercise rebuilds/callbacks with short-lived source strings
+  - delivered via ownership contract doc `docs/data-ownership-lifetime.md`, guideline/design/readme/agents alignment, owned-row backing for table callback payloads in `src/PrimeStage.cpp`, and short-lived source + docs/source guard coverage in `tests/unit/test_interaction.cpp` and `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [43] Improve render API diagnostics and failure reporting.
   - replace opaque `bool` failures with structured error/status information
