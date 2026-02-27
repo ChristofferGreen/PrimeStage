@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [71] Add API review checklist for any new widget/control.
-  - require default readability, minimal constructor path, optional callbacks, and state/binding story before merge
-  - add checklist enforcement in PR template/docs
-  - acceptance: new widget APIs cannot land without meeting checklist criteria
-
 - ☐ [72] Add full end-to-end ergonomics regression tests.
   - test canonical app flows using only high-level APIs (no low-level hooks) across keyboard/mouse/text input
   - include compile-time regression tests for convenience overloads and declarative builders
@@ -71,6 +66,18 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [71] Add API review checklist for any new widget/control.
+  - added required review checklist doc
+    `docs/widget-api-review-checklist.md` covering default readability, minimal
+    constructor path, optional callbacks, state/binding ownership model, and
+    test/doc gate requirements
+  - added repository PR gate in `.github/pull_request_template.md` with a
+    mandatory widget API checklist section for new/changed widgets
+  - wired checklist references into contributor/docs surfaces in `AGENTS.md`,
+    `docs/api-ergonomics-guidelines.md`, and `README.md`
+  - expanded enforcement coverage in `tests/unit/test_api_ergonomics.cpp` to
+    require checklist doc/template presence and required checklist fields
 
 - ☑ [70] Introduce low-level API quarantine and naming.
   - quarantined advanced callback composition primitives under

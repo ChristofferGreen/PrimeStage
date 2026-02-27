@@ -1380,6 +1380,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
   CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
   CHECK(readme.find("docs/example-app-consumer-checklist.md") != std::string::npos);
+  CHECK(readme.find("docs/widget-api-review-checklist.md") != std::string::npos);
   CHECK(readme.find("docs/minimal-api-reference.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
@@ -1423,6 +1424,61 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(apiRef.find("createTreeView(nodes, size)") != std::string::npos);
   CHECK(apiRef.find("createScrollView(size, showVertical, showHorizontal)") != std::string::npos);
   CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage widget API review checklist is documented and PR-gated") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path checklistPath = repoRoot / "docs" / "widget-api-review-checklist.md";
+  std::filesystem::path prTemplatePath = repoRoot / ".github" / "pull_request_template.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  REQUIRE(std::filesystem::exists(checklistPath));
+  REQUIRE(std::filesystem::exists(prTemplatePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+
+  std::ifstream checklistInput(checklistPath);
+  REQUIRE(checklistInput.good());
+  std::string checklist((std::istreambuf_iterator<char>(checklistInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!checklist.empty());
+  CHECK(checklist.find("Default Readability") != std::string::npos);
+  CHECK(checklist.find("Minimal Constructor Path") != std::string::npos);
+  CHECK(checklist.find("Optional Callback Surface") != std::string::npos);
+  CHECK(checklist.find("State And Binding Story") != std::string::npos);
+  CHECK(checklist.find("PR Gating") != std::string::npos);
+  CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);
+  CHECK(checklist.find(".github/pull_request_template.md") != std::string::npos);
+
+  std::ifstream prTemplateInput(prTemplatePath);
+  REQUIRE(prTemplateInput.good());
+  std::string prTemplate((std::istreambuf_iterator<char>(prTemplateInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!prTemplate.empty());
+  CHECK(prTemplate.find("Widget API Checklist (Required For New/Changed Widgets)") !=
+        std::string::npos);
+  CHECK(prTemplate.find("Default readability") != std::string::npos);
+  CHECK(prTemplate.find("Minimal constructor path") != std::string::npos);
+  CHECK(prTemplate.find("Optional callbacks") != std::string::npos);
+  CHECK(prTemplate.find("State/binding story") != std::string::npos);
+  CHECK(prTemplate.find("Regression/docs gate") != std::string::npos);
+  CHECK(prTemplate.find("./scripts/compile.sh") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("docs/widget-api-review-checklist.md") != std::string::npos);
+  CHECK(agents.find(".github/pull_request_template.md") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/widget-api-review-checklist.md") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage public naming rules remain aligned with AGENTS guidance") {

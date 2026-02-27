@@ -117,4 +117,5 @@ diagnostics.
 - `docs/cmake-packaging.md`
 - `docs/build-artifact-hygiene.md`
 - `docs/example-app-consumer-checklist.md`
+- `docs/widget-api-review-checklist.md`
 - `docs/minimal-api-reference.md`
