@@ -9,6 +9,8 @@ Public API evolution and compatibility expectations are documented in
 `docs/api-evolution-policy.md`.
 Render failure/status diagnostics for `PrimeStage/Render.h` APIs are documented in
 `docs/render-diagnostics.md`.
+Renderer rounded-corner behavior is controlled by explicit `RenderOptions::cornerStyle`
+metadata (not theme-color index matching heuristics).
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.

@@ -6,6 +6,7 @@
 
 #include "third_party/doctest.h"
 
+#include <algorithm>
 #include <string_view>
 #include <vector>
 
@@ -41,6 +42,28 @@ PrimeFrame::Frame makeRenderableFrame(float width, float height) {
   panel.size.stretchY = 1.0f;
   root.createPanel(panel);
   return frame;
+}
+
+void configureThemeForSingleRect(PrimeFrame::Frame& frame,
+                                 PrimeFrame::Color baseFill,
+                                 PrimeFrame::Color accentColor) {
+  PrimeFrame::Theme* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
+  REQUIRE(theme != nullptr);
+  theme->palette.assign(16u, PrimeFrame::Color{});
+  theme->palette[2] = baseFill;
+  theme->palette[8] = accentColor;
+  theme->rectStyles.assign(4u, PrimeFrame::RectStyle{});
+  theme->rectStyles[1].fill = 2u;
+}
+
+size_t countNonZeroAlpha(std::vector<uint8_t> const& rgba) {
+  size_t count = 0u;
+  for (size_t index = 3u; index < rgba.size(); index += 4u) {
+    if (rgba[index] != 0u) {
+      count += 1u;
+    }
+  }
+  return count;
 }
 
 } // namespace
@@ -152,6 +175,51 @@ TEST_CASE("PrimeStage render status is successful for valid render targets") {
   CHECK(PrimeStage::renderStatusMessage(status.code) == "Success");
 #else
   CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage rounded-corner policy is deterministic under theme changes") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 96.0f, 64.0f);
+  PrimeStage::PanelSpec panel;
+  panel.rectStyle = 1u;
+  panel.size.preferredWidth = 80.0f;
+  panel.size.preferredHeight = 32.0f;
+  root.createPanel(panel);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 96.0f, 64.0f);
+  std::vector<uint8_t> pixels(96u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 96u;
+  target.height = 64u;
+  target.stride = 96u * 4u;
+
+  PrimeStage::RenderOptions options;
+  options.clear = false;
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  configureThemeForSingleRect(frame,
+                              PrimeFrame::Color{0.2f, 0.4f, 0.8f, 1.0f},
+                              PrimeFrame::Color{0.9f, 0.2f, 0.2f, 1.0f});
+  std::fill(pixels.begin(), pixels.end(), 0u);
+  PrimeStage::RenderStatus first = PrimeStage::renderFrameToTarget(frame, layout, target, options);
+  REQUIRE(first.ok());
+  size_t alphaWithoutMatch = countNonZeroAlpha(pixels);
+
+  configureThemeForSingleRect(frame,
+                              PrimeFrame::Color{0.2f, 0.4f, 0.8f, 1.0f},
+                              PrimeFrame::Color{0.2f, 0.4f, 0.8f, 1.0f});
+  std::fill(pixels.begin(), pixels.end(), 0u);
+  PrimeStage::RenderStatus second = PrimeStage::renderFrameToTarget(frame, layout, target, options);
+  REQUIRE(second.ok());
+  size_t alphaWithMatch = countNonZeroAlpha(pixels);
+
+  CHECK(alphaWithoutMatch > 0u);
+  CHECK(alphaWithoutMatch == alphaWithMatch);
+#else
+  PrimeStage::RenderStatus status = PrimeStage::renderFrameToTarget(frame, layout, target, options);
   CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
 #endif
 }

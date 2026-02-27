@@ -279,17 +279,26 @@ uint64_t required_buffer_bytes(RenderTarget const& target) {
   return static_cast<uint64_t>(target.stride) * static_cast<uint64_t>(target.height);
 }
 
-bool colors_close(PrimeFrame::Color const& a, PrimeFrame::Color const& b) {
-  float eps = 0.02f;
-  return std::abs(a.r - b.r) < eps && std::abs(a.g - b.g) < eps &&
-         std::abs(a.b - b.b) < eps && std::abs(a.a - b.a) < eps;
-}
-
-PrimeFrame::Color theme_color(PrimeFrame::Theme const* theme, size_t index) {
-  if (!theme || theme->palette.empty() || index >= theme->palette.size()) {
-    return PrimeFrame::Color{0.0f, 0.0f, 0.0f, 1.0f};
+float resolve_corner_radius(float logicalWidth,
+                            float logicalHeight,
+                            RenderOptions const& options) {
+  if (!options.roundedCorners) {
+    return 0.0f;
   }
-  return theme->palette[index];
+  CornerStyleMetadata const& style = options.cornerStyle;
+  if (logicalHeight <= style.thinBandMaxHeight) {
+    return style.thinBandRadius;
+  }
+  if (logicalWidth <= style.thumbMaxWidth && logicalHeight <= style.thumbMaxHeight) {
+    return style.thumbRadius;
+  }
+  if (logicalHeight >= style.controlMinHeight && logicalHeight <= style.controlMaxHeight) {
+    return style.controlRadius;
+  }
+  if (logicalHeight >= style.panelMinHeight && logicalHeight <= style.panelMaxHeight) {
+    return style.panelRadius;
+  }
+  return style.fallbackRadius;
 }
 
 void ensure_fonts_loaded() {
@@ -386,43 +395,12 @@ RenderStatus renderFrameToTarget(PrimeFrame::Frame& frame,
     add_clear(batch, PrimeManifest::PackRGBA8(clear));
   }
 
-  PrimeFrame::Theme const* theme = frame.getTheme(PrimeFrame::DefaultThemeId);
-
   for (PrimeFrame::DrawCommand const& cmd : pfBatch.commands) {
     if (cmd.type == PrimeFrame::CommandType::Rect ||
         cmd.type == PrimeFrame::CommandType::ImagePlaceholder) {
       float logicalW = static_cast<float>(cmd.x1 - cmd.x0);
       float logicalH = static_cast<float>(cmd.y1 - cmd.y0);
-      float radius = 0.0f;
-      if (options.roundedCorners) {
-        if (logicalH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 11))) {
-          radius = 4.0f;
-        } else if (logicalH <= 6.0f && colors_close(cmd.rectStyle.fill, theme_color(theme, 10))) {
-          radius = 3.0f;
-        } else if (logicalW <= 12.0f && logicalH <= 12.0f &&
-                   colors_close(cmd.rectStyle.fill, theme_color(theme, 7))) {
-          radius = 2.0f;
-        } else if (logicalH >= 30.0f && logicalH <= 34.0f) {
-          if (colors_close(cmd.rectStyle.fill, theme_color(theme, 8)) ||   // Accent
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 6)) ||   // PanelAlt
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 7)) ||   // PanelStrong
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 15)) ||  // ButtonBase
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 16)) ||  // ButtonHover
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 17)) ||  // ButtonPressed
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 18)) ||  // ButtonPrimary
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 19)) ||  // ButtonPrimaryHover
-              colors_close(cmd.rectStyle.fill, theme_color(theme, 20))) {  // ButtonPrimaryPressed
-            radius = 6.0f;
-          } else if (colors_close(cmd.rectStyle.fill, theme_color(theme, 5))) {
-            if (logicalW <= 140.0f || logicalW >= 300.0f) {
-              radius = 6.0f;
-            }
-          }
-        } else if (logicalH >= 110.0f && logicalH <= 130.0f &&
-                   colors_close(cmd.rectStyle.fill, theme_color(theme, 6))) {
-          radius = 4.0f;
-        }
-      }
+      float radius = resolve_corner_radius(logicalW, logicalH, options);
       PrimeFrame::DrawCommand scaled = cmd;
       scaled.x0 = static_cast<int>(std::lround(static_cast<float>(cmd.x0) * scale));
       scaled.y0 = static_cast<int>(std::lround(static_cast<float>(cmd.y0) * scale));

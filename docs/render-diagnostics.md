@@ -11,6 +11,8 @@ opaque `bool` values.
 - `renderFrameToPng(...)` returns `RenderStatus`.
 - `RenderStatus::ok()` is `true` only when `code == RenderStatusCode::Success`.
 - `renderStatusMessage(code)` maps status codes to stable human-readable messages.
+- Rounded-corner policy uses explicit `RenderOptions::cornerStyle` metadata (`CornerStyleMetadata`)
+  and does not depend on theme palette index/color matching heuristics.
 
 ## Status Codes
 
@@ -34,6 +36,20 @@ opaque `bool` values.
 - `targetStride`
 - `requiredStride`
 - `detail`
+
+## Corner Style Metadata
+
+`CornerStyleMetadata` defines explicit radius buckets and dimension thresholds used when
+`RenderOptions::roundedCorners` is enabled:
+
+- `thinBand*` for thin horizontal strips.
+- `thumb*` for compact square-ish indicators.
+- `control*` for standard control heights.
+- `panel*` for larger panel-like regions.
+- `fallbackRadius` for unmatched geometry.
+
+Because this policy is geometry + metadata based (not theme-color matching), rounded-corner output
+is deterministic under theme palette changes unless the metadata itself changes.
 
 ## Example
 

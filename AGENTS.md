@@ -34,3 +34,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - For callback composition/reentrancy/threading behavior, follow `docs/callback-reentrancy-threading.md` and keep callback state changes single-thread-safe.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.
 - For render-path failures, use `RenderStatus`/`RenderStatusCode` diagnostics (`docs/render-diagnostics.md`) instead of introducing new opaque `bool` failure paths.
+- For renderer corner rounding behavior, use explicit `RenderOptions::cornerStyle` metadata; do not reintroduce theme-color index heuristics.

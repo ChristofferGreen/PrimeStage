@@ -188,9 +188,10 @@ Release Exit Criteria (for API-quality milestone):
   - expose actionable error context for PNG write/layout/render failures
   - delivered via structured render diagnostics API (`RenderStatusCode`/`RenderStatus` + `renderStatusMessage`) in `include/PrimeStage/Render.h` and `src/Render.cpp`, benchmark-callsite migration in `tests/perf/PrimeStage_benchmarks.cpp`, render status regression tests in `tests/unit/test_render.cpp`, docs in `docs/render-diagnostics.md` with README/design/agents alignment, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [44] Remove renderer style heuristics tied to theme color indices.
+- ☑ [44] Remove renderer style heuristics tied to theme color indices.
   - replace color-index-based rounded-corner inference with explicit style metadata
   - ensure renderer output is deterministic under theme changes
+  - delivered via explicit `CornerStyleMetadata` in `include/PrimeStage/Render.h`, geometry/metadata-driven radius resolution in `src/Render.cpp` (theme-color heuristics removed), deterministic theme-change regression coverage in `tests/unit/test_render.cpp`, and docs/guidance alignment in `docs/render-diagnostics.md`, `docs/prime-stage-design.md`, and `AGENTS.md`
 
 - ☐ [45] Add render-path test coverage.
   - add tests for `renderFrameToTarget` and `renderFrameToPng` success/failure paths

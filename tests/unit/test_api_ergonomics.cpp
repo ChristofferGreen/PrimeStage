@@ -733,6 +733,8 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   REQUIRE(!header.empty());
   CHECK(header.find("enum class RenderStatusCode") != std::string::npos);
   CHECK(header.find("struct RenderStatus") != std::string::npos);
+  CHECK(header.find("struct CornerStyleMetadata") != std::string::npos);
+  CHECK(header.find("CornerStyleMetadata cornerStyle{};") != std::string::npos);
   CHECK(header.find("RenderStatus renderFrameToTarget") != std::string::npos);
   CHECK(header.find("RenderStatus renderFrameToPng") != std::string::npos);
   CHECK(header.find("std::string_view renderStatusMessage") != std::string::npos);
@@ -749,6 +751,9 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   CHECK(source.find("PngPathEmpty") != std::string::npos);
   CHECK(source.find("PngWriteFailed") != std::string::npos);
   CHECK(source.find("renderStatusMessage(RenderStatusCode code)") != std::string::npos);
+  CHECK(source.find("resolve_corner_radius") != std::string::npos);
+  CHECK(source.find("theme_color(") == std::string::npos);
+  CHECK(source.find("colors_close(") == std::string::npos);
 
   std::ifstream testsInput(renderTests);
   REQUIRE(testsInput.good());
@@ -758,6 +763,8 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   CHECK(tests.find("render target diagnostics expose actionable status") != std::string::npos);
   CHECK(tests.find("PNG diagnostics report layout and path failures") != std::string::npos);
   CHECK(tests.find("RenderStatusCode::InvalidTargetStride") != std::string::npos);
+  CHECK(tests.find("rounded-corner policy is deterministic under theme changes") !=
+        std::string::npos);
 
   std::ifstream cmakeInput(cmakePath);
   REQUIRE(cmakeInput.good());
@@ -782,6 +789,8 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   CHECK(docs.find("RenderStatusCode") != std::string::npos);
   CHECK(docs.find("renderStatusMessage") != std::string::npos);
   CHECK(docs.find("InvalidTargetBuffer") != std::string::npos);
+  CHECK(docs.find("CornerStyleMetadata") != std::string::npos);
+  CHECK(docs.find("deterministic under theme palette changes") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -803,6 +812,8 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
                    std::istreambuf_iterator<char>());
   REQUIRE(!todo.empty());
   CHECK(todo.find("[43] Improve render API diagnostics and failure reporting.") !=
+        std::string::npos);
+  CHECK(todo.find("[44] Remove renderer style heuristics tied to theme color indices.") !=
         std::string::npos);
 }
 

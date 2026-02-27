@@ -16,10 +16,26 @@ struct Rgba8 {
   uint8_t a = 255;
 };
 
+struct CornerStyleMetadata {
+  float thinBandMaxHeight = 6.0f;
+  float thumbMaxWidth = 12.0f;
+  float thumbMaxHeight = 12.0f;
+  float controlMinHeight = 30.0f;
+  float controlMaxHeight = 34.0f;
+  float panelMinHeight = 110.0f;
+  float panelMaxHeight = 130.0f;
+  float thinBandRadius = 0.0f;
+  float thumbRadius = 2.0f;
+  float controlRadius = 6.0f;
+  float panelRadius = 4.0f;
+  float fallbackRadius = 0.0f;
+};
+
 struct RenderOptions {
   bool clear = true;
   Rgba8 clearColor{};
   bool roundedCorners = true;
+  CornerStyleMetadata cornerStyle{};
 };
 
 struct RenderTarget {
