@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [95] Link advanced onboarding docs to API ergonomics policy guardrails.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    pre-change handoff to `docs/api-ergonomics-guidelines.md` so advanced
+    escape-hatch edits review canonical-vs-advanced policy guidance first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    `docs/api-ergonomics-guidelines.md` reference and explicit policy-review
+    phrasing in advanced onboarding docs, preventing silent drift to
+    undocumented advanced-first guidance
+
 - ☑ [94] Link advanced onboarding docs to contributor policy (`AGENTS.md`).
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to contributor policy in `AGENTS.md` for advanced integration

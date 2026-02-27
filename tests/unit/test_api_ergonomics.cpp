@@ -1260,6 +1260,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/example-app-consumer-checklist.md") != std::string::npos);
   CHECK(advancedEscape.find("Review exception-tag policy details in `docs/example-app-consumer-checklist.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/api-ergonomics-guidelines.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1701,6 +1704,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
   CHECK(advanced.find("PrimeStage::LowLevel") != std::string::npos);
   CHECK(advanced.find("lowLevelNodeId") != std::string::npos);
   CHECK(advanced.find("examples/canonical/*.cpp") != std::string::npos);
+  CHECK(advanced.find("docs/api-ergonomics-guidelines.md") != std::string::npos);
+  CHECK(advanced.find("Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md`") !=
+        std::string::npos);
 
   std::ifstream readmeInput(readmePath);
   REQUIRE(readmeInput.good());

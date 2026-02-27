@@ -67,6 +67,8 @@ Use only for explicit interop, not canonical app flow.
   `Advanced lifecycle orchestration (documented exception):`
 - Review exception-tag policy details in `docs/example-app-consumer-checklist.md` before adding
   or changing advanced integrations.
+- Review canonical-vs-advanced API guardrails in `docs/api-ergonomics-guidelines.md` before
+  expanding advanced usage.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:
