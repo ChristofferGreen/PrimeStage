@@ -85,6 +85,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createSelectableText(SelectableTextSpec)` runtime into
     `src/PrimeStageSelectableText.cpp`, with shared selectable-text normalization and
     clamp/default helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createTextField(TextFieldSpec)` runtime into
+    `src/PrimeStageTextField.cpp`, with shared text-field normalization/state/scrim
+    helper seams routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

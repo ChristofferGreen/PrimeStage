@@ -1559,6 +1559,7 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path textFieldCppPath = repoRoot / "src" / "PrimeStageTextField.cpp";
   std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
@@ -1566,6 +1567,7 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path examplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(textFieldCppPath));
   REQUIRE(std::filesystem::exists(booleanCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
   REQUIRE(std::filesystem::exists(designPath));
@@ -1578,6 +1580,11 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
+  std::ifstream textFieldInput(textFieldCppPath);
+  REQUIRE(textFieldInput.good());
+  std::string textFieldSource((std::istreambuf_iterator<char>(textFieldInput)),
+                              std::istreambuf_iterator<char>());
+  REQUIRE(!textFieldSource.empty());
   std::ifstream booleanInput(booleanCppPath);
   REQUIRE(booleanInput.good());
   std::string booleanSource((std::istreambuf_iterator<char>(booleanInput)),
@@ -1588,10 +1595,10 @@ TEST_CASE("PrimeStage widget interactions support patch-first frame updates") {
   std::string progress((std::istreambuf_iterator<char>(progressInput)),
                        std::istreambuf_iterator<char>());
   REQUIRE(!progress.empty());
-  std::string combinedSource = source + booleanSource + progress;
-  CHECK(source.find("patchTextFieldVisuals") != std::string::npos);
-  CHECK(source.find("TextFieldPatchState") != std::string::npos);
-  CHECK(source.find("notify_state = [&]()") != std::string::npos);
+  std::string combinedSource = source + textFieldSource + booleanSource + progress;
+  CHECK(textFieldSource.find("patchTextFieldVisuals") != std::string::npos);
+  CHECK(textFieldSource.find("TextFieldPatchState") != std::string::npos);
+  CHECK(textFieldSource.find("notify_state = [&]()") != std::string::npos);
   CHECK(combinedSource.find("applyToggleVisual") != std::string::npos);
   CHECK(combinedSource.find("applyCheckboxVisual") != std::string::npos);
   CHECK(combinedSource.find("applyProgressVisual") != std::string::npos);
@@ -3446,6 +3453,7 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path textFieldCppPath = repoRoot / "src" / "PrimeStageTextField.cpp";
   std::filesystem::path selectableTextCppPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
@@ -3453,6 +3461,7 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(textFieldCppPath));
   REQUIRE(std::filesystem::exists(selectableTextCppPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
@@ -3471,6 +3480,11 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
+  std::ifstream textFieldInput(textFieldCppPath);
+  REQUIRE(textFieldInput.good());
+  std::string textFieldSource((std::istreambuf_iterator<char>(textFieldInput)),
+                              std::istreambuf_iterator<char>());
+  REQUIRE(!textFieldSource.empty());
   std::ifstream selectableInput(selectableTextCppPath);
   REQUIRE(selectableInput.good());
   std::string selectableSource((std::istreambuf_iterator<char>(selectableInput)),
@@ -3478,7 +3492,7 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   REQUIRE(!selectableSource.empty());
   CHECK(source.find("text_field_state_is_pristine") != std::string::npos);
   CHECK(source.find("seed_text_field_state_from_spec") != std::string::npos);
-  CHECK(source.find("std::shared_ptr<TextFieldState> stateOwner") != std::string::npos);
+  CHECK(textFieldSource.find("std::shared_ptr<TextFieldState> stateOwner") != std::string::npos);
   CHECK(selectableSource.find("std::shared_ptr<SelectableTextState> stateOwner") !=
         std::string::npos);
 
@@ -3529,6 +3543,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path paragraphPath = repoRoot / "src" / "PrimeStageParagraph.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
+  std::filesystem::path textFieldPath = repoRoot / "src" / "PrimeStageTextField.cpp";
   std::filesystem::path selectableTextPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
@@ -3548,6 +3563,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(paragraphPath));
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
+  REQUIRE(std::filesystem::exists(textFieldPath));
   REQUIRE(std::filesystem::exists(selectableTextPath));
   REQUIRE(std::filesystem::exists(textLinePath));
   REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
@@ -3604,6 +3620,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTextField(TextFieldSpec const& specInput)") ==
+        std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTextField(TextFieldState& state,") ==
+        std::string::npos);
   CHECK(core.find("UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput)") ==
         std::string::npos);
   CHECK(core.find("Window UiNode::createWindow(WindowSpec const& specInput)") == std::string::npos);
@@ -3630,6 +3650,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("TextFieldSpec normalizeTextFieldSpec(TextFieldSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("LabelSpec normalizeLabelSpec(LabelSpec const& specInput)") !=
         std::string::npos);
@@ -3703,6 +3725,18 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(paragraphSource.find("UiNode UiNode::createParagraph(std::string_view text,") !=
         std::string::npos);
   CHECK(paragraphSource.find("Internal::normalizeParagraphSpec(specInput)") != std::string::npos);
+
+  std::ifstream textFieldInput(textFieldPath);
+  REQUIRE(textFieldInput.good());
+  std::string textFieldSource((std::istreambuf_iterator<char>(textFieldInput)),
+                              std::istreambuf_iterator<char>());
+  REQUIRE(!textFieldSource.empty());
+  CHECK(textFieldSource.find("UiNode UiNode::createTextField(TextFieldSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(textFieldSource.find("UiNode UiNode::createTextField(TextFieldState& state,") !=
+        std::string::npos);
+  CHECK(textFieldSource.find("Internal::normalizeTextFieldSpec(specInput)") !=
+        std::string::npos);
 
   std::ifstream selectableTextInput(selectableTextPath);
   REQUIRE(selectableTextInput.good());
@@ -3856,6 +3890,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("TextFieldSpec normalizeTextFieldSpec(TextFieldSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("LabelSpec normalizeLabelSpec(LabelSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);") !=
@@ -3869,8 +3905,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("WindowSpec normalizeWindowSpec(WindowSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float defaultSelectableTextWrapWidth();") != std::string::npos);
+  CHECK(internals.find("bool textFieldStateIsPristine(TextFieldState const& state);") !=
+        std::string::npos);
+  CHECK(internals.find("void seedTextFieldStateFromSpec(TextFieldState& state, TextFieldSpec const& spec);") !=
+        std::string::npos);
   CHECK(internals.find("uint32_t clampTextIndex(uint32_t value,") != std::string::npos);
+  CHECK(internals.find("std::vector<float> buildCaretPositionsForText(PrimeFrame::Frame& frame,") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("void addReadOnlyScrimOverlay(PrimeFrame::Frame& frame,") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
         std::string::npos);
@@ -3884,6 +3928,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageLabel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageTextField.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageWindow.cpp") != std::string::npos);

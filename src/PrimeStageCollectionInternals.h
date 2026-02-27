@@ -29,6 +29,7 @@ ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput);
 DividerSpec normalizeDividerSpec(DividerSpec const& specInput);
 SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput);
 TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput);
+TextFieldSpec normalizeTextFieldSpec(TextFieldSpec const& specInput);
 LabelSpec normalizeLabelSpec(LabelSpec const& specInput);
 ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);
 SelectableTextSpec normalizeSelectableTextSpec(SelectableTextSpec const& specInput);
@@ -42,10 +43,15 @@ float defaultScrollViewWidth();
 float defaultScrollViewHeight();
 float defaultCollectionWidth();
 float defaultCollectionHeight();
+bool textFieldStateIsPristine(TextFieldState const& state);
+void seedTextFieldStateFromSpec(TextFieldState& state, TextFieldSpec const& spec);
 uint32_t clampTextIndex(uint32_t value,
                         uint32_t maxValue,
                         char const* context,
                         char const* field);
+std::vector<float> buildCaretPositionsForText(PrimeFrame::Frame& frame,
+                                              PrimeFrame::TextStyleToken token,
+                                              std::string_view text);
 float estimateTextWidth(PrimeFrame::Frame& frame,
                         PrimeFrame::TextStyleToken token,
                         std::string_view text);
@@ -67,6 +73,10 @@ void attachFocusOverlay(PrimeFrame::Frame& frame,
                         InternalFocusStyle const& focusStyle,
                         bool visible);
 void addDisabledScrimOverlay(PrimeFrame::Frame& frame,
+                             PrimeFrame::NodeId nodeId,
+                             InternalRect const& rect,
+                             bool visible);
+void addReadOnlyScrimOverlay(PrimeFrame::Frame& frame,
                              PrimeFrame::NodeId nodeId,
                              InternalRect const& rect,
                              bool visible);
