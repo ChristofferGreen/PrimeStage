@@ -122,6 +122,11 @@ Release Exit Criteria (for API-quality milestone):
     `appendNodeOnEvent`, context-scoped focus/scrim wrappers) in
     `src/PrimeStageCollectionInternals.h`/`src/PrimeStage.cpp`, and adopted the
     seam in `src/PrimeStageTable.cpp` and `src/PrimeStageWindow.cpp`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageButton.cpp` and `src/PrimeStageBooleanWidgets.cpp`
+    (`createButton`, `createToggle`, `createCheckbox`) so callback wiring,
+    focusability setup, and focus/scrim overlays route through
+    `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

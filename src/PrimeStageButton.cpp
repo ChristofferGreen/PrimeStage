@@ -27,9 +27,16 @@ bool isPointerInside(PrimeFrame::Event const& event) {
 UiNode UiNode::createButton(ButtonSpec const& specInput) {
   ButtonSpec spec = Internal::normalizeButtonSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
-  float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchY <= 0.0f &&
@@ -40,7 +47,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f &&
       !spec.label.empty()) {
-    float textWidth = Internal::estimateTextWidth(frame(), spec.textStyle, spec.label);
+    float textWidth = Internal::estimateTextWidth(runtimeFrame, spec.textStyle, spec.label);
     bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
   }
   if (bounds.width <= 0.0f &&
@@ -49,7 +56,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
+    return UiNode(runtimeFrame, runtime.parentId, runtime.allowAbsolute);
   }
 
   PrimeFrame::RectStyleToken baseToken = spec.backgroundStyle;
@@ -84,11 +91,11 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   panel.visible = spec.visible;
   UiNode button = createPanel(panel);
   if (!spec.visible) {
-    return UiNode(frame(), button.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, button.nodeId(), runtime.allowAbsolute);
   }
 
   if (!spec.label.empty()) {
-    float textWidth = Internal::estimateTextWidth(frame(), spec.textStyle, spec.label);
+    float textWidth = Internal::estimateTextWidth(runtimeFrame, spec.textStyle, spec.label);
     float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
     float textX = spec.textInsetX;
     float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
@@ -105,7 +112,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
       labelWidth = std::max(labelWidth, textWidth);
     }
 
-    Internal::createTextNode(frame(),
+    Internal::createTextNode(runtimeFrame,
                              button.nodeId(),
                              Internal::InternalRect{textX, textY, labelWidth, lineHeight},
                              spec.label,
@@ -118,10 +125,10 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   }
 
   if (needsInteraction) {
-    PrimeFrame::Node* node = frame().getNode(button.nodeId());
+    PrimeFrame::Node* node = runtimeFrame.getNode(button.nodeId());
     if (node && !node->primitives.empty()) {
       PrimeFrame::PrimitiveId background = node->primitives.front();
-      PrimeFrame::Frame* framePtr = &frame();
+      PrimeFrame::Frame* framePtr = &runtimeFrame;
       auto applyStyle = [framePtr,
                          background,
                          baseToken,
@@ -222,19 +229,15 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
         }
         return false;
       };
-      node->callbacks = frame().addCallback(std::move(callback));
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
       applyStyle(false, false);
     }
   }
 
-  if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, button.nodeId());
 
   if (spec.visible && enabled) {
-    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+    Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                           spec.focusStyle,
                                                                           spec.focusStyleOverride,
                                                                           pressedToken,
@@ -243,21 +246,19 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
                                                                           0,
                                                                           0,
                                                                           spec.backgroundStyleOverride);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  button.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       button.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), button.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, button.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createButton(std::string_view label,

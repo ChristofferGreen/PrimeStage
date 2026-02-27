@@ -3729,6 +3729,10 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(buttonSource.find("UiNode UiNode::createButton(std::string_view label,") !=
         std::string::npos);
   CHECK(buttonSource.find("Internal::normalizeButtonSpec(specInput)") != std::string::npos);
+  CHECK(buttonSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(buttonSource.find("Internal::configureInteractiveRoot(runtime, button.nodeId()") !=
+        std::string::npos);
+  CHECK(buttonSource.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
 
   std::ifstream layoutInput(layoutPath);
   REQUIRE(layoutInput.good());
@@ -3875,6 +3879,12 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(booleanSource.find("Internal::normalizeToggleSpec(specInput)") != std::string::npos);
   CHECK(booleanSource.find("Internal::normalizeCheckboxSpec(specInput)") != std::string::npos);
+  CHECK(booleanSource.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(booleanSource.find("Internal::configureInteractiveRoot(runtime, toggle.nodeId()") !=
+        std::string::npos);
+  CHECK(booleanSource.find("Internal::configureInteractiveRoot(runtime, row.nodeId()") !=
+        std::string::npos);
+  CHECK(booleanSource.find("Internal::attachFocusOverlay(runtime,") != std::string::npos);
 
   std::ifstream sliderInput(sliderPath);
   REQUIRE(sliderInput.good());

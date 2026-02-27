@@ -27,6 +27,13 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   ToggleSpec spec = Internal::normalizeToggleSpec(specInput);
   bool enabled = spec.enabled;
   bool on = spec.on;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -52,7 +59,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   panel.visible = spec.visible;
   UiNode toggle = createPanel(panel);
   if (!spec.visible) {
-    return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, toggle.nodeId(), runtime.allowAbsolute);
   }
 
   float inset = std::max(0.0f, spec.knobInset);
@@ -61,7 +68,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   float knobX = on ? maxX - inset : inset;
   knobX = std::clamp(knobX, 0.0f, maxX);
   PrimeFrame::NodeId knobNodeId =
-      Internal::createRectNode(frame(),
+      Internal::createRectNode(runtimeFrame,
                                toggle.nodeId(),
                                Internal::InternalRect{knobX, inset, knobSize, knobSize},
                                spec.knobStyle,
@@ -69,7 +76,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
                                false,
                                spec.visible);
 
-  auto applyToggleVisual = [framePtr = &frame(),
+  auto applyToggleVisual = [framePtr = &runtimeFrame,
                             knobNodeId,
                             width = bounds.width,
                             height = bounds.height,
@@ -95,13 +102,9 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   };
   applyToggleVisual(on);
 
-  if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, toggle.nodeId());
 
-  Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+  Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                         spec.focusStyle,
                                                                         spec.focusStyleOverride,
                                                                         spec.knobStyle,
@@ -111,7 +114,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
                                                                         0,
                                                                         spec.knobStyleOverride);
   if (spec.visible && enabled) {
-    if (PrimeFrame::Node* node = frame().getNode(toggle.nodeId())) {
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(toggle.nodeId())) {
       struct ToggleInteractionState {
         bool pressed = false;
         bool value = false;
@@ -173,23 +176,21 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
         }
         return false;
       };
-      node->callbacks = frame().addCallback(std::move(callback));
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
     }
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  toggle.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       toggle.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), toggle.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, toggle.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createToggle(bool on,
@@ -214,9 +215,16 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   CheckboxSpec spec = Internal::normalizeCheckboxSpec(specInput);
   bool enabled = spec.enabled;
   bool checked = spec.checked;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
-  float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   float contentHeight = std::max(spec.boxSize, lineHeight);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
@@ -228,7 +236,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
       spec.size.stretchX <= 0.0f) {
     float labelWidth = spec.label.empty()
                            ? 0.0f
-                           : Internal::estimateTextWidth(frame(), spec.textStyle, spec.label);
+                           : Internal::estimateTextWidth(runtimeFrame, spec.textStyle, spec.label);
     float gap = spec.label.empty() ? 0.0f : spec.gap;
     bounds.width = spec.boxSize + gap + labelWidth;
   }
@@ -257,7 +265,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   float inset = std::max(0.0f, spec.checkInset);
   float checkSize = std::max(0.0f, spec.boxSize - inset * 2.0f);
   PrimeFrame::NodeId checkNodeId =
-      Internal::createRectNode(frame(),
+      Internal::createRectNode(runtimeFrame,
                                boxNode.nodeId(),
                                Internal::InternalRect{inset, inset, checkSize, checkSize},
                                spec.checkStyle,
@@ -265,7 +273,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
                                false,
                                spec.visible);
 
-  auto applyCheckboxVisual = [framePtr = &frame(),
+  auto applyCheckboxVisual = [framePtr = &runtimeFrame,
                               checkNodeId,
                               inset,
                               boxSize = spec.boxSize](bool value) {
@@ -288,7 +296,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   applyCheckboxVisual(checked);
 
   if (!spec.visible) {
-    if (PrimeFrame::Node* checkNode = frame().getNode(checkNodeId)) {
+    if (PrimeFrame::Node* checkNode = runtimeFrame.getNode(checkNodeId)) {
       checkNode->visible = false;
     }
   }
@@ -304,13 +312,9 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
     row.createTextLine(text);
   }
 
-  if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
+  Internal::configureInteractiveRoot(runtime, row.nodeId());
 
-  Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(frame(),
+  Internal::InternalFocusStyle focusStyle = Internal::resolveFocusStyle(runtimeFrame,
                                                                         spec.focusStyle,
                                                                         spec.focusStyleOverride,
                                                                         spec.checkStyle,
@@ -320,7 +324,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
                                                                         0,
                                                                         spec.checkStyleOverride);
   if (spec.visible && enabled) {
-    if (PrimeFrame::Node* node = frame().getNode(row.nodeId())) {
+    if (PrimeFrame::Node* node = runtimeFrame.getNode(row.nodeId())) {
       struct CheckboxInteractionState {
         bool pressed = false;
         bool checked = false;
@@ -382,23 +386,21 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
         }
         return false;
       };
-      node->callbacks = frame().addCallback(std::move(callback));
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
     }
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  row.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       row.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), row.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, row.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createCheckbox(std::string_view label,
