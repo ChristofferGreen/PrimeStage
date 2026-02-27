@@ -96,16 +96,16 @@ static PrimeFrame::NodeId findFirstNodeWithOnEventInSubtree(PrimeFrame::Frame co
   if (!node) {
     return PrimeFrame::NodeId{};
   }
-  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
-    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
-    if (callback && callback->onEvent) {
-      return nodeId;
-    }
-  }
   for (PrimeFrame::NodeId childId : node->children) {
     PrimeFrame::NodeId candidate = findFirstNodeWithOnEventInSubtree(frame, childId);
     if (candidate.isValid()) {
       return candidate;
+    }
+  }
+  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+    if (callback && callback->onEvent) {
+      return nodeId;
     }
   }
   return PrimeFrame::NodeId{};

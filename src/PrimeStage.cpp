@@ -6105,6 +6105,8 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   interaction->rowGap = spec.rowGap;
   interaction->backgrounds.reserve(rowCount);
   interaction->baseStyles.reserve(rowCount);
+  std::vector<PrimeFrame::NodeId> rowNodeIds;
+  rowNodeIds.reserve(rowCount);
 
   for (size_t rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
     PrimeFrame::RectStyleToken rowRole = (rowIndex % 2 == 0) ? spec.rowAltStyle : spec.rowStyle;
@@ -6118,6 +6120,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
     rowPanel.size.stretchX = 1.0f;
     rowPanel.visible = spec.visible;
     UiNode rowNode = rowsNode.createPanel(rowPanel);
+    rowNodeIds.push_back(rowNode.nodeId());
     if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowNode.nodeId())) {
       if (!rowNodePtr->primitives.empty()) {
         interaction->backgrounds.push_back(rowNodePtr->primitives.front());
@@ -6217,28 +6220,17 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
       return false;
     };
 
-    PrimeFrame::Callback rowCallback;
-    rowCallback.onEvent = [interaction, selectRow](PrimeFrame::Event const& event) -> bool {
-      if (event.type != PrimeFrame::EventType::PointerDown) {
-        return false;
+    for (size_t rowIndex = 0; rowIndex < rowNodeIds.size(); ++rowIndex) {
+      PrimeFrame::Callback rowCallback;
+      rowCallback.onEvent = [selectRow, rowIndex](PrimeFrame::Event const& event) -> bool {
+        if (event.type != PrimeFrame::EventType::PointerDown) {
+          return false;
+        }
+        return selectRow(static_cast<int>(rowIndex), true);
+      };
+      if (PrimeFrame::Node* rowNodePtr = frame().getNode(rowNodeIds[rowIndex])) {
+        rowNodePtr->callbacks = frame().addCallback(std::move(rowCallback));
       }
-      float pitch = interaction->rowHeight + interaction->rowGap;
-      if (pitch <= 0.0f) {
-        return false;
-      }
-      int index = static_cast<int>(std::floor(event.localY / pitch));
-      if (index < 0 || index >= static_cast<int>(interaction->backgrounds.size())) {
-        return false;
-      }
-      float rowLocalY = event.localY - static_cast<float>(index) * pitch;
-      if (rowLocalY < 0.0f || rowLocalY > interaction->rowHeight) {
-        return false;
-      }
-      (void)selectRow(index, true);
-      return true;
-    };
-    if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
-      rowsNodePtr->callbacks = frame().addCallback(std::move(rowCallback));
     }
 
     (void)LowLevel::appendNodeOnEvent(frame(),

@@ -1755,7 +1755,8 @@ TEST_CASE("PrimeStage callback threading and reentrancy contract is documented a
   std::string uiHeader((std::istreambuf_iterator<char>(uiHeaderInput)),
                        std::istreambuf_iterator<char>());
   REQUIRE(!uiHeader.empty());
-  CHECK(uiHeader.find("Direct reentrant invocation of the same") != std::string::npos);
+  CHECK(uiHeader.find("Direct reentrant invocation") != std::string::npos);
+  CHECK(uiHeader.find("of the same composed callback chain is suppressed") != std::string::npos);
   CHECK(uiHeader.find("namespace LowLevel") != std::string::npos);
   CHECK(uiHeader.find("struct NodeCallbackTable") != std::string::npos);
   CHECK(uiHeader.find("class NodeCallbackHandle") != std::string::npos);

@@ -1,7 +1,9 @@
 #include "PrimeStage/Ui.h"
 
 #include "PrimeFrame/Events.h"
+#include "PrimeFrame/Focus.h"
 #include "PrimeFrame/Frame.h"
+#include "PrimeFrame/Layout.h"
 
 #include "third_party/doctest.h"
 
@@ -21,6 +23,25 @@ PrimeStage::UiNode createRoot(PrimeFrame::Frame& frame) {
     node->sizeHint.height.preferred = 360.0f;
   }
   return PrimeStage::UiNode(frame, rootId, true);
+}
+
+PrimeFrame::LayoutOutput layoutFrame(PrimeFrame::Frame& frame) {
+  PrimeFrame::LayoutOutput output;
+  PrimeFrame::LayoutEngine engine;
+  PrimeFrame::LayoutOptions options;
+  options.rootWidth = 640.0f;
+  options.rootHeight = 360.0f;
+  engine.layout(frame, output, options);
+  return output;
+}
+
+PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, int pointerId, float x, float y) {
+  PrimeFrame::Event event;
+  event.type = type;
+  event.pointerId = pointerId;
+  event.x = x;
+  event.y = y;
+  return event;
 }
 
 PrimeFrame::RectStyleToken firstRectToken(PrimeFrame::Frame const& frame, PrimeFrame::NodeId nodeId) {
@@ -133,27 +154,6 @@ size_t countTextValue(PrimeFrame::Frame const& frame,
     count += countTextValue(frame, childId, text);
   }
   return count;
-}
-
-PrimeFrame::Callback const* findFirstNodeOnEventCallback(PrimeFrame::Frame const& frame,
-                                                         PrimeFrame::NodeId nodeId) {
-  PrimeFrame::Node const* node = frame.getNode(nodeId);
-  if (!node) {
-    return nullptr;
-  }
-  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
-    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
-    if (callback && callback->onEvent) {
-      return callback;
-    }
-  }
-  for (PrimeFrame::NodeId childId : node->children) {
-    PrimeFrame::Callback const* callback = findFirstNodeOnEventCallback(frame, childId);
-    if (callback) {
-      return callback;
-    }
-  }
-  return nullptr;
 }
 
 } // namespace
@@ -372,12 +372,17 @@ TEST_CASE("PrimeStage collection helpers and list adapter build expected widgets
   PrimeStage::UiNode list = root.createList(listSpec);
   CHECK(countRectToken(frame, list.nodeId(), listSpec.selectionStyle) == 1u);
 
-  PrimeFrame::Callback const* listCallback = findFirstNodeOnEventCallback(frame, list.nodeId());
-  REQUIRE(listCallback != nullptr);
-  PrimeFrame::Event clickEvent;
-  clickEvent.type = PrimeFrame::EventType::PointerDown;
-  clickEvent.localY = listSpec.rowHeight + listSpec.rowGap * 0.5f + 0.1f;
-  CHECK(listCallback->onEvent(clickEvent));
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::LayoutOut const* listOut = layout.get(list.nodeId());
+  REQUIRE(listOut != nullptr);
+  float clickX = listOut->absX + listOut->absW * 0.5f;
+  float clickY = listOut->absY + listSpec.rowHeight + listSpec.rowGap + listSpec.rowHeight * 0.5f;
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, clickX, clickY),
+                  frame,
+                  layout,
+                  &focus);
   CHECK(clickedRow == 1);
   CHECK(clickedItem == "Two");
 }

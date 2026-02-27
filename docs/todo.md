@@ -138,6 +138,23 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [81] Stabilize collection callback regression harness under layered callbacks.
+  - updated `createTable(...)` pointer selection wiring in `src/PrimeStage.cpp`
+    to install row-level pointer callbacks so row selection callbacks fire
+    reliably under router dispatch (including short-lived row payload tests)
+  - fixed callback-node discovery helpers in
+    `tests/unit/test_interaction.cpp` and
+    `tests/unit/test_spec_validation.cpp` to prefer descendant row callbacks
+    before container-level callbacks, avoiding false selection failures when
+    `createTable(...)` installs keyboard handlers on parent nodes
+  - updated `tests/unit/test_spec_validation.cpp` to dispatch pointer input
+    through layout/router instead of directly invoking callback internals
+  - restored failing regression coverage for table/list pointer selection and
+    row payload lifetime assertions in both interaction and spec-validation suites
+  - hardened callback reentrancy API guard in
+    `tests/unit/test_api_ergonomics.cpp` by checking split header comment
+    fragments instead of one brittle line-wrapped literal
+
 - ☑ [78] Fix `AppActionInvocation::actionId` lifetime safety.
   - `AppActionInvocation::actionId` in `include/PrimeStage/App.h` now uses owned
     `std::string` storage instead of `std::string_view` so callbacks can safely
