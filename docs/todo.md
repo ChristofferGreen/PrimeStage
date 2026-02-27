@@ -239,7 +239,8 @@ Release Exit Criteria (for API-quality milestone):
   - add cleanup guidance/script for local dev loops
   - delivered via `scripts/clean.sh`, artifact policy documentation in `docs/build-artifact-hygiene.md`, ignore-list updates in `.gitignore`, workflow guidance in `README.md` + `AGENTS.md`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [1] Establish core ids, enums, and shared widget specs.
+- ☑ [1] Establish core ids, enums, and shared widget specs.
+  - delivered via `WidgetKind` + `widgetKindName(...)`, `WidgetIdentityId` + `widgetIdentityId(...)`, shared spec bases (`WidgetSpec`/`EnableableWidgetSpec`/`FocusableWidgetSpec`) and spec adoption in `include/PrimeStage/Ui.h`, reconciler id-overload support in `src/PrimeStage.cpp`, regression coverage in `tests/unit/test_api_ergonomics.cpp`, and docs alignment in `docs/minimal-api-reference.md`, `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and `AGENTS.md`
 - ☐ [2] Define callback table + RAII callback handle.
 - ☐ [3] Implement `UiNode` fluent builder for `Frame` authoring.
 - ☐ [4] Implement widget creation helpers (panel, label, divider, spacer).

@@ -123,6 +123,10 @@ root.createVerticalStack(layoutSpec, [](UiNode& col) {
 
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
 All widget specs use `std::optional` for optional fields.
+Shared spec bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) centralize
+common accessibility/visibility/enablement/focus-order fields across widget families.
+Core widget metadata types (`WidgetKind`, `WidgetIdentityId`) provide canonical enum/id primitives
+for app/runtime identity bookkeeping.
 Container sizing and layout metadata are unified via `ContainerSpec`, which is shared by
 `StackSpec` and `PanelSpec` to keep padding/gap/clip/visibility consistent across containers.
 `ScrollView` returns a small struct that exposes both the root node and a dedicated content node

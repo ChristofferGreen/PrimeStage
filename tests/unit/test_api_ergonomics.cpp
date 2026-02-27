@@ -12,6 +12,7 @@
 #include <iterator>
 #include <regex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -50,6 +51,17 @@ PrimeFrame::Event makePointerEvent(PrimeFrame::EventType type, float x, float y)
 }
 
 } // namespace
+
+static_assert(std::is_base_of_v<PrimeStage::WidgetSpec, PrimeStage::LabelSpec>);
+static_assert(std::is_base_of_v<PrimeStage::WidgetSpec, PrimeStage::ParagraphSpec>);
+static_assert(std::is_base_of_v<PrimeStage::WidgetSpec, PrimeStage::TextLineSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::ButtonSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::TextFieldSpec>);
+static_assert(std::is_base_of_v<PrimeStage::EnableableWidgetSpec, PrimeStage::SelectableTextSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::ToggleSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::ProgressBarSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::TableSpec>);
+static_assert(std::is_base_of_v<PrimeStage::FocusableWidgetSpec, PrimeStage::TreeViewSpec>);
 
 TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
   PrimeFrame::Frame frame;
@@ -1339,6 +1351,95 @@ TEST_CASE("PrimeStage build artifact hygiene workflow is documented and scripted
         std::string::npos);
 }
 
+TEST_CASE("PrimeStage core widget ids enums and shared specs are exposed") {
+  CHECK(PrimeStage::widgetIdentityId("") == PrimeStage::InvalidWidgetIdentityId);
+  CHECK(PrimeStage::widgetIdentityId("demo.button") == PrimeStage::widgetIdentityId("demo.button"));
+  CHECK(PrimeStage::widgetIdentityId("demo.button") != PrimeStage::widgetIdentityId("demo.slider"));
+  CHECK(PrimeStage::widgetKindName(PrimeStage::WidgetKind::Button) == "button");
+  CHECK(PrimeStage::widgetKindName(PrimeStage::WidgetKind::TreeView) == "tree_view");
+
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeFrame::NodeId buttonId = frame.createNode();
+  frame.addChild(rootId, buttonId);
+
+  PrimeStage::WidgetIdentityReconciler identity;
+  PrimeStage::WidgetIdentityId buttonIdentity = PrimeStage::widgetIdentityId("demo.button");
+  identity.registerNode(buttonIdentity, buttonId);
+  CHECK(identity.findNode(buttonIdentity) == buttonId);
+  CHECK(identity.findNode("demo.button") == buttonId);
+
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path uiPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(uiPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream uiInput(uiPath);
+  REQUIRE(uiInput.good());
+  std::string ui((std::istreambuf_iterator<char>(uiInput)),
+                 std::istreambuf_iterator<char>());
+  REQUIRE(!ui.empty());
+  CHECK(ui.find("enum class WidgetKind") != std::string::npos);
+  CHECK(ui.find("using WidgetIdentityId = uint64_t;") != std::string::npos);
+  CHECK(ui.find("struct WidgetSpec") != std::string::npos);
+  CHECK(ui.find("struct FocusableWidgetSpec") != std::string::npos);
+  CHECK(ui.find("registerNode(WidgetIdentityId identity") != std::string::npos);
+  CHECK(ui.find("findNode(WidgetIdentityId identity) const") != std::string::npos);
+
+  std::ifstream sourceInput(sourceCppPath);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("WidgetIdentityReconciler::registerNode(WidgetIdentityId identity") !=
+        std::string::npos);
+  CHECK(source.find("WidgetIdentityReconciler::findNode(WidgetIdentityId identity) const") !=
+        std::string::npos);
+  CHECK(source.find("pendingFocusedIdentityId_") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("Core Ids And Shared Specs") != std::string::npos);
+  CHECK(apiRef.find("WidgetKind") != std::string::npos);
+  CHECK(apiRef.find("WidgetSpec") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("WidgetSpec") != std::string::npos);
+  CHECK(design.find("WidgetIdentityId") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("widgetIdentityId") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[1] Establish core ids, enums, and shared widget specs.") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
@@ -1384,6 +1485,14 @@ TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") 
   CHECK(ui.find("struct TextCompositionCallbacks") != std::string::npos);
   CHECK(ui.find("TextCompositionState* compositionState = nullptr;") != std::string::npos);
   CHECK(ui.find("TextCompositionCallbacks compositionCallbacks{};") != std::string::npos);
+  CHECK(ui.find("enum class WidgetKind") != std::string::npos);
+  CHECK(ui.find("using WidgetIdentityId = uint64_t;") != std::string::npos);
+  CHECK(ui.find("constexpr WidgetIdentityId widgetIdentityId") != std::string::npos);
+  CHECK(ui.find("struct WidgetSpec") != std::string::npos);
+  CHECK(ui.find("struct EnableableWidgetSpec") != std::string::npos);
+  CHECK(ui.find("struct FocusableWidgetSpec") != std::string::npos);
+  CHECK(ui.find("struct ButtonSpec : FocusableWidgetSpec") != std::string::npos);
+  CHECK(ui.find("struct LabelSpec : WidgetSpec") != std::string::npos);
 
   std::ifstream textFieldInput(textFieldTest);
   REQUIRE(textFieldInput.good());

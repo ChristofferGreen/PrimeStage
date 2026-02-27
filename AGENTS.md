@@ -31,6 +31,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Keep hot paths allocation-free; reuse buffers and caches where possible.
 - Avoid raw `new`; use `std::unique_ptr` or `std::shared_ptr` with clear ownership intent.
 - For public widget specs, clamp invalid inputs to safe runtime fallbacks and emit debug diagnostics; add unit tests for new validation paths.
+- For new widget APIs, derive spec structs from shared bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) instead of duplicating accessibility/visibility/enablement fields.
 - For public API/spec/callback changes, follow `docs/api-evolution-policy.md` (semver impact classification, staged deprecation, and migration notes).
 - For callback composition/reentrancy/threading behavior, follow `docs/callback-reentrancy-threading.md` and keep callback state changes single-thread-safe.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.

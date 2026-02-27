@@ -71,6 +71,95 @@ enum class AccessibilityRole : uint8_t {
   TreeItem,
 };
 
+enum class WidgetKind : uint8_t {
+  Unknown,
+  Stack,
+  Panel,
+  Label,
+  Paragraph,
+  TextLine,
+  Divider,
+  Spacer,
+  Button,
+  TextField,
+  SelectableText,
+  Toggle,
+  Checkbox,
+  Slider,
+  Tabs,
+  Dropdown,
+  ProgressBar,
+  Table,
+  TreeView,
+  ScrollView,
+  Window,
+};
+
+constexpr std::string_view widgetKindName(WidgetKind kind) {
+  switch (kind) {
+    case WidgetKind::Unknown:
+      return "unknown";
+    case WidgetKind::Stack:
+      return "stack";
+    case WidgetKind::Panel:
+      return "panel";
+    case WidgetKind::Label:
+      return "label";
+    case WidgetKind::Paragraph:
+      return "paragraph";
+    case WidgetKind::TextLine:
+      return "text_line";
+    case WidgetKind::Divider:
+      return "divider";
+    case WidgetKind::Spacer:
+      return "spacer";
+    case WidgetKind::Button:
+      return "button";
+    case WidgetKind::TextField:
+      return "text_field";
+    case WidgetKind::SelectableText:
+      return "selectable_text";
+    case WidgetKind::Toggle:
+      return "toggle";
+    case WidgetKind::Checkbox:
+      return "checkbox";
+    case WidgetKind::Slider:
+      return "slider";
+    case WidgetKind::Tabs:
+      return "tabs";
+    case WidgetKind::Dropdown:
+      return "dropdown";
+    case WidgetKind::ProgressBar:
+      return "progress_bar";
+    case WidgetKind::Table:
+      return "table";
+    case WidgetKind::TreeView:
+      return "tree_view";
+    case WidgetKind::ScrollView:
+      return "scroll_view";
+    case WidgetKind::Window:
+      return "window";
+  }
+  return "unknown";
+}
+
+using WidgetIdentityId = uint64_t;
+constexpr WidgetIdentityId InvalidWidgetIdentityId = 0u;
+
+constexpr WidgetIdentityId widgetIdentityId(std::string_view identity) {
+  if (identity.empty()) {
+    return InvalidWidgetIdentityId;
+  }
+  constexpr uint64_t FnvOffset = 14695981039346656037ull;
+  constexpr uint64_t FnvPrime = 1099511628211ull;
+  uint64_t hash = FnvOffset;
+  for (unsigned char value : identity) {
+    hash ^= static_cast<uint64_t>(value);
+    hash *= FnvPrime;
+  }
+  return hash == InvalidWidgetIdentityId ? 1u : hash;
+}
+
 struct AccessibilityState {
   bool disabled = false;
   std::optional<bool> checked;
@@ -103,6 +192,20 @@ struct SizeSpec {
   float stretchY = 0.0f;
 };
 
+struct WidgetSpec {
+  AccessibilitySemantics accessibility{};
+  bool visible = true;
+  SizeSpec size;
+};
+
+struct EnableableWidgetSpec : WidgetSpec {
+  bool enabled = true;
+};
+
+struct FocusableWidgetSpec : EnableableWidgetSpec {
+  int tabIndex = -1;
+};
+
 struct ContainerSpec {
   SizeSpec size;
   PrimeFrame::Insets padding{};
@@ -120,21 +223,17 @@ struct PanelSpec : ContainerSpec {
   PrimeFrame::LayoutType layout = PrimeFrame::LayoutType::None;
 };
 
-struct LabelSpec {
+struct LabelSpec : WidgetSpec {
   std::string_view text;
-  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
   PrimeFrame::WrapMode wrap = PrimeFrame::WrapMode::Word;
   float maxWidth = 0.0f;
-  bool visible = true;
-  SizeSpec size;
 };
 
-struct ParagraphSpec {
+struct ParagraphSpec : WidgetSpec {
   std::string_view text;
-  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
@@ -142,19 +241,14 @@ struct ParagraphSpec {
   float maxWidth = 0.0f;
   float textOffsetY = 0.0f;
   bool autoHeight = true;
-  bool visible = true;
-  SizeSpec size;
 };
 
-struct TextLineSpec {
+struct TextLineSpec : WidgetSpec {
   std::string_view text;
-  AccessibilitySemantics accessibility{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
   float textOffsetY = 0.0f;
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct DividerSpec {
@@ -175,9 +269,8 @@ struct ButtonCallbacks {
   std::function<void(bool)> onPressedChanged;
 };
 
-struct ButtonSpec {
+struct ButtonSpec : FocusableWidgetSpec {
   std::string_view label;
-  AccessibilitySemantics accessibility{};
   PrimeFrame::RectStyleToken backgroundStyle = 0;
   PrimeFrame::RectStyleOverride backgroundStyleOverride{};
   PrimeFrame::RectStyleToken hoverStyle = 0;
@@ -194,11 +287,7 @@ struct ButtonSpec {
   float baseOpacity = 1.0f;
   float hoverOpacity = 1.0f;
   float pressedOpacity = 1.0f;
-  bool enabled = true;
-  int tabIndex = -1;
   ButtonCallbacks callbacks{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct TextFieldState {
@@ -245,13 +334,12 @@ struct TextFieldCallbacks {
   std::function<void()> onSubmit;
 };
 
-struct TextFieldSpec {
+struct TextFieldSpec : FocusableWidgetSpec {
   TextFieldState* state = nullptr;
   TextCompositionState* compositionState = nullptr;
   TextFieldCallbacks callbacks{};
   TextCompositionCallbacks compositionCallbacks{};
   TextFieldClipboard clipboard{};
-  AccessibilitySemantics accessibility{};
   std::string_view text;
   std::string_view placeholder;
   float paddingX = 16.0f;
@@ -278,11 +366,7 @@ struct TextFieldSpec {
   bool allowNewlines = false;
   bool handleClipboardShortcuts = true;
   bool setCursorToEndOnFocus = true;
-  bool enabled = true;
-  int tabIndex = -1;
   bool readOnly = false;
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct SelectableTextState {
@@ -309,11 +393,10 @@ struct SelectableTextCallbacks {
   std::function<void(CursorHint)> onCursorHintChanged;
 };
 
-struct SelectableTextSpec {
+struct SelectableTextSpec : EnableableWidgetSpec {
   SelectableTextState* state = nullptr;
   SelectableTextCallbacks callbacks{};
   SelectableTextClipboard clipboard{};
-  AccessibilitySemantics accessibility{};
   std::string_view text;
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
@@ -327,9 +410,6 @@ struct SelectableTextSpec {
   PrimeFrame::RectStyleToken focusStyle = 0;
   PrimeFrame::RectStyleOverride focusStyleOverride{};
   bool handleClipboardShortcuts = true;
-  bool enabled = true;
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct TextSelectionOverlaySpec {
@@ -356,12 +436,9 @@ struct ToggleState {
   bool on = false;
 };
 
-struct ToggleSpec {
+struct ToggleSpec : FocusableWidgetSpec {
   ToggleState* state = nullptr;
-  AccessibilitySemantics accessibility{};
   bool on = false;
-  bool enabled = true;
-  int tabIndex = -1;
   ToggleCallbacks callbacks{};
   float knobInset = 2.0f;
   PrimeFrame::RectStyleToken trackStyle = 0;
@@ -370,8 +447,6 @@ struct ToggleSpec {
   PrimeFrame::RectStyleOverride knobStyleOverride{};
   PrimeFrame::RectStyleToken focusStyle = 0;
   PrimeFrame::RectStyleOverride focusStyleOverride{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct CheckboxCallbacks {
@@ -382,13 +457,10 @@ struct CheckboxState {
   bool checked = false;
 };
 
-struct CheckboxSpec {
+struct CheckboxSpec : FocusableWidgetSpec {
   CheckboxState* state = nullptr;
-  AccessibilitySemantics accessibility{};
   std::string_view label;
   bool checked = false;
-  bool enabled = true;
-  int tabIndex = -1;
   CheckboxCallbacks callbacks{};
   float boxSize = 16.0f;
   float checkInset = 3.0f;
@@ -401,8 +473,6 @@ struct CheckboxSpec {
   PrimeFrame::RectStyleOverride focusStyleOverride{};
   PrimeFrame::TextStyleToken textStyle = 0;
   PrimeFrame::TextStyleOverride textStyleOverride{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct SliderCallbacks {
@@ -411,11 +481,8 @@ struct SliderCallbacks {
   std::function<void()> onDragEnd;
 };
 
-struct SliderSpec {
-  AccessibilitySemantics accessibility{};
+struct SliderSpec : FocusableWidgetSpec {
   float value = 0.0f;
-  bool enabled = true;
-  int tabIndex = -1;
   bool vertical = false;
   float trackThickness = 6.0f;
   float thumbSize = 14.0f;
@@ -434,8 +501,6 @@ struct SliderSpec {
   std::optional<float> thumbHoverOpacity;
   std::optional<float> thumbPressedOpacity;
   SliderCallbacks callbacks{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct TabsCallbacks {
@@ -446,13 +511,10 @@ struct TabsState {
   int selectedIndex = 0;
 };
 
-struct TabsSpec {
+struct TabsSpec : FocusableWidgetSpec {
   TabsState* state = nullptr;
-  AccessibilitySemantics accessibility{};
   std::vector<std::string_view> labels;
   int selectedIndex = 0;
-  bool enabled = true;
-  int tabIndex = -1;
   TabsCallbacks callbacks{};
   float tabPaddingX = 12.0f;
   float tabPaddingY = 6.0f;
@@ -465,8 +527,6 @@ struct TabsSpec {
   PrimeFrame::TextStyleOverride textStyleOverride{};
   PrimeFrame::TextStyleToken activeTextStyle = 0;
   PrimeFrame::TextStyleOverride activeTextStyleOverride{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct DropdownCallbacks {
@@ -478,13 +538,10 @@ struct DropdownState {
   int selectedIndex = 0;
 };
 
-struct DropdownSpec {
+struct DropdownSpec : FocusableWidgetSpec {
   DropdownState* state = nullptr;
-  AccessibilitySemantics accessibility{};
   std::vector<std::string_view> options;
   int selectedIndex = 0;
-  bool enabled = true;
-  int tabIndex = -1;
   DropdownCallbacks callbacks{};
   std::string_view label;
   std::string_view indicator = "v";
@@ -498,8 +555,6 @@ struct DropdownSpec {
   PrimeFrame::TextStyleOverride indicatorStyleOverride{};
   PrimeFrame::RectStyleToken focusStyle = 0;
   PrimeFrame::RectStyleOverride focusStyleOverride{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct ProgressBarCallbacks {
@@ -510,22 +565,17 @@ struct ProgressBarState {
   float value = 0.0f;
 };
 
-struct ProgressBarSpec {
+struct ProgressBarSpec : FocusableWidgetSpec {
   ProgressBarState* state = nullptr;
   ProgressBarCallbacks callbacks{};
-  AccessibilitySemantics accessibility{};
   float value = 0.0f;
   float minFillWidth = 0.0f;
-  bool enabled = true;
-  int tabIndex = -1;
   PrimeFrame::RectStyleToken trackStyle = 0;
   PrimeFrame::RectStyleOverride trackStyleOverride{};
   PrimeFrame::RectStyleToken fillStyle = 0;
   PrimeFrame::RectStyleOverride fillStyleOverride{};
   PrimeFrame::RectStyleToken focusStyle = 0;
   PrimeFrame::RectStyleOverride focusStyleOverride{};
-  bool visible = true;
-  SizeSpec size;
 };
 
 struct ScrollAxisSpec {
@@ -575,8 +625,7 @@ struct TableCallbacks {
   std::function<void(TableRowInfo const&)> onRowClicked;
 };
 
-struct TableSpec {
-  AccessibilitySemantics accessibility{};
+struct TableSpec : FocusableWidgetSpec {
   float headerInset = 6.0f;
   float headerHeight = 20.0f;
   float rowHeight = 28.0f;
@@ -591,16 +640,12 @@ struct TableSpec {
   PrimeFrame::RectStyleToken focusStyle = 0;
   PrimeFrame::RectStyleOverride focusStyleOverride{};
   int selectedRow = -1;
-  bool enabled = true;
-  int tabIndex = -1;
   bool showHeaderDividers = true;
   bool showColumnDividers = true;
   bool clipChildren = true;
-  bool visible = true;
   TableCallbacks callbacks{};
   std::vector<TableColumn> columns;
   std::vector<std::vector<std::string_view>> rows;
-  SizeSpec size;
 };
 
 struct TreeNode {
@@ -633,8 +678,7 @@ struct TreeViewCallbacks {
   std::function<void(TreeViewScrollInfo const&)> onScrollChanged;
 };
 
-struct TreeViewSpec {
-  AccessibilitySemantics accessibility{};
+struct TreeViewSpec : FocusableWidgetSpec {
   float rowStartX = 8.0f;
   float rowStartY = 36.0f;
   float rowWidthInset = 20.0f;
@@ -650,8 +694,6 @@ struct TreeViewSpec {
   float linkEndInset = 4.0f;
   float selectionAccentWidth = 3.0f;
   float doubleClickMs = 350.0f;
-  bool enabled = true;
-  int tabIndex = -1;
   bool keyboardNavigation = true;
   bool showHeaderDivider = false;
   float headerDividerY = 0.0f;
@@ -675,7 +717,6 @@ struct TreeViewSpec {
   ScrollBarSpec scrollBar{};
   std::vector<TreeNode> nodes;
   TreeViewCallbacks callbacks{};
-  SizeSpec size;
 };
 
 struct ScrollViewSpec {
@@ -767,7 +808,9 @@ bool appendNodeOnBlur(PrimeFrame::Frame& frame,
 class WidgetIdentityReconciler {
 public:
   void beginRebuild(PrimeFrame::NodeId focusedNode);
+  void registerNode(WidgetIdentityId identity, PrimeFrame::NodeId nodeId);
   void registerNode(std::string_view identity, PrimeFrame::NodeId nodeId);
+  PrimeFrame::NodeId findNode(WidgetIdentityId identity) const;
   PrimeFrame::NodeId findNode(std::string_view identity) const;
   bool restoreFocus(PrimeFrame::FocusManager& focus,
                     PrimeFrame::Frame const& frame,
@@ -775,12 +818,13 @@ public:
 
 private:
   struct Entry {
+    WidgetIdentityId identityId = InvalidWidgetIdentityId;
     std::string identity;
     PrimeFrame::NodeId nodeId{};
   };
 
   std::vector<Entry> currentEntries_;
-  std::optional<std::string> pendingFocusedIdentity_;
+  std::optional<WidgetIdentityId> pendingFocusedIdentityId_;
 };
 
 struct ScrollView;

@@ -39,6 +39,8 @@ What app code should avoid:
 - Rebuild safely at any time; durable state must survive scene disposal.
 - Use `WidgetIdentityReconciler` for focus reconciliation across rebuilds instead of ad-hoc
   node-id tracking enums.
+- For stable identity keys, use `widgetIdentityId("feature.widget")` when you need a compact
+  numeric id in app/runtime state while keeping string identities at API edges.
 - For text composition/IME planning, see `docs/ime-composition-plan.md`.
 - For accessibility role/state planning, see `docs/accessibility-semantics-roadmap.md`.
 - For `std::string_view`/callback-capture lifetime rules, see `docs/data-ownership-lifetime.md`.

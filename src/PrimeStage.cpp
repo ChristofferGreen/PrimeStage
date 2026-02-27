@@ -1558,11 +1558,11 @@ bool appendNodeOnBlur(PrimeFrame::Frame& frame,
 }
 
 void WidgetIdentityReconciler::beginRebuild(PrimeFrame::NodeId focusedNode) {
-  pendingFocusedIdentity_.reset();
+  pendingFocusedIdentityId_.reset();
   if (focusedNode.isValid()) {
     for (Entry const& entry : currentEntries_) {
       if (entry.nodeId == focusedNode) {
-        pendingFocusedIdentity_ = entry.identity;
+        pendingFocusedIdentityId_ = entry.identityId;
         break;
       }
     }
@@ -1570,25 +1570,64 @@ void WidgetIdentityReconciler::beginRebuild(PrimeFrame::NodeId focusedNode) {
   currentEntries_.clear();
 }
 
-void WidgetIdentityReconciler::registerNode(std::string_view identity, PrimeFrame::NodeId nodeId) {
-  if (!nodeId.isValid() || identity.empty()) {
+void WidgetIdentityReconciler::registerNode(WidgetIdentityId identity, PrimeFrame::NodeId nodeId) {
+  if (!nodeId.isValid() || identity == InvalidWidgetIdentityId) {
     return;
   }
   for (Entry& entry : currentEntries_) {
-    if (entry.identity == identity) {
+    if (entry.identityId == identity) {
       entry.nodeId = nodeId;
       return;
     }
   }
   Entry entry;
+  entry.identityId = identity;
+  entry.nodeId = nodeId;
+  currentEntries_.push_back(std::move(entry));
+}
+
+void WidgetIdentityReconciler::registerNode(std::string_view identity, PrimeFrame::NodeId nodeId) {
+  WidgetIdentityId identityValue = widgetIdentityId(identity);
+  registerNode(identityValue, nodeId);
+  if (!nodeId.isValid() || identity.empty() || identityValue == InvalidWidgetIdentityId) {
+    return;
+  }
+  for (Entry& entry : currentEntries_) {
+    if (entry.identityId == identityValue) {
+      entry.identity = std::string(identity);
+      entry.nodeId = nodeId;
+      return;
+    }
+  }
+  Entry entry;
+  entry.identityId = identityValue;
   entry.identity = std::string(identity);
   entry.nodeId = nodeId;
   currentEntries_.push_back(std::move(entry));
 }
 
-PrimeFrame::NodeId WidgetIdentityReconciler::findNode(std::string_view identity) const {
+PrimeFrame::NodeId WidgetIdentityReconciler::findNode(WidgetIdentityId identity) const {
+  if (identity == InvalidWidgetIdentityId) {
+    return PrimeFrame::NodeId{};
+  }
   for (Entry const& entry : currentEntries_) {
-    if (entry.identity == identity) {
+    if (entry.identityId == identity) {
+      return entry.nodeId;
+    }
+  }
+  return PrimeFrame::NodeId{};
+}
+
+PrimeFrame::NodeId WidgetIdentityReconciler::findNode(std::string_view identity) const {
+  WidgetIdentityId identityValue = widgetIdentityId(identity);
+  if (identityValue == InvalidWidgetIdentityId) {
+    return PrimeFrame::NodeId{};
+  }
+  for (Entry const& entry : currentEntries_) {
+    if (entry.identityId != identityValue) {
+      continue;
+    }
+    if (entry.identity.empty() || entry.identity == identity) {
       return entry.nodeId;
     }
   }
@@ -1598,11 +1637,11 @@ PrimeFrame::NodeId WidgetIdentityReconciler::findNode(std::string_view identity)
 bool WidgetIdentityReconciler::restoreFocus(PrimeFrame::FocusManager& focus,
                                             PrimeFrame::Frame const& frame,
                                             PrimeFrame::LayoutOutput const& layout) {
-  if (!pendingFocusedIdentity_.has_value()) {
+  if (!pendingFocusedIdentityId_.has_value()) {
     return false;
   }
-  PrimeFrame::NodeId nodeId = findNode(*pendingFocusedIdentity_);
-  pendingFocusedIdentity_.reset();
+  PrimeFrame::NodeId nodeId = findNode(*pendingFocusedIdentityId_);
+  pendingFocusedIdentityId_.reset();
   if (!nodeId.isValid()) {
     return false;
   }

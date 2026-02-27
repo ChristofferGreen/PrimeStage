@@ -35,6 +35,17 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `requestExit`
 - `PrimeStage::bridgeHostInputEvent(...)`
 
+## Core Ids And Shared Specs
+
+- `PrimeStage::WidgetKind`
+- `PrimeStage::widgetKindName(...)`
+- `PrimeStage::WidgetIdentityId`
+- `PrimeStage::InvalidWidgetIdentityId`
+- `PrimeStage::widgetIdentityId(...)`
+- `PrimeStage::WidgetSpec`
+- `PrimeStage::EnableableWidgetSpec`
+- `PrimeStage::FocusableWidgetSpec`
+
 ## UiNode Widget Builders
 
 Container/base:
