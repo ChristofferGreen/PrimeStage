@@ -117,7 +117,7 @@ Release Exit Criteria (for API-quality milestone):
     navigation helpers, selection helpers, and text-selection layout/caret-hit
     utilities)
 
-- ◐ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
+- ☑ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.
   - centralize shared patch/focus/callback helper state used across widget implementations
   - reduce duplicated runtime wiring and make interaction behavior easier to reason about/test
   - vertical slice shipped: added `Internal::WidgetRuntimeContext` + helper seams
@@ -168,6 +168,10 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: adopted the runtime seam in
     `src/PrimeStageCollections.cpp` (`createList`) so list-entrypoint parent
     runtime wiring routes through `WidgetRuntimeContext`
+  - completed: all dedicated widget-entrypoint translation units now route
+    runtime wiring through `WidgetRuntimeContext`; ergonomics guardrails in
+    `tests/unit/test_api_ergonomics.cpp` enforce context-seam usage and
+    prevent reintroduction of frame-scoped focus/scrim helper calls
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

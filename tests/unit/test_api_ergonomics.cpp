@@ -4022,6 +4022,28 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(tabs.find("Internal::attachFocusOverlay(") != std::string::npos);
   CHECK(tabs.find("tabRuntime,") != std::string::npos);
+  auto require_runtime_focus_scrim = [](std::string const& source) {
+    CHECK(source.find("Internal::attachFocusOverlay(frame,") == std::string::npos);
+    CHECK(source.find("Internal::addDisabledScrimOverlay(frame,") == std::string::npos);
+  };
+  require_runtime_focus_scrim(buttonSource);
+  require_runtime_focus_scrim(layoutSource);
+  require_runtime_focus_scrim(textLineSource);
+  require_runtime_focus_scrim(labelSource);
+  require_runtime_focus_scrim(paragraphSource);
+  require_runtime_focus_scrim(textFieldSource);
+  require_runtime_focus_scrim(selectableTextSource);
+  require_runtime_focus_scrim(containersSource);
+  require_runtime_focus_scrim(textSelectionOverlaySource);
+  require_runtime_focus_scrim(windowSource);
+  require_runtime_focus_scrim(booleanSource);
+  require_runtime_focus_scrim(sliderSource);
+  require_runtime_focus_scrim(collections);
+  require_runtime_focus_scrim(table);
+  require_runtime_focus_scrim(tree);
+  require_runtime_focus_scrim(dropdown);
+  require_runtime_focus_scrim(progress);
+  require_runtime_focus_scrim(tabs);
 
   std::ifstream internalsInput(internalsPath);
   REQUIRE(internalsInput.good());
@@ -4115,6 +4137,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::string todo((std::istreambuf_iterator<char>(todoInput)), std::istreambuf_iterator<char>());
   REQUIRE(!todo.empty());
   CHECK(todo.find("☑ [111] Split `src/PrimeStage.cpp` into focused internal implementation units.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [112] Introduce an internal `WidgetRuntimeContext` shared runtime seam.") !=
         std::string::npos);
   CHECK(todo.find("[119] Continue collection widget extraction from `src/PrimeStage.cpp`.") !=
         std::string::npos);
