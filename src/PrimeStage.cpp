@@ -1413,6 +1413,39 @@ uint32_t caretIndexForClickInLayout(PrimeFrame::Frame& frame,
   return line.start + localIndex;
 }
 
+struct CallbackReentryScope {
+  explicit CallbackReentryScope(std::shared_ptr<bool> state)
+      : state_(std::move(state)) {
+    if (!state_ || *state_) {
+      return;
+    }
+    *state_ = true;
+    entered_ = true;
+  }
+
+  ~CallbackReentryScope() {
+    if (entered_ && state_) {
+      *state_ = false;
+    }
+  }
+
+  bool entered() const { return entered_; }
+
+private:
+  std::shared_ptr<bool> state_;
+  bool entered_ = false;
+};
+
+void report_callback_reentry(char const* callbackName) {
+#if !defined(NDEBUG)
+  std::fprintf(stderr,
+               "PrimeStage callback guard: reentrant %s invocation suppressed\n",
+               callbackName);
+#else
+  (void)callbackName;
+#endif
+}
+
 static PrimeFrame::Callback* ensureNodeCallback(PrimeFrame::Frame& frame, PrimeFrame::NodeId nodeId) {
   PrimeFrame::Node* node = frame.getNode(nodeId);
   if (!node) {
@@ -1442,8 +1475,16 @@ bool appendNodeOnEvent(PrimeFrame::Frame& frame,
     return false;
   }
   auto previous = callback->onEvent;
-  callback->onEvent = [handler = std::move(onEvent), previous = std::move(previous)](
+  std::shared_ptr<bool> reentryState = std::make_shared<bool>(false);
+  callback->onEvent = [handler = std::move(onEvent),
+                       previous = std::move(previous),
+                       reentryState = std::move(reentryState)](
                           PrimeFrame::Event const& event) -> bool {
+    CallbackReentryScope reentryGuard(reentryState);
+    if (!reentryGuard.entered()) {
+      report_callback_reentry("onEvent");
+      return false;
+    }
     if (handler && handler(event)) {
       return true;
     }
@@ -1466,7 +1507,15 @@ bool appendNodeOnFocus(PrimeFrame::Frame& frame,
     return false;
   }
   auto previous = callback->onFocus;
-  callback->onFocus = [handler = std::move(onFocus), previous = std::move(previous)]() {
+  std::shared_ptr<bool> reentryState = std::make_shared<bool>(false);
+  callback->onFocus = [handler = std::move(onFocus),
+                       previous = std::move(previous),
+                       reentryState = std::move(reentryState)]() {
+    CallbackReentryScope reentryGuard(reentryState);
+    if (!reentryGuard.entered()) {
+      report_callback_reentry("onFocus");
+      return;
+    }
     if (previous) {
       previous();
     }
@@ -1488,7 +1537,15 @@ bool appendNodeOnBlur(PrimeFrame::Frame& frame,
     return false;
   }
   auto previous = callback->onBlur;
-  callback->onBlur = [handler = std::move(onBlur), previous = std::move(previous)]() {
+  std::shared_ptr<bool> reentryState = std::make_shared<bool>(false);
+  callback->onBlur = [handler = std::move(onBlur),
+                      previous = std::move(previous),
+                      reentryState = std::move(reentryState)]() {
+    CallbackReentryScope reentryGuard(reentryState);
+    if (!reentryGuard.entered()) {
+      report_callback_reentry("onBlur");
+      return;
+    }
     if (previous) {
       previous();
     }

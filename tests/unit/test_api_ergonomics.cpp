@@ -282,6 +282,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("cmake --install build-release --prefix") != std::string::npos);
   CHECK(readme.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
   CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
+  CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -346,6 +347,64 @@ TEST_CASE("PrimeStage API evolution policy defines semver deprecation and migrat
                      std::istreambuf_iterator<char>());
   REQUIRE(!agents.empty());
   CHECK(agents.find("docs/api-evolution-policy.md") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage callback threading and reentrancy contract is documented and wired") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path callbackDocPath =
+      repoRoot / "docs" / "callback-reentrancy-threading.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  REQUIRE(std::filesystem::exists(callbackDocPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(uiHeaderPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+
+  std::ifstream callbackDocInput(callbackDocPath);
+  REQUIRE(callbackDocInput.good());
+  std::string callbackDoc((std::istreambuf_iterator<char>(callbackDocInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!callbackDoc.empty());
+  CHECK(callbackDoc.find("Execution Context") != std::string::npos);
+  CHECK(callbackDoc.find("Rebuild/Layout Requests From Callbacks") != std::string::npos);
+  CHECK(callbackDoc.find("Reentrancy Guardrails") != std::string::npos);
+  CHECK(callbackDoc.find("appendNodeOnEvent") != std::string::npos);
+  CHECK(callbackDoc.find("appendNodeOnFocus") != std::string::npos);
+  CHECK(callbackDoc.find("appendNodeOnBlur") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("Callback Threading/Reentrancy Contract") != std::string::npos);
+  CHECK(guidelines.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+
+  std::ifstream uiHeaderInput(uiHeaderPath);
+  REQUIRE(uiHeaderInput.good());
+  std::string uiHeader((std::istreambuf_iterator<char>(uiHeaderInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!uiHeader.empty());
+  CHECK(uiHeader.find("Direct reentrant invocation of the same") != std::string::npos);
+
+  std::ifstream sourceCppInput(sourceCppPath);
+  REQUIRE(sourceCppInput.good());
+  std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sourceCpp.empty());
+  CHECK(sourceCpp.find("CallbackReentryScope") != std::string::npos);
+  CHECK(sourceCpp.find("reentrant %s invocation suppressed") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage install export package workflow supports find_package consumers") {
@@ -779,6 +838,96 @@ TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur compose callbacks")
   int appendedBlur = 0;
   CHECK(PrimeStage::appendNodeOnFocus(frame, nodeId, [&]() { appendedFocus += 1; }));
   CHECK(PrimeStage::appendNodeOnBlur(frame, nodeId, [&]() { appendedBlur += 1; }));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onFocus);
+  REQUIRE(callback->onBlur);
+
+  callback->onFocus();
+  callback->onBlur();
+
+  CHECK(previousFocus == 1);
+  CHECK(previousBlur == 1);
+  CHECK(appendedFocus == 1);
+  CHECK(appendedBlur == 1);
+}
+
+TEST_CASE("PrimeStage appendNodeOnEvent suppresses direct reentrant recursion") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId nodeId = frame.createNode();
+  frame.addRoot(nodeId);
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  REQUIRE(node != nullptr);
+
+  int handlerCalls = 0;
+  bool nestedHandled = true;
+  CHECK(PrimeStage::appendNodeOnEvent(
+      frame,
+      nodeId,
+      [&](PrimeFrame::Event const& event) -> bool {
+        handlerCalls += 1;
+        if (handlerCalls == 1) {
+          PrimeFrame::Node const* currentNode = frame.getNode(nodeId);
+          REQUIRE(currentNode != nullptr);
+          PrimeFrame::Callback const* callback = frame.getCallback(currentNode->callbacks);
+          REQUIRE(callback != nullptr);
+          REQUIRE(callback->onEvent);
+          nestedHandled = callback->onEvent(event);
+        }
+        return true;
+      }));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event trigger;
+  trigger.type = PrimeFrame::EventType::KeyDown;
+  trigger.key = 11;
+  CHECK(callback->onEvent(trigger));
+  CHECK(handlerCalls == 1);
+  CHECK_FALSE(nestedHandled);
+}
+
+TEST_CASE("PrimeStage appendNodeOnFocus and appendNodeOnBlur suppress direct reentrancy") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId nodeId = frame.createNode();
+  frame.addRoot(nodeId);
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  REQUIRE(node != nullptr);
+
+  PrimeFrame::Callback base;
+  int previousFocus = 0;
+  int previousBlur = 0;
+  base.onFocus = [&]() { previousFocus += 1; };
+  base.onBlur = [&]() { previousBlur += 1; };
+  node->callbacks = frame.addCallback(std::move(base));
+
+  int appendedFocus = 0;
+  int appendedBlur = 0;
+  CHECK(PrimeStage::appendNodeOnFocus(frame, nodeId, [&]() {
+    appendedFocus += 1;
+    if (appendedFocus == 1) {
+      PrimeFrame::Node const* currentNode = frame.getNode(nodeId);
+      REQUIRE(currentNode != nullptr);
+      PrimeFrame::Callback const* callback = frame.getCallback(currentNode->callbacks);
+      REQUIRE(callback != nullptr);
+      REQUIRE(callback->onFocus);
+      callback->onFocus();
+    }
+  }));
+  CHECK(PrimeStage::appendNodeOnBlur(frame, nodeId, [&]() {
+    appendedBlur += 1;
+    if (appendedBlur == 1) {
+      PrimeFrame::Node const* currentNode = frame.getNode(nodeId);
+      REQUIRE(currentNode != nullptr);
+      PrimeFrame::Callback const* callback = frame.getCallback(currentNode->callbacks);
+      REQUIRE(callback != nullptr);
+      REQUIRE(callback->onBlur);
+      callback->onBlur();
+    }
+  }));
 
   PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
   REQUIRE(callback != nullptr);

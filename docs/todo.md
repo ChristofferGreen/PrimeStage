@@ -172,9 +172,10 @@ Release Exit Criteria (for API-quality milestone):
   - verify consumer integration with `find_package(PrimeStage)` style workflow
   - delivered via install/export/package config wiring in `CMakeLists.txt` + `cmake/PrimeStageConfig.cmake.in`, consumer smoke assets in `tests/cmake/find_package_smoke/*` with ctest driver `tests/cmake/run_find_package_smoke.cmake`, packaging docs in `docs/cmake-packaging.md`, and regression guards in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [42] Define callback reentrancy/threading guarantees.
+- ☑ [42] Define callback reentrancy/threading guarantees.
   - document which callbacks may trigger rebuild/layout and in what execution context
   - add guardrails/tests for callback-triggered state changes to avoid reentrancy bugs
+  - delivered via callback contract doc `docs/callback-reentrancy-threading.md`, docs alignment in `docs/api-ergonomics-guidelines.md` + `docs/prime-stage-design.md`, runtime reentrancy suppression guardrails in `src/PrimeStage.cpp`/`include/PrimeStage/Ui.h` for callback composition helpers, and regression coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [48] Define data ownership/lifetime contracts in public specs.
   - document safe usage rules for `std::string_view` fields and callback captures

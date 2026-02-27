@@ -63,6 +63,8 @@ For advanced extension points, use PrimeStage callback composition helpers:
 - `appendNodeOnEvent(...)`
 - `appendNodeOnFocus(...)`
 - `appendNodeOnBlur(...)`
+Callback reentrancy/threading guarantees are documented in
+`docs/callback-reentrancy-threading.md`.
 
 ## Controlled vs State-Backed Widgets
 PrimeStage supports two widget value models for interactive controls:

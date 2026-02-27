@@ -31,3 +31,4 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - Avoid raw `new`; use `std::unique_ptr` or `std::shared_ptr` with clear ownership intent.
 - For public widget specs, clamp invalid inputs to safe runtime fallbacks and emit debug diagnostics; add unit tests for new validation paths.
 - For public API/spec/callback changes, follow `docs/api-evolution-policy.md` (semver impact classification, staged deprecation, and migration notes).
+- For callback composition/reentrancy/threading behavior, follow `docs/callback-reentrancy-threading.md` and keep callback state changes single-thread-safe.

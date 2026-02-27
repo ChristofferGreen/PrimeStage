@@ -698,6 +698,10 @@ bool selectableTextHasSelection(SelectableTextState const& state,
                                 uint32_t& end);
 void clearSelectableTextSelection(SelectableTextState& state, uint32_t anchor);
 
+// Callback composition helpers execute on the caller/dispatch thread and do not
+// provide cross-thread synchronization. Direct reentrant invocation of the same
+// composed callback chain is suppressed at runtime to avoid recursive callback
+// loops.
 bool appendNodeOnEvent(PrimeFrame::Frame& frame,
                        PrimeFrame::NodeId nodeId,
                        std::function<bool(PrimeFrame::Event const&)> onEvent);

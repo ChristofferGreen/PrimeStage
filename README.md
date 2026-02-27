@@ -87,6 +87,7 @@ diagnostics.
 ## Docs
 - `docs/prime-stage-design.md`
 - `docs/api-ergonomics-guidelines.md`
+- `docs/callback-reentrancy-threading.md`
 - `docs/api-evolution-policy.md`
 - `docs/design-decisions.md`
 - `docs/performance-benchmarks.md`

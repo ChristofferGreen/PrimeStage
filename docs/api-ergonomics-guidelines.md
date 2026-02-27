@@ -105,6 +105,15 @@ void afterLayout(App& app) {
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
 - For advanced/internal extension points, use PrimeStage callback-composition helpers (`appendNodeOnEvent`, `appendNodeOnFocus`, `appendNodeOnBlur`) instead of mutating callback tables ad hoc.
 
+### Callback Threading/Reentrancy Contract
+- Callback execution is synchronous on the event-dispatch thread.
+- PrimeStage does not provide cross-thread synchronization for app-owned callback state.
+- Callback-composition helpers suppress direct reentrant invocation of the same callback chain to
+  avoid recursive loops.
+- Prefer requesting rebuild/layout work from callbacks instead of rebuilding synchronously inside
+  callbacks.
+- See `docs/callback-reentrancy-threading.md` for the full contract and guardrail details.
+
 Example (`Button` callback wiring):
 
 ```cpp
