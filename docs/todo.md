@@ -138,6 +138,15 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [102] Link advanced onboarding docs to ownership/lifetime policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/data-ownership-lifetime.md` so advanced callback/interop
+    escape hatches review ownership/lifetime guarantees before capturing
+    borrowed data
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    ownership/lifetime policy link and guardrail phrasing, preventing
+    undocumented advanced lifetime-safety drift
+
 - ☑ [101] Link advanced onboarding docs to callback threading policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/callback-reentrancy-threading.md` so advanced callback

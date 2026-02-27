@@ -81,6 +81,8 @@ Use only for explicit interop, not canonical app flow.
   advanced rendering escape hatches.
 - Review callback reentrancy/threading guarantees in `docs/callback-reentrancy-threading.md`
   before composing advanced callback escape hatches.
+- Review ownership and lifetime rules in `docs/data-ownership-lifetime.md` before composing
+  advanced callback/interop escape hatches that capture borrowed data.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:
