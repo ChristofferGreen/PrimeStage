@@ -1260,6 +1260,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/example-app-consumer-checklist.md") != std::string::npos);
   CHECK(advancedEscape.find("Review exception-tag policy details in `docs/example-app-consumer-checklist.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("Default onboarding starts in `docs/5-minute-app.md`.") !=
         std::string::npos);
   CHECK(advancedEscape.find("Stay on the canonical tier unless you explicitly need low-level control:") !=

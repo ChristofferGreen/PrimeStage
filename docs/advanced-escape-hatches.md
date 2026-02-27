@@ -67,7 +67,10 @@ Use only for explicit interop, not canonical app flow.
   `Advanced lifecycle orchestration (documented exception):`
 - Review exception-tag policy details in `docs/example-app-consumer-checklist.md` before adding
   or changing advanced integrations.
+- Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
+  paths.
 - When adding a new escape hatch, update:
   - `docs/example-app-consumer-checklist.md`
   - `docs/api-ergonomics-guidelines.md`
+  - `AGENTS.md`
   - `tests/unit/test_api_ergonomics.cpp`

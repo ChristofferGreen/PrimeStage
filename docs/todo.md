@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [94] Link advanced onboarding docs to contributor policy (`AGENTS.md`).
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to contributor policy in `AGENTS.md` for advanced integration
+    changes
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both `AGENTS.md`
+    reference text and explicit contributor-policy review phrasing in advanced
+    onboarding docs
+
 - ☑ [93] Link advanced onboarding docs to exception-policy checklist.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     exception-policy handoff to `docs/example-app-consumer-checklist.md`
