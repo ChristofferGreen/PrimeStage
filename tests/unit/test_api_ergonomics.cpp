@@ -874,6 +874,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   constexpr std::string_view PrimeFrameIntegrationTag =
       "Advanced PrimeFrame integration (documented exception):";
   constexpr size_t PrimeFrameTagLookbackLines = 24u;
+  constexpr std::string_view PrimeFrameIncludeMarker = "#include \"PrimeFrame/";
   constexpr std::string_view LifecycleOrchestrationTag =
       "Advanced lifecycle orchestration (documented exception):";
   constexpr size_t LifecycleTagLookbackLines = 24u;
@@ -906,6 +907,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
 
   bool foundLifecycleOrchestrationExample = false;
   bool foundPrimeFrameIntegrationExample = false;
+  bool foundPrimeFrameIncludeMarker = false;
   for (std::filesystem::path const& advancedSourcePath : advancedSources) {
     std::ifstream advancedInput(advancedSourcePath);
     REQUIRE(advancedInput.good());
@@ -939,6 +941,14 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
       INFO("advanced PrimeFrame integration file: " << advancedSourcePath.string());
       CHECK(advancedSource.find(PrimeFrameIntegrationTag) != std::string::npos);
       for (size_t lineIndex = 0u; lineIndex < advancedSourceLines.size(); ++lineIndex) {
+        if (advancedSourceLines[lineIndex].find(PrimeFrameIncludeMarker) != std::string::npos) {
+          foundPrimeFrameIncludeMarker = true;
+          INFO("advanced PrimeFrame include marker line: " << (lineIndex + 1u));
+          CHECK(hasNearbyTag(advancedSourceLines,
+                             lineIndex,
+                             PrimeFrameIntegrationTag,
+                             PrimeFrameTagLookbackLines));
+        }
         if (advancedSourceLines[lineIndex].find("PrimeFrame::") == std::string::npos) {
           continue;
         }
@@ -949,6 +959,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   }
   CHECK(foundLifecycleOrchestrationExample);
   CHECK(foundPrimeFrameIntegrationExample);
+  CHECK(foundPrimeFrameIncludeMarker);
 
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;

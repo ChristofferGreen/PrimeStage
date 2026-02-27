@@ -1,5 +1,7 @@
 #include "PrimeStage/Ui.h"
 
+// Advanced PrimeFrame integration (documented exception): this sample intentionally demonstrates
+// direct PrimeFrame frame + layout hosting APIs.
 #include "PrimeFrame/Frame.h"
 #include "PrimeFrame/Layout.h"
 
@@ -11,8 +13,6 @@ namespace {
 
 constexpr float SceneWidth = 960.0f;
 constexpr float SceneHeight = 640.0f;
-// Advanced PrimeFrame integration (documented exception): this sample intentionally demonstrates
-// direct PrimeFrame frame + layout hosting APIs.
 
 struct SceneState {
   PrimeStage::TextFieldState nameField{};

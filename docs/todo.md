@@ -138,6 +138,16 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [86] Enforce proximity of advanced PrimeFrame include exception tags.
+  - tightened `tests/unit/test_api_ergonomics.cpp` to require advanced
+    `#include "PrimeFrame/..."` markers to have a nearby inline exception tag
+    `Advanced PrimeFrame integration (documented exception):`
+  - added a positive guard ensuring include-marker coverage is actually
+    exercised by at least one advanced example source
+  - moved the inline PrimeFrame exception tag in
+    `examples/advanced/primestage_scene.cpp` to sit adjacent to the PrimeFrame
+    include block so include-level proximity checks stay deterministic
+
 - ☑ [85] Enforce proximity of advanced lifecycle exception tags.
   - tightened `tests/unit/test_api_ergonomics.cpp` so advanced-tier lifecycle
     scheduling calls (`requestRebuild` / `requestLayout` / `requestFrame`)
