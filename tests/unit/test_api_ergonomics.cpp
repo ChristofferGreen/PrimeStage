@@ -2841,6 +2841,8 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   CHECK(matrix.find("| `List` |") != std::string::npos);
   CHECK(matrix.find("| `TreeView` |") != std::string::npos);
   CHECK(matrix.find("| `Window` |") != std::string::npos);
+  CHECK(matrix.find("ProgressBar` keeps a fill node allocated for patch-first interaction updates") !=
+        std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());

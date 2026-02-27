@@ -39,6 +39,17 @@ Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
 
+- ☑ [80] Align progress-bar zero-fill contract with patch-first interaction behavior.
+  - reconciled zero-value progress-bar expectations in `tests/unit/test_widgets.cpp`:
+    zero value with `minFillWidth == 0` now asserts hidden fill-node behavior
+    (`visible=false`, width `0.0f`) instead of requiring node removal
+  - added complementary positive coverage in the same test for
+    `minFillWidth > 0` at zero value to confirm visible minimum-fill rendering
+  - documented the contract in `docs/default-widget-behavior-matrix.md`
+    (patch-first fill node remains allocated and hidden at zero value)
+  - updated contributor guidance in `AGENTS.md` and enforcement checks in
+    `tests/unit/test_api_ergonomics.cpp`
+
 - ☑ [79] Clarify lifecycle scheduling exceptions between canonical and advanced examples.
   - aligned tier guardrails in `tests/unit/test_api_ergonomics.cpp` so canonical
     examples still forbid manual lifecycle orchestration while advanced examples

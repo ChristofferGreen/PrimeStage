@@ -66,7 +66,7 @@ TEST_CASE("PrimeStage progress bar min fill width clamps to bounds") {
   CHECK(fillClamp->sizeHint.width.preferred.value() == doctest::Approx(100.0f));
 }
 
-TEST_CASE("PrimeStage progress bar with zero value and no min fill creates no fill node") {
+TEST_CASE("PrimeStage progress bar with zero value keeps fill hidden until non-zero progress") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 160.0f, 60.0f);
 
@@ -80,7 +80,19 @@ TEST_CASE("PrimeStage progress bar with zero value and no min fill creates no fi
 
   PrimeStage::UiNode bar = root.createProgressBar(spec);
   PrimeFrame::Node const* fillNode = findChildWithRectToken(frame, bar.nodeId(), spec.fillStyle);
-  CHECK(fillNode == nullptr);
+  REQUIRE(fillNode != nullptr);
+  CHECK_FALSE(fillNode->visible);
+  REQUIRE(fillNode->sizeHint.width.preferred.has_value());
+  CHECK(fillNode->sizeHint.width.preferred.value() == doctest::Approx(0.0f));
+
+  spec.minFillWidth = 6.0f;
+  PrimeStage::UiNode barWithMinFill = root.createProgressBar(spec);
+  PrimeFrame::Node const* fillNodeWithMin =
+      findChildWithRectToken(frame, barWithMinFill.nodeId(), spec.fillStyle);
+  REQUIRE(fillNodeWithMin != nullptr);
+  CHECK(fillNodeWithMin->visible);
+  REQUIRE(fillNodeWithMin->sizeHint.width.preferred.has_value());
+  CHECK(fillNodeWithMin->sizeHint.width.preferred.value() == doctest::Approx(6.0f));
 }
 
 TEST_CASE("PrimeStage intrinsic defaults keep unsized widgets visible") {

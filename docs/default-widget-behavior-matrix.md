@@ -19,6 +19,10 @@ This matrix defines baseline defaults for interactive widgets in canonical Prime
 | `TreeView` | Yes | Up/Down/Home/End/Page keys navigate; Left/Right collapse/expand | Row click selects | `Tree` |
 | `Window` | Yes (`focusable=true`) | Focus participation via tab order | Pointer focus/move/resize via chrome callbacks | `Group` |
 
+Implementation note:
+- `ProgressBar` keeps a fill node allocated for patch-first interaction updates; at `value=0` with
+  `minFillWidth=0` the fill remains hidden (`visible=false`) until value becomes non-zero.
+
 ## Regression Gates
 
 - Runtime behavior gates: `tests/unit/test_interaction.cpp`.
