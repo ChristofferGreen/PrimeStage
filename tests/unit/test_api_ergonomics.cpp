@@ -1278,6 +1278,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/render-diagnostics.md") != std::string::npos);
   CHECK(advancedEscape.find("Review render failure reporting expectations in `docs/render-diagnostics.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review callback reentrancy/threading guarantees in `docs/callback-reentrancy-threading.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1736,6 +1739,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/render-diagnostics.md") != std::string::npos);
   CHECK(advanced.find("Review render failure reporting expectations in `docs/render-diagnostics.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/callback-reentrancy-threading.md") != std::string::npos);
+  CHECK(advanced.find("Review callback reentrancy/threading guarantees in `docs/callback-reentrancy-threading.md`") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);

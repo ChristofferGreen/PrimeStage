@@ -79,6 +79,8 @@ Use only for explicit interop, not canonical app flow.
   advanced public-facing API surface.
 - Review render failure reporting expectations in `docs/render-diagnostics.md` before adding
   advanced rendering escape hatches.
+- Review callback reentrancy/threading guarantees in `docs/callback-reentrancy-threading.md`
+  before composing advanced callback escape hatches.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:

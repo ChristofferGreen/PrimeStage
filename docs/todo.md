@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [101] Link advanced onboarding docs to callback threading policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/callback-reentrancy-threading.md` so advanced callback
+    escape-hatch composition reviews reentrancy/threading guarantees first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the callback
+    threading policy link and guardrail phrasing, preventing undocumented
+    advanced callback-threading drift
+
 - ☑ [100] Link advanced onboarding docs to render diagnostics policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/render-diagnostics.md` so advanced rendering escape-hatch
