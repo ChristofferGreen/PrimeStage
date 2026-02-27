@@ -32,13 +32,20 @@ bool isPointerInside(PrimeFrame::Event const& event) {
 UiNode UiNode::createTabs(TabsSpec const& specInput) {
   TabsSpec spec = Internal::normalizeTabsSpec(specInput);
   bool enabled = spec.enabled;
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   int tabCount = static_cast<int>(spec.labels.size());
   int selectedIndex = spec.selectedIndex;
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
-  float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
-  float activeLineHeight = Internal::resolveLineHeight(frame(), spec.activeTextStyle);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
+  float activeLineHeight = Internal::resolveLineHeight(runtimeFrame, spec.activeTextStyle);
   float tabLine = std::max(lineHeight, activeLineHeight);
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
@@ -53,7 +60,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     for (size_t i = 0; i < spec.labels.size(); ++i) {
       PrimeFrame::TextStyleToken token =
           (static_cast<int>(i) == selectedIndex) ? spec.activeTextStyle : spec.textStyle;
-      float textWidth = Internal::estimateTextWidth(frame(), token, spec.labels[i]);
+      float textWidth = Internal::estimateTextWidth(runtimeFrame, token, spec.labels[i]);
       total += textWidth + spec.tabPaddingX * 2.0f;
       if (i + 1 < spec.labels.size()) {
         total += spec.gap;
@@ -74,7 +81,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
   rowSpec.clipChildren = false;
   rowSpec.visible = spec.visible;
   UiNode row = createHorizontalStack(rowSpec);
-  if (PrimeFrame::Node* rowNode = frame().getNode(row.nodeId())) {
+  if (PrimeFrame::Node* rowNode = runtimeFrame.getNode(row.nodeId())) {
     rowNode->hitTestVisible = enabled;
   }
   auto sharedSelected = std::make_shared<int>(selectedIndex);
@@ -89,7 +96,7 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     PrimeFrame::TextStyleOverride textOverride =
         active ? spec.activeTextStyleOverride : spec.textStyleOverride;
 
-    float textWidth = Internal::estimateTextWidth(frame(), textToken, spec.labels[i]);
+    float textWidth = Internal::estimateTextWidth(runtimeFrame, textToken, spec.labels[i]);
     PanelSpec tabPanel;
     tabPanel.rectStyle = rectStyle;
     tabPanel.rectStyleOverride = rectOverride;
@@ -108,14 +115,21 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
     textSpec.visible = spec.visible;
     tab.createTextLine(textSpec);
 
-    PrimeFrame::Node* tabNode = frame().getNode(tab.nodeId());
+    PrimeFrame::Node* tabNode = runtimeFrame.getNode(tab.nodeId());
     if (!tabNode) {
       continue;
     }
-    tabNode->focusable = spec.visible && enabled;
-    tabNode->hitTestVisible = enabled;
-    tabNode->tabIndex = (enabled && spec.tabIndex >= 0) ? (spec.tabIndex + tabIndex) : -1;
-    if (!spec.visible || !enabled) {
+    if (!spec.visible) {
+      tabNode->focusable = false;
+      tabNode->hitTestVisible = enabled;
+      tabNode->tabIndex = (enabled && spec.tabIndex >= 0) ? (spec.tabIndex + tabIndex) : -1;
+      continue;
+    }
+
+    Internal::WidgetRuntimeContext tabRuntime = runtime;
+    tabRuntime.tabIndex = (enabled && spec.tabIndex >= 0) ? (spec.tabIndex + tabIndex) : -1;
+    Internal::configureInteractiveRoot(tabRuntime, tab.nodeId());
+    if (!enabled) {
       continue;
     }
 
@@ -202,26 +216,24 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
       }
       return false;
     };
-    tabNode->callbacks = frame().addCallback(std::move(callback));
+    tabNode->callbacks = runtimeFrame.addCallback(std::move(callback));
 
     Internal::InternalFocusStyle focusStyle =
-        Internal::resolveFocusStyle(frame(), 0, {}, 0, 0, 0, 0, 0);
+        Internal::resolveFocusStyle(runtimeFrame, 0, {}, 0, 0, 0, 0, 0);
     Internal::attachFocusOverlay(
-        frame(),
+        tabRuntime,
         tab.nodeId(),
         Internal::InternalRect{0.0f, 0.0f, textWidth + spec.tabPaddingX * 2.0f, bounds.height},
-        focusStyle,
-        spec.visible);
+        focusStyle);
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       row.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   }
 
-  return UiNode(frame(), row.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, row.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding) {

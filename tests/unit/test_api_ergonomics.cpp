@@ -3986,6 +3986,11 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(tabs.find("UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding)") !=
         std::string::npos);
   CHECK(tabs.find("Internal::normalizeTabsSpec(specInput)") != std::string::npos);
+  CHECK(tabs.find("Internal::makeWidgetRuntimeContext(") != std::string::npos);
+  CHECK(tabs.find("Internal::configureInteractiveRoot(tabRuntime, tab.nodeId()") !=
+        std::string::npos);
+  CHECK(tabs.find("Internal::attachFocusOverlay(") != std::string::npos);
+  CHECK(tabs.find("tabRuntime,") != std::string::npos);
 
   std::ifstream internalsInput(internalsPath);
   REQUIRE(internalsInput.good());
