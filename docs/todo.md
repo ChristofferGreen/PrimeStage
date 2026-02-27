@@ -226,8 +226,9 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P2 (Foundational Cleanup / Backlog)
 
-- ☐ [26] Add patch-first update path for high-frequency text/selection edits.
+- ☑ [26] Add patch-first update path for high-frequency text/selection edits.
   - avoid full-scene rebuild on every text/caret update where structural changes are not required
+  - delivered via in-place `TextField` visual patching in `src/PrimeStage.cpp` (`TextFieldPatchState` + callback-driven primitive updates), no-rebuild regression coverage in `tests/unit/test_text_field.cpp`, docs/runtime guidance alignment in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, `docs/minimal-api-reference.md`, `AGENTS.md`, and patch-first usage checks in `tests/unit/test_api_ergonomics.cpp` + `examples/primestage_widgets.cpp`
 
 - ☐ [30] Expand patch-first updates beyond text fields.
   - support non-structural interaction updates (toggle/checkbox/slider/progress visual state) without full rebuilds

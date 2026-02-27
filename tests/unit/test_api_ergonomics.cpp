@@ -358,6 +358,64 @@ TEST_CASE("PrimeStage window builder API is stateless and callback-driven") {
   CHECK(agents.find("createWindow(WindowSpec)") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage text field edits support patch-first frame updates") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path examplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(examplePath));
+
+  std::ifstream sourceInput(sourceCppPath);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("patchTextFieldVisuals") != std::string::npos);
+  CHECK(source.find("TextFieldPatchState") != std::string::npos);
+  CHECK(source.find("notify_state = [&]()") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("TextField") != std::string::npos);
+  CHECK(design.find("request frame-only updates") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("TextField") != std::string::npos);
+  CHECK(guidelines.find("patch-first") != std::string::npos);
+  CHECK(guidelines.find("request only a frame") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("Patch-First TextField Path") != std::string::npos);
+  CHECK(apiRef.find("requestFrame()") != std::string::npos);
+
+  std::ifstream exampleInput(examplePath);
+  REQUIRE(exampleInput.good());
+  std::string example((std::istreambuf_iterator<char>(exampleInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!example.empty());
+  CHECK(example.find("fieldSpec.callbacks.onStateChanged") != std::string::npos);
+  CHECK(example.find("fieldSpec.callbacks.onTextChanged") != std::string::npos);
+  CHECK(example.find("app.runtime.requestFrame();") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage README and design docs match shipped workflow and API names") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

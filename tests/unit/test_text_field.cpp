@@ -4,7 +4,50 @@
 
 #include "third_party/doctest.h"
 
+#include <string>
 #include <vector>
+
+static PrimeFrame::Primitive* findFirstPrimitiveInSubtree(PrimeFrame::Frame& frame,
+                                                          PrimeFrame::NodeId nodeId,
+                                                          PrimeFrame::PrimitiveType type) {
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == type) {
+      return prim;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    if (PrimeFrame::Primitive* child = findFirstPrimitiveInSubtree(frame, childId, type)) {
+      return child;
+    }
+  }
+  return nullptr;
+}
+
+static PrimeFrame::Node* findNodeWithRectTokenInSubtree(PrimeFrame::Frame& frame,
+                                                         PrimeFrame::NodeId nodeId,
+                                                         PrimeFrame::RectStyleToken token) {
+  PrimeFrame::Node* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == PrimeFrame::PrimitiveType::Rect && prim->rect.token == token) {
+      return node;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    if (PrimeFrame::Node* child = findNodeWithRectTokenInSubtree(frame, childId, token)) {
+      return child;
+    }
+  }
+  return nullptr;
+}
 
 TEST_CASE("Text field arrow keys move cursor by one") {
   PrimeFrame::Frame frame;
@@ -123,6 +166,102 @@ TEST_CASE("Text field non-ASCII text input and backspace keep UTF-8 boundaries")
   CHECK_FALSE(changes.empty());
   CHECK(changes.front() == "にほんご");
   CHECK(changes.back() == "にほん");
+}
+
+TEST_CASE("Text field updates text primitive without full rebuild") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::TextFieldState state;
+  state.text = "Prime";
+  state.cursor = static_cast<uint32_t>(state.text.size());
+  state.focused = true;
+
+  PrimeStage::TextFieldSpec spec;
+  spec.state = &state;
+  spec.textStyle = 101u;
+  spec.placeholderStyle = 102u;
+  spec.selectionStyle = 201u;
+  spec.cursorStyle = 202u;
+  spec.size.preferredWidth = 240.0f;
+  spec.size.preferredHeight = 28.0f;
+
+  PrimeStage::UiNode field = root.createTextField(spec);
+
+  PrimeFrame::Primitive* textPrimitive =
+      findFirstPrimitiveInSubtree(frame, field.nodeId(), PrimeFrame::PrimitiveType::Text);
+  REQUIRE(textPrimitive != nullptr);
+  CHECK(textPrimitive->textBlock.text == "Prime");
+
+  PrimeFrame::Node const* fieldNode = frame.getNode(field.nodeId());
+  REQUIRE(fieldNode != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(fieldNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event input;
+  input.type = PrimeFrame::EventType::TextInput;
+  input.text = "Stage";
+  CHECK(callback->onEvent(input));
+
+  CHECK(state.text == "PrimeStage");
+  textPrimitive = findFirstPrimitiveInSubtree(frame, field.nodeId(), PrimeFrame::PrimitiveType::Text);
+  REQUIRE(textPrimitive != nullptr);
+  CHECK(textPrimitive->textBlock.text == "PrimeStage");
+}
+
+TEST_CASE("Text field patch path updates selection visuals in place") {
+  PrimeFrame::Frame frame;
+  PrimeFrame::NodeId rootId = frame.createNode();
+  frame.addRoot(rootId);
+  PrimeStage::UiNode root(frame, rootId, true);
+
+  PrimeStage::TextFieldState state;
+  state.text = "Prime";
+  state.cursor = static_cast<uint32_t>(state.text.size());
+  state.focused = true;
+  state.cursorVisible = true;
+
+  PrimeStage::TextFieldSpec spec;
+  spec.state = &state;
+  spec.textStyle = 111u;
+  spec.selectionStyle = 211u;
+  spec.cursorStyle = 212u;
+  spec.size.preferredWidth = 240.0f;
+  spec.size.preferredHeight = 28.0f;
+
+  PrimeStage::UiNode field = root.createTextField(spec);
+  PrimeFrame::Node const* fieldNode = frame.getNode(field.nodeId());
+  REQUIRE(fieldNode != nullptr);
+  PrimeFrame::Callback const* callback = frame.getCallback(fieldNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event selectLeft;
+  selectLeft.type = PrimeFrame::EventType::KeyDown;
+  selectLeft.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Left);
+  selectLeft.modifiers = 1u << 0u;
+  CHECK(callback->onEvent(selectLeft));
+  CHECK(state.selectionStart != state.selectionEnd);
+
+  PrimeFrame::Node* selectionNode =
+      findNodeWithRectTokenInSubtree(frame, field.nodeId(), spec.selectionStyle);
+  REQUIRE(selectionNode != nullptr);
+  REQUIRE(selectionNode->sizeHint.width.preferred.has_value());
+  CHECK(selectionNode->visible);
+  CHECK(selectionNode->sizeHint.width.preferred.value() > 0.0f);
+
+  PrimeFrame::Event collapseRight;
+  collapseRight.type = PrimeFrame::EventType::KeyDown;
+  collapseRight.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Right);
+  CHECK(callback->onEvent(collapseRight));
+  CHECK(state.selectionStart == state.selectionEnd);
+
+  selectionNode = findNodeWithRectTokenInSubtree(frame, field.nodeId(), spec.selectionStyle);
+  REQUIRE(selectionNode != nullptr);
+  CHECK_FALSE(selectionNode->visible);
 }
 
 TEST_CASE("Text field supports composition-like replacement workflows with UTF-8 text") {

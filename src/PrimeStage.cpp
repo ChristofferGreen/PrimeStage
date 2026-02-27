@@ -2398,24 +2398,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   panel.visible = spec.visible;
   UiNode field = createPanel(panel);
 
-  std::string_view content = state ? std::string_view(state->text) : spec.text;
-  PrimeFrame::TextStyleToken style = spec.textStyle;
-  PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
-  if (content.empty() && spec.showPlaceholderWhenEmpty) {
-    content = spec.placeholder;
-    style = spec.placeholderStyle;
-    overrideStyle = spec.placeholderStyleOverride;
-  }
   if (!spec.visible) {
     return UiNode(frame(), field.nodeId(), allowAbsolute_);
   }
-
-  lineHeight = resolve_line_height(frame(), style);
-  if (lineHeight <= 0.0f && style != spec.textStyle) {
-    lineHeight = resolve_line_height(frame(), spec.textStyle);
-  }
-  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-  float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
 
   std::string_view activeText = state ? std::string_view(state->text) : spec.text;
   uint32_t textSize = static_cast<uint32_t>(activeText.size());
@@ -2435,60 +2420,62 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     state->selectionStart = selectionStart;
     state->selectionEnd = selectionEnd;
   }
+
+  std::string_view content = state ? std::string_view(state->text) : spec.text;
+  PrimeFrame::TextStyleToken style = spec.textStyle;
+  PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
+  if (content.empty() && spec.showPlaceholderWhenEmpty) {
+    content = spec.placeholder;
+    style = spec.placeholderStyle;
+    overrideStyle = spec.placeholderStyleOverride;
+  }
+
+  lineHeight = resolve_line_height(frame(), style);
+  if (lineHeight <= 0.0f && style != spec.textStyle) {
+    lineHeight = resolve_line_height(frame(), spec.textStyle);
+  }
+  float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
+  float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
   bool showCursor = state ? (state->focused && state->cursorVisible) : spec.showCursor;
 
-  std::vector<float> caretPositions;
+  std::vector<float> initialCaretPositions;
   if (!activeText.empty() && (showCursor || selectionStart != selectionEnd)) {
-    caretPositions = buildCaretPositions(frame(), spec.textStyle, activeText);
+    initialCaretPositions = buildCaretPositions(frame(), spec.textStyle, activeText);
   }
-  auto caretAdvanceFor = [&](uint32_t index) -> float {
-    if (caretPositions.empty()) {
+  auto initialCaretAdvanceFor = [&](uint32_t index) -> float {
+    if (initialCaretPositions.empty()) {
       return 0.0f;
     }
     uint32_t clamped = std::min(index, textSize);
-    return caretPositions[clamped];
+    return initialCaretPositions[clamped];
   };
 
-  if (!content.empty()) {
-    uint32_t selStart = std::min(selectionStart, selectionEnd);
-    uint32_t selEnd = std::max(selectionStart, selectionEnd);
-    if (selStart < selEnd && spec.selectionStyle != 0 && !activeText.empty()) {
-      float startAdvance = caretAdvanceFor(selStart);
-      float endAdvance = caretAdvanceFor(selEnd);
-      float startX = spec.paddingX + startAdvance;
-      float endX = spec.paddingX + endAdvance;
-      float maxX = bounds.width - spec.paddingX;
-      if (maxX < spec.paddingX) {
-        maxX = spec.paddingX;
-      }
-      startX = std::clamp(startX, spec.paddingX, maxX);
-      endX = std::clamp(endX, spec.paddingX, maxX);
-      if (endX > startX) {
-        Rect selectionRect{startX, textY, endX - startX, lineHeight};
-        create_rect_node(frame(),
-                         field.nodeId(),
-                         selectionRect,
-                         spec.selectionStyle,
-                         spec.selectionStyleOverride,
-                         false,
-                         spec.visible);
-      }
+  Rect initialSelectionRect{spec.paddingX, textY, 0.0f, std::max(0.0f, lineHeight)};
+  bool initialSelectionVisible = false;
+  uint32_t selStart = std::min(selectionStart, selectionEnd);
+  uint32_t selEnd = std::max(selectionStart, selectionEnd);
+  if (selStart < selEnd && !activeText.empty() && spec.selectionStyle != 0) {
+    float startAdvance = initialCaretAdvanceFor(selStart);
+    float endAdvance = initialCaretAdvanceFor(selEnd);
+    float startX = spec.paddingX + startAdvance;
+    float endX = spec.paddingX + endAdvance;
+    float maxX = bounds.width - spec.paddingX;
+    if (maxX < spec.paddingX) {
+      maxX = spec.paddingX;
     }
-    Rect textRect{spec.paddingX, textY, textWidth, lineHeight};
-    create_text_node(frame(),
-                     field.nodeId(),
-                     textRect,
-                     content,
-                     style,
-                     overrideStyle,
-                     PrimeFrame::TextAlign::Start,
-                     PrimeFrame::WrapMode::None,
-                     textWidth,
-                     spec.visible);
+    startX = std::clamp(startX, spec.paddingX, maxX);
+    endX = std::clamp(endX, spec.paddingX, maxX);
+    if (endX > startX) {
+      initialSelectionRect.x = startX;
+      initialSelectionRect.width = endX - startX;
+      initialSelectionVisible = true;
+    }
   }
 
+  Rect initialCursorRect{spec.paddingX, textY, 0.0f, std::max(0.0f, lineHeight)};
+  bool initialCursorVisible = false;
   if (showCursor && spec.cursorStyle != 0) {
-    float cursorAdvance = caretAdvanceFor(cursorIndex);
+    float cursorAdvance = initialCaretAdvanceFor(cursorIndex);
     float cursorX = spec.paddingX + cursorAdvance;
     float maxX = bounds.width - spec.paddingX - spec.cursorWidth;
     if (maxX < spec.paddingX) {
@@ -2497,19 +2484,234 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     if (cursorX > maxX) {
       cursorX = maxX;
     }
-    float cursorHeight = lineHeight > 0.0f ? lineHeight : bounds.height;
-    if (cursorHeight < 0.0f) {
-      cursorHeight = 0.0f;
-    }
-    Rect cursorRect{cursorX, textY, spec.cursorWidth, cursorHeight};
-    create_rect_node(frame(),
-                     field.nodeId(),
-                     cursorRect,
-                     spec.cursorStyle,
-                     spec.cursorStyleOverride,
-                     false,
-                     spec.visible);
+    initialCursorRect.x = cursorX;
+    initialCursorRect.width = spec.cursorWidth;
+    initialCursorVisible = initialCursorRect.width > 0.0f && initialCursorRect.height > 0.0f;
   }
+
+  PrimeFrame::NodeId selectionNodeId{};
+  PrimeFrame::PrimitiveId selectionPrim{};
+  if (spec.selectionStyle != 0) {
+    selectionNodeId = create_rect_node(frame(),
+                                       field.nodeId(),
+                                       initialSelectionRect,
+                                       spec.selectionStyle,
+                                       spec.selectionStyleOverride,
+                                       false,
+                                       spec.visible);
+    if (PrimeFrame::Node* selectionNode = frame().getNode(selectionNodeId);
+        selectionNode && !selectionNode->primitives.empty()) {
+      selectionPrim = selectionNode->primitives.front();
+      selectionNode->visible = initialSelectionVisible;
+    }
+  }
+
+  Rect textRect{spec.paddingX, textY, textWidth, std::max(0.0f, lineHeight)};
+  PrimeFrame::NodeId textNodeId = create_text_node(frame(),
+                                                   field.nodeId(),
+                                                   textRect,
+                                                   content,
+                                                   style,
+                                                   overrideStyle,
+                                                   PrimeFrame::TextAlign::Start,
+                                                   PrimeFrame::WrapMode::None,
+                                                   textWidth,
+                                                   spec.visible);
+  PrimeFrame::PrimitiveId textPrim{};
+  if (PrimeFrame::Node* textNode = frame().getNode(textNodeId);
+      textNode && !textNode->primitives.empty()) {
+    textPrim = textNode->primitives.front();
+  }
+
+  PrimeFrame::NodeId cursorNodeId{};
+  PrimeFrame::PrimitiveId cursorPrim{};
+  if (spec.cursorStyle != 0) {
+    cursorNodeId = create_rect_node(frame(),
+                                    field.nodeId(),
+                                    initialCursorRect,
+                                    spec.cursorStyle,
+                                    spec.cursorStyleOverride,
+                                    false,
+                                    spec.visible);
+    if (PrimeFrame::Node* cursorNode = frame().getNode(cursorNodeId);
+        cursorNode && !cursorNode->primitives.empty()) {
+      cursorPrim = cursorNode->primitives.front();
+      cursorNode->visible = initialCursorVisible;
+    }
+  }
+
+  struct TextFieldPatchState {
+    PrimeFrame::Frame* frame = nullptr;
+    TextFieldState* state = nullptr;
+    PrimeFrame::NodeId textNode{};
+    PrimeFrame::PrimitiveId textPrim{};
+    PrimeFrame::NodeId selectionNode{};
+    PrimeFrame::PrimitiveId selectionPrim{};
+    PrimeFrame::NodeId cursorNode{};
+    PrimeFrame::PrimitiveId cursorPrim{};
+    std::string placeholderText;
+    float width = 0.0f;
+    float height = 0.0f;
+    float paddingX = 0.0f;
+    float textOffsetY = 0.0f;
+    float cursorWidth = 0.0f;
+    bool showPlaceholderWhenEmpty = false;
+    PrimeFrame::TextStyleToken textStyle = 0;
+    PrimeFrame::TextStyleOverride textStyleOverride{};
+    PrimeFrame::TextStyleToken placeholderStyle = 0;
+    PrimeFrame::TextStyleOverride placeholderStyleOverride{};
+  };
+
+  auto patchState = std::make_shared<TextFieldPatchState>();
+  patchState->frame = &frame();
+  patchState->state = state;
+  patchState->textNode = textNodeId;
+  patchState->textPrim = textPrim;
+  patchState->selectionNode = selectionNodeId;
+  patchState->selectionPrim = selectionPrim;
+  patchState->cursorNode = cursorNodeId;
+  patchState->cursorPrim = cursorPrim;
+  patchState->placeholderText = std::string(spec.placeholder);
+  patchState->width = bounds.width;
+  patchState->height = bounds.height;
+  patchState->paddingX = spec.paddingX;
+  patchState->textOffsetY = spec.textOffsetY;
+  patchState->cursorWidth = spec.cursorWidth;
+  patchState->showPlaceholderWhenEmpty = spec.showPlaceholderWhenEmpty;
+  patchState->textStyle = spec.textStyle;
+  patchState->textStyleOverride = spec.textStyleOverride;
+  patchState->placeholderStyle = spec.placeholderStyle;
+  patchState->placeholderStyleOverride = spec.placeholderStyleOverride;
+
+  auto patchTextFieldVisuals = [patchState]() {
+    if (!patchState || !patchState->frame || !patchState->state) {
+      return;
+    }
+
+    PrimeFrame::Frame& frameRef = *patchState->frame;
+    TextFieldState* stateRef = patchState->state;
+    uint32_t textSize = static_cast<uint32_t>(stateRef->text.size());
+    stateRef->cursor = std::min(stateRef->cursor, textSize);
+    stateRef->selectionAnchor = std::min(stateRef->selectionAnchor, textSize);
+    stateRef->selectionStart = std::min(stateRef->selectionStart, textSize);
+    stateRef->selectionEnd = std::min(stateRef->selectionEnd, textSize);
+
+    std::string_view activeText = stateRef->text;
+    std::string_view renderedText = activeText;
+    PrimeFrame::TextStyleToken renderedStyle = patchState->textStyle;
+    PrimeFrame::TextStyleOverride renderedOverride = patchState->textStyleOverride;
+    if (renderedText.empty() && patchState->showPlaceholderWhenEmpty) {
+      renderedText = patchState->placeholderText;
+      renderedStyle = patchState->placeholderStyle;
+      renderedOverride = patchState->placeholderStyleOverride;
+    }
+
+    float lineHeight = resolve_line_height(frameRef, renderedStyle);
+    if (lineHeight <= 0.0f && renderedStyle != patchState->textStyle) {
+      lineHeight = resolve_line_height(frameRef, patchState->textStyle);
+    }
+    lineHeight = std::max(0.0f, lineHeight);
+    float textY = (patchState->height - lineHeight) * 0.5f + patchState->textOffsetY;
+    float textWidth = std::max(0.0f, patchState->width - patchState->paddingX * 2.0f);
+
+    if (PrimeFrame::Node* textNode = frameRef.getNode(patchState->textNode)) {
+      textNode->localX = patchState->paddingX;
+      textNode->localY = textY;
+      textNode->visible = true;
+      textNode->sizeHint.width.preferred = textWidth;
+      textNode->sizeHint.height.preferred = lineHeight;
+    }
+    if (PrimeFrame::Primitive* textPrim = frameRef.getPrimitive(patchState->textPrim)) {
+      textPrim->width = textWidth;
+      textPrim->height = lineHeight;
+      textPrim->textBlock.text = std::string(renderedText);
+      textPrim->textBlock.maxWidth = textWidth;
+      textPrim->textStyle.token = renderedStyle;
+      textPrim->textStyle.overrideStyle = renderedOverride;
+    }
+
+    uint32_t selStart = 0u;
+    uint32_t selEnd = 0u;
+    bool hasSelection = textFieldHasSelection(*stateRef, selStart, selEnd);
+    bool showCursor = stateRef->focused && stateRef->cursorVisible;
+
+    std::vector<float> caretPositions;
+    if (!activeText.empty() && (hasSelection || showCursor)) {
+      caretPositions = buildCaretPositions(frameRef, patchState->textStyle, activeText);
+    }
+    auto caretAdvanceFor = [&](uint32_t index) -> float {
+      if (caretPositions.empty()) {
+        return 0.0f;
+      }
+      uint32_t clamped = std::min(index, textSize);
+      return caretPositions[clamped];
+    };
+
+    if (patchState->selectionNode.isValid()) {
+      Rect selectionRect{patchState->paddingX, textY, 0.0f, lineHeight};
+      bool showSelection = false;
+      if (hasSelection && !activeText.empty()) {
+        float startAdvance = caretAdvanceFor(selStart);
+        float endAdvance = caretAdvanceFor(selEnd);
+        float startX = patchState->paddingX + startAdvance;
+        float endX = patchState->paddingX + endAdvance;
+        float maxX = patchState->width - patchState->paddingX;
+        if (maxX < patchState->paddingX) {
+          maxX = patchState->paddingX;
+        }
+        startX = std::clamp(startX, patchState->paddingX, maxX);
+        endX = std::clamp(endX, patchState->paddingX, maxX);
+        if (endX > startX) {
+          selectionRect.x = startX;
+          selectionRect.width = endX - startX;
+          showSelection = true;
+        }
+      }
+      if (PrimeFrame::Node* selectionNode = frameRef.getNode(patchState->selectionNode)) {
+        selectionNode->localX = selectionRect.x;
+        selectionNode->localY = selectionRect.y;
+        selectionNode->sizeHint.width.preferred = selectionRect.width;
+        selectionNode->sizeHint.height.preferred = selectionRect.height;
+        selectionNode->visible = showSelection;
+      }
+      if (PrimeFrame::Primitive* selectionPrim = frameRef.getPrimitive(patchState->selectionPrim)) {
+        selectionPrim->width = selectionRect.width;
+        selectionPrim->height = selectionRect.height;
+      }
+    }
+
+    if (patchState->cursorNode.isValid()) {
+      Rect cursorRect{patchState->paddingX, textY, 0.0f, lineHeight};
+      bool showCursorVisual = false;
+      if (showCursor) {
+        float cursorAdvance = caretAdvanceFor(stateRef->cursor);
+        float cursorX = patchState->paddingX + cursorAdvance;
+        float maxX = patchState->width - patchState->paddingX - patchState->cursorWidth;
+        if (maxX < patchState->paddingX) {
+          maxX = patchState->paddingX;
+        }
+        if (cursorX > maxX) {
+          cursorX = maxX;
+        }
+        cursorRect.x = cursorX;
+        cursorRect.width = patchState->cursorWidth;
+        showCursorVisual = cursorRect.width > 0.0f && cursorRect.height > 0.0f;
+      }
+      if (PrimeFrame::Node* cursorNode = frameRef.getNode(patchState->cursorNode)) {
+        cursorNode->localX = cursorRect.x;
+        cursorNode->localY = cursorRect.y;
+        cursorNode->sizeHint.width.preferred = cursorRect.width;
+        cursorNode->sizeHint.height.preferred = cursorRect.height;
+        cursorNode->visible = showCursorVisual;
+      }
+      if (PrimeFrame::Primitive* cursorPrim = frameRef.getPrimitive(patchState->cursorPrim)) {
+        cursorPrim->width = cursorRect.width;
+        cursorPrim->height = cursorRect.height;
+      }
+    }
+  };
+
+  patchTextFieldVisuals();
 
   if (state) {
     PrimeFrame::Node* node = frame().getNode(field.nodeId());
@@ -2524,7 +2726,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                           allowNewlines = spec.allowNewlines,
                           readOnly,
                           handleClipboardShortcuts = spec.handleClipboardShortcuts,
-                          cursorBlinkInterval = spec.cursorBlinkInterval](PrimeFrame::Event const& event) -> bool {
+                          cursorBlinkInterval = spec.cursorBlinkInterval,
+                          patchTextFieldVisuals](PrimeFrame::Event const& event) -> bool {
         if (!state) {
           return false;
         }
@@ -2550,6 +2753,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
           state->nextBlink = now + cursorBlinkInterval;
         };
         auto notify_state = [&]() {
+          patchTextFieldVisuals();
           if (callbacks.onStateChanged) {
             callbacks.onStateChanged();
           }
@@ -2904,7 +3108,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
       callback.onFocus = [state,
                           callbacks = spec.callbacks,
                           cursorBlinkInterval = spec.cursorBlinkInterval,
-                          setCursorToEndOnFocus = spec.setCursorToEndOnFocus]() {
+                          setCursorToEndOnFocus = spec.setCursorToEndOnFocus,
+                          patchTextFieldVisuals]() {
         if (!state) {
           return;
         }
@@ -2921,6 +3126,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
         clearTextFieldSelection(*state, state->cursor);
         state->cursorVisible = true;
         state->nextBlink = std::chrono::steady_clock::now() + cursorBlinkInterval;
+        patchTextFieldVisuals();
         if (focusChanged && callbacks.onFocusChanged) {
           callbacks.onFocusChanged(true);
         }
@@ -2929,7 +3135,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
         }
       };
 
-      callback.onBlur = [state, callbacks = spec.callbacks]() {
+      callback.onBlur = [state, callbacks = spec.callbacks, patchTextFieldVisuals]() {
         if (!state) {
           return;
         }
@@ -2945,6 +3151,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
         uint32_t size = static_cast<uint32_t>(state->text.size());
         state->cursor = std::min(state->cursor, size);
         clearTextFieldSelection(*state, state->cursor);
+        patchTextFieldVisuals();
         if (focusChanged && callbacks.onFocusChanged) {
           callbacks.onFocusChanged(false);
         }

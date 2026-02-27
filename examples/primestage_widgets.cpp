@@ -727,10 +727,10 @@ void rebuildUi(DemoApp& app) {
       fieldSpec.size.preferredWidth = 360.0f;
       fieldSpec.size.preferredHeight = 28.0f;
       fieldSpec.callbacks.onStateChanged = [&app]() {
-        app.runtime.requestRebuild();
+        app.runtime.requestFrame();
       };
       fieldSpec.callbacks.onTextChanged = [&app](std::string_view) {
-        app.runtime.requestRebuild();
+        app.runtime.requestFrame();
       };
       fieldSpec.callbacks.onCursorHintChanged = [&app](PrimeStage::CursorHint hint) {
         if (app.host && app.surfaceId.isValid()) {

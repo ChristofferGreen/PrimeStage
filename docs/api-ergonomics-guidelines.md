@@ -175,6 +175,8 @@ if (result.requestFrame) {
 - Use `requestRebuild()` when widget callbacks change scene structure or state that requires UI rebuild.
 - Use `requestLayout()` when only layout inputs (for example render size/scale) changed.
 - Use `requestFrame()` for patch-only updates that do not require rebuild/layout.
+- `TextField` state-backed edits (typing, caret moves, selection updates) are patch-first in the
+  built scene, so high-frequency callbacks can request only a frame in typical app loops.
 - In frame loops, consume work with `runRebuildIfNeeded(...)` and `runLayoutIfNeeded(...)`, then call
   `markFramePresented()` after presenting.
 

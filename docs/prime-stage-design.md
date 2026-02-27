@@ -47,6 +47,8 @@ PrimeStage builds an ephemeral `PrimeScene` (rect graph) from ground truth.
 - **Patch**: transient changes (hover, focus, drag) via callbacks that directly mutate the current `Frame`.
 
 The ground truth remains authoritative. `PrimeScene` is a disposable snapshot that can be rebuilt at any time.
+For high-frequency `TextField` interactions, PrimeStage updates text/caret/selection visuals in
+place on the built scene so app runtimes can request frame-only updates when structure is unchanged.
 
 ### Patch Safety
 Patches should only touch fields that do not restructure the graph:
