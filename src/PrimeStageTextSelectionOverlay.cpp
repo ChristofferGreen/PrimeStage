@@ -10,6 +10,9 @@ namespace PrimeStage {
 
 UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& specInput) {
   TextSelectionOverlaySpec spec = Internal::normalizeTextSelectionOverlaySpec(specInput);
+  Internal::WidgetRuntimeContext runtime =
+      Internal::makeWidgetRuntimeContext(frame(), nodeId(), allowAbsolute(), true, spec.visible, -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   float maxWidth = spec.maxWidth;
@@ -20,11 +23,13 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& specIn
   TextSelectionLayout computedLayout;
   TextSelectionLayout const* layout = spec.layout;
   if (!layout) {
-    computedLayout = buildTextSelectionLayout(frame(), spec.textStyle, spec.text, maxWidth, spec.wrap);
+    computedLayout =
+        buildTextSelectionLayout(runtimeFrame, spec.textStyle, spec.text, maxWidth, spec.wrap);
     layout = &computedLayout;
   }
 
-  float lineHeight = layout->lineHeight > 0.0f ? layout->lineHeight : textLineHeight(frame(), spec.textStyle);
+  float lineHeight = layout->lineHeight > 0.0f ? layout->lineHeight
+                                                : textLineHeight(runtimeFrame, spec.textStyle);
   if (lineHeight <= 0.0f) {
     lineHeight = 1.0f;
   }
@@ -56,14 +61,15 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& specIn
   columnSpec.gap = 0.0f;
   columnSpec.clipChildren = spec.clipChildren;
   columnSpec.visible = spec.visible;
-  UiNode column = createVerticalStack(columnSpec);
+  UiNode parentNode = Internal::makeParentNode(runtime);
+  UiNode column = parentNode.createVerticalStack(columnSpec);
   column.setHitTestVisible(false);
 
   if (spec.selectionStyle == 0 || spec.selectionStart == spec.selectionEnd || spec.text.empty()) {
     return column;
   }
 
-  auto selectionRects = buildSelectionRects(frame(),
+  auto selectionRects = buildSelectionRects(runtimeFrame,
                                             spec.textStyle,
                                             spec.text,
                                             *layout,

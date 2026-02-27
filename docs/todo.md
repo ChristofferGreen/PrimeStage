@@ -154,6 +154,10 @@ Release Exit Criteria (for API-quality milestone):
     `src/PrimeStageContainers.cpp` and `src/PrimeStageLayoutPrimitives.cpp`
     so container/layout parent-frame-return runtime wiring routes through
     `WidgetRuntimeContext`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageTextSelectionOverlay.cpp` (`createTextSelectionOverlay`)
+    so text-selection overlay frame/parent runtime wiring routes through
+    `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size
