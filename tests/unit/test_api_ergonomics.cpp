@@ -3138,6 +3138,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
+  std::filesystem::path sliderCppPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
@@ -3148,6 +3149,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(booleanCppPath));
+  REQUIRE(std::filesystem::exists(sliderCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
@@ -3200,6 +3202,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string booleanCpp((std::istreambuf_iterator<char>(booleanInput)),
                          std::istreambuf_iterator<char>());
   REQUIRE(!booleanCpp.empty());
+  std::ifstream sliderInput(sliderCppPath);
+  REQUIRE(sliderInput.good());
+  std::string sliderCpp((std::istreambuf_iterator<char>(sliderInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sliderCpp.empty());
   std::ifstream collectionsInput(collectionsCppPath);
   REQUIRE(collectionsInput.good());
   std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
@@ -3221,7 +3228,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
                       std::istreambuf_iterator<char>());
   REQUIRE(!tabsCpp.empty());
   std::string combinedSource =
-      sourceCpp + booleanCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
+      sourceCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3453,6 +3460,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path booleanPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
+  std::filesystem::path sliderPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
@@ -3461,6 +3469,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
   REQUIRE(std::filesystem::exists(booleanPath));
+  REQUIRE(std::filesystem::exists(sliderPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(progressPath));
@@ -3492,6 +3501,9 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createToggle(ToggleSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createCheckbox(CheckboxSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createSlider(SliderSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createSlider(Binding<float> binding, bool vertical)") ==
+        std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3505,6 +3517,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("ToggleSpec normalizeToggleSpec(ToggleSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("SliderSpec normalizeSliderSpec(SliderSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3520,6 +3534,17 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(booleanSource.find("Internal::normalizeToggleSpec(specInput)") != std::string::npos);
   CHECK(booleanSource.find("Internal::normalizeCheckboxSpec(specInput)") != std::string::npos);
+
+  std::ifstream sliderInput(sliderPath);
+  REQUIRE(sliderInput.good());
+  std::string sliderSource((std::istreambuf_iterator<char>(sliderInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!sliderSource.empty());
+  CHECK(sliderSource.find("UiNode UiNode::createSlider(SliderSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(sliderSource.find("UiNode UiNode::createSlider(Binding<float> binding, bool vertical)") !=
+        std::string::npos);
+  CHECK(sliderSource.find("Internal::normalizeSliderSpec(specInput)") != std::string::npos);
 
   std::ifstream collectionsInput(collectionsPath);
   REQUIRE(collectionsInput.good());
@@ -3593,6 +3618,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("ToggleSpec normalizeToggleSpec(ToggleSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("SliderSpec normalizeSliderSpec(SliderSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);

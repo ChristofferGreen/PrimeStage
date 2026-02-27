@@ -1330,6 +1330,39 @@ CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput) {
   return spec;
 }
 
+SliderSpec normalizeSliderSpec(SliderSpec const& specInput) {
+  SliderSpec spec = specInput;
+  sanitize_size_spec(spec.size, "SliderSpec.size");
+  spec.value = clamp_unit_interval(spec.value, "SliderSpec", "value");
+  spec.trackThickness = clamp_non_negative(spec.trackThickness, "SliderSpec", "trackThickness");
+  spec.thumbSize = clamp_non_negative(spec.thumbSize, "SliderSpec", "thumbSize");
+  spec.fillHoverOpacity =
+      clamp_optional_unit_interval(spec.fillHoverOpacity, "SliderSpec", "fillHoverOpacity");
+  spec.fillPressedOpacity =
+      clamp_optional_unit_interval(spec.fillPressedOpacity, "SliderSpec", "fillPressedOpacity");
+  spec.trackHoverOpacity =
+      clamp_optional_unit_interval(spec.trackHoverOpacity, "SliderSpec", "trackHoverOpacity");
+  spec.trackPressedOpacity =
+      clamp_optional_unit_interval(spec.trackPressedOpacity, "SliderSpec", "trackPressedOpacity");
+  spec.thumbHoverOpacity =
+      clamp_optional_unit_interval(spec.thumbHoverOpacity, "SliderSpec", "thumbHoverOpacity");
+  spec.thumbPressedOpacity =
+      clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "SliderSpec", "tabIndex");
+  bool enabled = spec.enabled;
+  if (spec.binding.state) {
+    spec.binding.state->value = clamp_unit_interval(spec.binding.state->value,
+                                                    "State<float>",
+                                                    "value");
+    spec.value = spec.binding.state->value;
+  } else if (spec.state) {
+    spec.state->value = clamp_unit_interval(spec.state->value, "SliderState", "value");
+    spec.value = spec.state->value;
+  }
+  apply_default_range_semantics(spec.accessibility, AccessibilityRole::Slider, enabled, spec.value);
+  return spec;
+}
+
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = specInput;
   sanitize_size_spec(spec.size, "ScrollViewSpec.size");
@@ -4540,420 +4573,6 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   }
 
   return UiNode(frame(), overlay.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createSlider(SliderSpec const& specInput) {
-  SliderSpec spec = specInput;
-  sanitize_size_spec(spec.size, "SliderSpec.size");
-  spec.value = clamp_unit_interval(spec.value, "SliderSpec", "value");
-  spec.trackThickness = clamp_non_negative(spec.trackThickness, "SliderSpec", "trackThickness");
-  spec.thumbSize = clamp_non_negative(spec.thumbSize, "SliderSpec", "thumbSize");
-  spec.fillHoverOpacity =
-      clamp_optional_unit_interval(spec.fillHoverOpacity, "SliderSpec", "fillHoverOpacity");
-  spec.fillPressedOpacity =
-      clamp_optional_unit_interval(spec.fillPressedOpacity, "SliderSpec", "fillPressedOpacity");
-  spec.trackHoverOpacity =
-      clamp_optional_unit_interval(spec.trackHoverOpacity, "SliderSpec", "trackHoverOpacity");
-  spec.trackPressedOpacity =
-      clamp_optional_unit_interval(spec.trackPressedOpacity, "SliderSpec", "trackPressedOpacity");
-  spec.thumbHoverOpacity =
-      clamp_optional_unit_interval(spec.thumbHoverOpacity, "SliderSpec", "thumbHoverOpacity");
-  spec.thumbPressedOpacity =
-      clamp_optional_unit_interval(spec.thumbPressedOpacity, "SliderSpec", "thumbPressedOpacity");
-  spec.tabIndex = clamp_tab_index(spec.tabIndex, "SliderSpec", "tabIndex");
-  bool enabled = spec.enabled;
-  if (spec.binding.state) {
-    spec.binding.state->value = clamp_unit_interval(spec.binding.state->value,
-                                                    "State<float>",
-                                                    "value");
-    spec.value = spec.binding.state->value;
-  } else if (spec.state) {
-    spec.state->value = clamp_unit_interval(spec.state->value, "SliderState", "value");
-    spec.value = spec.state->value;
-  }
-  apply_default_range_semantics(spec.accessibility, AccessibilityRole::Slider, enabled, spec.value);
-
-  Rect bounds = resolve_rect(spec.size);
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    bounds.width = spec.vertical ? 20.0f : 160.0f;
-  }
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    bounds.height = spec.vertical ? 160.0f : 20.0f;
-  }
-  PanelSpec panel;
-  panel.size = spec.size;
-  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    panel.size.preferredWidth = bounds.width;
-  }
-  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    panel.size.preferredHeight = bounds.height;
-  }
-  panel.rectStyle = spec.trackStyle;
-  panel.rectStyleOverride = spec.trackStyleOverride;
-  panel.visible = spec.visible;
-  UiNode slider = createPanel(panel);
-  if (!spec.visible) {
-    return UiNode(frame(), slider.nodeId(), allowAbsolute_);
-  }
-
-  float t = std::clamp(spec.value, 0.0f, 1.0f);
-  auto apply_geometry = [vertical = spec.vertical,
-                         trackThickness = spec.trackThickness,
-                         thumbSize = spec.thumbSize](PrimeFrame::Frame& frame,
-                                                     PrimeFrame::PrimitiveId fillPrim,
-                                                     PrimeFrame::PrimitiveId thumbPrim,
-                                                     float value,
-                                                     float width,
-                                                     float height,
-                                                     PrimeFrame::RectStyleOverride const& fillOverride,
-                                                     PrimeFrame::RectStyleOverride const& thumbOverride) {
-    float clamped = std::clamp(value, 0.0f, 1.0f);
-    float track = std::max(0.0f, trackThickness);
-    float thumb = std::max(0.0f, thumbSize);
-    auto apply_rect = [&](PrimeFrame::PrimitiveId primId,
-                          Rect const& rect,
-                          PrimeFrame::RectStyleOverride const& baseOverride) {
-      if (PrimeFrame::Primitive* prim = frame.getPrimitive(primId)) {
-        prim->offsetX = rect.x;
-        prim->offsetY = rect.y;
-        prim->width = rect.width;
-        prim->height = rect.height;
-        prim->rect.overrideStyle = baseOverride;
-        if (rect.width <= 0.0f || rect.height <= 0.0f) {
-          prim->rect.overrideStyle.opacity = 0.0f;
-        }
-      }
-    };
-    if (vertical) {
-      float trackW = std::min(width, track);
-      float trackX = (width - trackW) * 0.5f;
-      float fillH = height * clamped;
-      Rect fillRect{trackX, height - fillH, trackW, fillH};
-      apply_rect(fillPrim, fillRect, fillOverride);
-      float clampedThumb = std::min(thumb, std::min(width, height));
-      Rect thumbRect{0.0f, 0.0f, 0.0f, 0.0f};
-      if (clampedThumb > 0.0f) {
-        float thumbY = (1.0f - clamped) * (height - clampedThumb);
-        thumbRect = Rect{(width - clampedThumb) * 0.5f, thumbY, clampedThumb, clampedThumb};
-      }
-      apply_rect(thumbPrim, thumbRect, thumbOverride);
-    } else {
-      float trackH = std::min(height, track);
-      float trackY = (height - trackH) * 0.5f;
-      float fillW = width * clamped;
-      Rect fillRect{0.0f, trackY, fillW, trackH};
-      apply_rect(fillPrim, fillRect, fillOverride);
-      float clampedThumb = std::min(thumb, std::min(width, height));
-      Rect thumbRect{0.0f, 0.0f, 0.0f, 0.0f};
-      if (clampedThumb > 0.0f) {
-        float thumbX = clamped * (width - clampedThumb);
-        thumbRect = Rect{thumbX, (height - clampedThumb) * 0.5f, clampedThumb, clampedThumb};
-      }
-      apply_rect(thumbPrim, thumbRect, thumbOverride);
-    }
-  };
-
-  PrimeFrame::PrimitiveId fillPrim =
-      add_rect_primitive_with_rect(frame(),
-                                   slider.nodeId(),
-                                   Rect{0.0f, 0.0f, 0.0f, 0.0f},
-                                   spec.fillStyle,
-                                   spec.fillStyleOverride);
-  PrimeFrame::PrimitiveId thumbPrim =
-      add_rect_primitive_with_rect(frame(),
-                                   slider.nodeId(),
-                                   Rect{0.0f, 0.0f, 0.0f, 0.0f},
-                                   spec.thumbStyle,
-                                   spec.thumbStyleOverride);
-  PrimeFrame::PrimitiveId trackPrim = 0;
-  bool trackPrimValid = false;
-  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
-    if (!node->primitives.empty()) {
-      trackPrim = node->primitives.front();
-      trackPrimValid = true;
-    }
-  }
-  apply_geometry(frame(),
-                 fillPrim,
-                 thumbPrim,
-                 t,
-                 bounds.width,
-                 bounds.height,
-                 spec.fillStyleOverride,
-                 spec.thumbStyleOverride);
-  if (trackPrimValid) {
-    if (PrimeFrame::Primitive* prim = frame().getPrimitive(trackPrim)) {
-      prim->rect.overrideStyle = spec.trackStyleOverride;
-    }
-  }
-
-  bool wantsInteraction = enabled &&
-                          (spec.binding.state != nullptr ||
-                           spec.state != nullptr ||
-                           spec.callbacks.onChange ||
-                           spec.callbacks.onValueChanged ||
-                           spec.callbacks.onDragStart ||
-                           spec.callbacks.onDragEnd);
-  ResolvedFocusStyle focusStyle = resolve_focus_style(
-      frame(),
-      spec.focusStyle,
-      spec.focusStyleOverride,
-      {spec.thumbStyle, spec.fillStyle, spec.trackStyle},
-      spec.thumbStyleOverride);
-  std::optional<FocusOverlay> focusOverlay;
-  Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
-  if (enabled) {
-    focusOverlay = add_focus_overlay_node(frame(),
-                                          slider.nodeId(),
-                                          focusRect,
-                                          focusStyle.token,
-                                          focusStyle.overrideStyle,
-                                          spec.visible);
-  }
-  if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
-
-  if (wantsInteraction) {
-    struct SliderInteractionState {
-      bool active = false;
-      bool hovered = false;
-      bool trackPrimValid = false;
-      PrimeFrame::PrimitiveId trackPrim = 0;
-      PrimeFrame::PrimitiveId fillPrim = 0;
-      PrimeFrame::PrimitiveId thumbPrim = 0;
-      float targetW = 0.0f;
-      float targetH = 0.0f;
-      float value = 0.0f;
-    };
-    auto state = std::make_shared<SliderInteractionState>();
-    state->trackPrimValid = trackPrimValid;
-    state->trackPrim = trackPrim;
-    state->fillPrim = fillPrim;
-    state->thumbPrim = thumbPrim;
-    state->targetW = bounds.width;
-    state->targetH = bounds.height;
-    state->value = t;
-    auto update_from_event = [state,
-                              vertical = spec.vertical,
-                              thumbSize = spec.thumbSize](PrimeFrame::Event const& event) {
-      if (event.targetW > 0.0f) {
-        state->targetW = event.targetW;
-      }
-      if (event.targetH > 0.0f) {
-        state->targetH = event.targetH;
-      }
-      float next = slider_value_from_event(event, vertical, thumbSize);
-      state->value = std::clamp(next, 0.0f, 1.0f);
-    };
-    auto notify_value_changed = [state,
-                                 bindingState = spec.binding.state,
-                                 sliderState = spec.state,
-                                 onChange = spec.callbacks.onChange,
-                                 onValueChanged = spec.callbacks.onValueChanged]() {
-      if (bindingState) {
-        bindingState->value = state->value;
-      }
-      if (sliderState) {
-        sliderState->value = state->value;
-      }
-      if (onChange) {
-        onChange(state->value);
-      } else if (onValueChanged) {
-        onValueChanged(state->value);
-      }
-    };
-    auto build_thumb_override = [state,
-                                 base = spec.thumbStyleOverride,
-                                 hoverOpacity = spec.thumbHoverOpacity,
-                                 pressedOpacity = spec.thumbPressedOpacity]() {
-      PrimeFrame::RectStyleOverride overrideStyle = base;
-      if (state->active && pressedOpacity.has_value()) {
-        overrideStyle.opacity = pressedOpacity;
-      } else if (state->hovered && hoverOpacity.has_value()) {
-        overrideStyle.opacity = hoverOpacity;
-      }
-      return overrideStyle;
-    };
-    auto build_fill_override = [state,
-                                base = spec.fillStyleOverride,
-                                hoverOpacity = spec.fillHoverOpacity,
-                                pressedOpacity = spec.fillPressedOpacity]() {
-      PrimeFrame::RectStyleOverride overrideStyle = base;
-      if (state->active && pressedOpacity.has_value()) {
-        overrideStyle.opacity = pressedOpacity;
-      } else if (state->hovered && hoverOpacity.has_value()) {
-        overrideStyle.opacity = hoverOpacity;
-      }
-      return overrideStyle;
-    };
-    auto build_track_override = [state,
-                                 base = spec.trackStyleOverride,
-                                 hoverOpacity = spec.trackHoverOpacity,
-                                 pressedOpacity = spec.trackPressedOpacity]() {
-      PrimeFrame::RectStyleOverride overrideStyle = base;
-      if (state->active && pressedOpacity.has_value()) {
-        overrideStyle.opacity = pressedOpacity;
-      } else if (state->hovered && hoverOpacity.has_value()) {
-        overrideStyle.opacity = hoverOpacity;
-      }
-      return overrideStyle;
-    };
-    auto apply_track_override = [framePtr = &frame(), state, build_track_override]() {
-      if (!state->trackPrimValid) {
-        return;
-      }
-      if (PrimeFrame::Primitive* prim = framePtr->getPrimitive(state->trackPrim)) {
-        prim->rect.overrideStyle = build_track_override();
-      }
-    };
-    PrimeFrame::Callback callback;
-    callback.onEvent = [callbacks = spec.callbacks,
-                        framePtr = &frame(),
-                        state,
-                        apply_geometry,
-                        update_from_event,
-                        notify_value_changed,
-                        build_fill_override,
-                        build_thumb_override,
-                        apply_track_override](PrimeFrame::Event const& event) -> bool {
-      switch (event.type) {
-        case PrimeFrame::EventType::PointerEnter: {
-          state->hovered = true;
-          apply_track_override();
-          apply_geometry(*framePtr,
-                         state->fillPrim,
-                         state->thumbPrim,
-                         state->value,
-                         state->targetW,
-                         state->targetH,
-                         build_fill_override(),
-                         build_thumb_override());
-          return true;
-        }
-        case PrimeFrame::EventType::PointerLeave: {
-          state->hovered = false;
-          apply_track_override();
-          apply_geometry(*framePtr,
-                         state->fillPrim,
-                         state->thumbPrim,
-                         state->value,
-                         state->targetW,
-                         state->targetH,
-                         build_fill_override(),
-                         build_thumb_override());
-          return true;
-        }
-        case PrimeFrame::EventType::PointerDown: {
-          state->active = true;
-          apply_track_override();
-          update_from_event(event);
-          apply_geometry(*framePtr,
-                         state->fillPrim,
-                         state->thumbPrim,
-                         state->value,
-                         state->targetW,
-                         state->targetH,
-                         build_fill_override(),
-                         build_thumb_override());
-          if (callbacks.onDragStart) {
-            callbacks.onDragStart();
-          }
-          notify_value_changed();
-          return true;
-        }
-        case PrimeFrame::EventType::PointerDrag:
-        case PrimeFrame::EventType::PointerMove: {
-          if (!state->active) {
-            return false;
-          }
-          update_from_event(event);
-          apply_geometry(*framePtr,
-                         state->fillPrim,
-                         state->thumbPrim,
-                         state->value,
-                         state->targetW,
-                         state->targetH,
-                         build_fill_override(),
-                         build_thumb_override());
-          notify_value_changed();
-          return true;
-        }
-        case PrimeFrame::EventType::PointerUp:
-        case PrimeFrame::EventType::PointerCancel: {
-          if (!state->active) {
-            return false;
-          }
-          update_from_event(event);
-          apply_geometry(*framePtr,
-                         state->fillPrim,
-                         state->thumbPrim,
-                         state->value,
-                         state->targetW,
-                         state->targetH,
-                         build_fill_override(),
-                         build_thumb_override());
-          notify_value_changed();
-          if (callbacks.onDragEnd) {
-            callbacks.onDragEnd();
-          }
-          state->active = false;
-          apply_track_override();
-          return true;
-        }
-        default:
-          break;
-      }
-      return false;
-    };
-    PrimeFrame::CallbackId callbackId = frame().addCallback(std::move(callback));
-    if (PrimeFrame::Node* node = frame().getNode(slider.nodeId())) {
-      node->callbacks = callbackId;
-    }
-  }
-
-  if (focusOverlay.has_value()) {
-    attach_focus_callbacks(frame(), slider.nodeId(), *focusOverlay);
-  }
-
-  if (!enabled) {
-    add_state_scrim_overlay(frame(),
-                            slider.nodeId(),
-                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
-                            DisabledScrimOpacity,
-                            spec.visible);
-  }
-
-  return UiNode(frame(), slider.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createSlider(float value,
-                            bool vertical,
-                            PrimeFrame::RectStyleToken trackStyle,
-                            PrimeFrame::RectStyleToken fillStyle,
-                            PrimeFrame::RectStyleToken thumbStyle,
-                            SizeSpec const& size) {
-  SliderSpec spec;
-  spec.value = value;
-  spec.vertical = vertical;
-  spec.trackStyle = trackStyle;
-  spec.fillStyle = fillStyle;
-  spec.thumbStyle = thumbStyle;
-  spec.size = size;
-  return createSlider(spec);
-}
-
-UiNode UiNode::createSlider(Binding<float> binding, bool vertical) {
-  SliderSpec spec;
-  spec.binding = binding;
-  spec.vertical = vertical;
-  return createSlider(spec);
 }
 
 Window UiNode::createWindow(WindowSpec const& specInput) {
