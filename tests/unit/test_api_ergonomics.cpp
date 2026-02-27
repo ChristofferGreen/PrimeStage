@@ -3794,6 +3794,12 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(textFieldSource.find("Internal::normalizeTextFieldSpec(specInput)") !=
         std::string::npos);
+  CHECK(textFieldSource.find("Internal::makeWidgetRuntimeContext(") !=
+        std::string::npos);
+  CHECK(textFieldSource.find("Internal::attachFocusOverlay(runtime,") !=
+        std::string::npos);
+  CHECK(textFieldSource.find("Internal::addDisabledScrimOverlay(runtime,") !=
+        std::string::npos);
 
   std::ifstream textInteractionInput(textInteractionPath);
   REQUIRE(textInteractionInput.good());

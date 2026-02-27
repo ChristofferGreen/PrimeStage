@@ -140,6 +140,9 @@ Release Exit Criteria (for API-quality milestone):
     `src/PrimeStageSelectableText.cpp` (`createSelectableText`) so runtime
     frame access and focus/scrim overlays route through
     `WidgetRuntimeContext`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageTextField.cpp` (`createTextField`) so runtime frame access
+    and focus/scrim overlays route through `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

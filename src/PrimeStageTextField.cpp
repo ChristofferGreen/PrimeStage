@@ -14,6 +14,13 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   TextFieldSpec spec = Internal::normalizeTextFieldSpec(specInput);
   bool enabled = spec.enabled;
   bool readOnly = spec.readOnly;
+  PrimeFrame::Frame& runtimeFrame = frame();
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(runtimeFrame,
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              enabled,
+                                                                              spec.visible,
+                                                                              spec.tabIndex);
 
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   std::shared_ptr<TextFieldState> stateOwner = spec.ownedState;
@@ -33,9 +40,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     previewText = spec.placeholder;
     previewStyle = spec.placeholderStyle;
   }
-  float lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+  float lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   if (lineHeight <= 0.0f && previewStyle != spec.textStyle) {
-    lineHeight = Internal::resolveLineHeight(frame(), previewStyle);
+    lineHeight = Internal::resolveLineHeight(runtimeFrame, previewStyle);
   }
   if (bounds.height <= 0.0f &&
       !spec.size.preferredHeight.has_value() &&
@@ -48,7 +55,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
       !spec.size.preferredWidth.has_value() &&
       spec.size.stretchX <= 0.0f &&
       !previewText.empty()) {
-    float previewWidth = Internal::estimateTextWidth(frame(), previewStyle, previewText);
+    float previewWidth = Internal::estimateTextWidth(runtimeFrame, previewStyle, previewText);
     bounds.width = std::max(bounds.width, previewWidth + spec.paddingX * 2.0f);
   }
   if (bounds.width <= 0.0f &&
@@ -57,7 +64,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
       !spec.size.preferredHeight.has_value() &&
       spec.size.stretchX <= 0.0f &&
       spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
+    return UiNode(runtimeFrame, runtime.parentId, runtime.allowAbsolute);
   }
   PanelSpec panel;
   panel.size = spec.size;
@@ -73,7 +80,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   UiNode field = createPanel(panel);
 
   if (!spec.visible) {
-    return UiNode(frame(), field.nodeId(), allowAbsolute_);
+    return UiNode(runtimeFrame, field.nodeId(), runtime.allowAbsolute);
   }
 
   std::string_view activeText = std::string_view(state->text);
@@ -104,9 +111,9 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     overrideStyle = spec.placeholderStyleOverride;
   }
 
-  lineHeight = Internal::resolveLineHeight(frame(), style);
+  lineHeight = Internal::resolveLineHeight(runtimeFrame, style);
   if (lineHeight <= 0.0f && style != spec.textStyle) {
-    lineHeight = Internal::resolveLineHeight(frame(), spec.textStyle);
+    lineHeight = Internal::resolveLineHeight(runtimeFrame, spec.textStyle);
   }
   float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
   float textWidth = std::max(0.0f, bounds.width - spec.paddingX * 2.0f);
@@ -114,7 +121,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
 
   std::vector<float> initialCaretPositions;
   if (!activeText.empty() && (showCursor || selectionStart != selectionEnd)) {
-    initialCaretPositions = Internal::buildCaretPositionsForText(frame(), spec.textStyle, activeText);
+    initialCaretPositions = Internal::buildCaretPositionsForText(runtimeFrame, spec.textStyle, activeText);
   }
   auto initialCaretAdvanceFor = [&](uint32_t index) -> float {
     if (initialCaretPositions.empty()) {
@@ -166,14 +173,14 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   PrimeFrame::NodeId selectionNodeId{};
   PrimeFrame::PrimitiveId selectionPrim{};
   if (spec.selectionStyle != 0) {
-    selectionNodeId = Internal::createRectNode(frame(),
+    selectionNodeId = Internal::createRectNode(runtimeFrame,
                                        field.nodeId(),
                                        initialSelectionRect,
                                        spec.selectionStyle,
                                        spec.selectionStyleOverride,
                                        false,
                                        spec.visible);
-    if (PrimeFrame::Node* selectionNode = frame().getNode(selectionNodeId);
+    if (PrimeFrame::Node* selectionNode = runtimeFrame.getNode(selectionNodeId);
         selectionNode && !selectionNode->primitives.empty()) {
       selectionPrim = selectionNode->primitives.front();
       selectionNode->visible = initialSelectionVisible;
@@ -181,7 +188,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   }
 
   Internal::InternalRect textRect{spec.paddingX, textY, textWidth, std::max(0.0f, lineHeight)};
-  PrimeFrame::NodeId textNodeId = Internal::createTextNode(frame(),
+  PrimeFrame::NodeId textNodeId = Internal::createTextNode(runtimeFrame,
                                                    field.nodeId(),
                                                    textRect,
                                                    content,
@@ -192,7 +199,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                                                    textWidth,
                                                    spec.visible);
   PrimeFrame::PrimitiveId textPrim{};
-  if (PrimeFrame::Node* textNode = frame().getNode(textNodeId);
+  if (PrimeFrame::Node* textNode = runtimeFrame.getNode(textNodeId);
       textNode && !textNode->primitives.empty()) {
     textPrim = textNode->primitives.front();
   }
@@ -200,14 +207,14 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   PrimeFrame::NodeId cursorNodeId{};
   PrimeFrame::PrimitiveId cursorPrim{};
   if (spec.cursorStyle != 0) {
-    cursorNodeId = Internal::createRectNode(frame(),
+    cursorNodeId = Internal::createRectNode(runtimeFrame,
                                     field.nodeId(),
                                     initialCursorRect,
                                     spec.cursorStyle,
                                     spec.cursorStyleOverride,
                                     false,
                                     spec.visible);
-    if (PrimeFrame::Node* cursorNode = frame().getNode(cursorNodeId);
+    if (PrimeFrame::Node* cursorNode = runtimeFrame.getNode(cursorNodeId);
         cursorNode && !cursorNode->primitives.empty()) {
       cursorPrim = cursorNode->primitives.front();
       cursorNode->visible = initialCursorVisible;
@@ -237,7 +244,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   };
 
   auto patchState = std::make_shared<TextFieldPatchState>();
-  patchState->frame = &frame();
+  patchState->frame = &runtimeFrame;
   patchState->state = state;
   patchState->textNode = textNodeId;
   patchState->textPrim = textPrim;
@@ -389,13 +396,13 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   patchTextFieldVisuals();
 
   if (state) {
-    PrimeFrame::Node* node = frame().getNode(field.nodeId());
+    PrimeFrame::Node* node = runtimeFrame.getNode(field.nodeId());
     if (node) {
       PrimeFrame::Callback callback;
       callback.onEvent = [state,
                           callbacks = spec.callbacks,
                           clipboard = spec.clipboard,
-                          framePtr = &frame(),
+                          framePtr = &runtimeFrame,
                           textStyle = spec.textStyle,
                           paddingX = spec.paddingX,
                           allowNewlines = spec.allowNewlines,
@@ -837,14 +844,14 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
         }
       };
 
-      node->callbacks = frame().addCallback(std::move(callback));
+      node->callbacks = runtimeFrame.addCallback(std::move(callback));
     }
   }
 
   bool canFocus = enabled && state != nullptr;
   if (spec.visible && canFocus) {
     Internal::InternalFocusStyle focusStyle =
-        Internal::resolveFocusStyle(frame(),
+        Internal::resolveFocusStyle(runtimeFrame,
                                     spec.focusStyle,
                                     spec.focusStyleOverride,
                                     spec.cursorStyle,
@@ -853,32 +860,30 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
                                     0,
                                     0,
                                     spec.backgroundStyleOverride);
-    Internal::attachFocusOverlay(frame(),
+    Internal::attachFocusOverlay(runtime,
                                  field.nodeId(),
                                  Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                 focusStyle,
-                                 spec.visible);
+                                 focusStyle);
   }
 
-  if (PrimeFrame::Node* node = frame().getNode(field.nodeId())) {
+  if (PrimeFrame::Node* node = runtimeFrame.getNode(field.nodeId())) {
     node->focusable = canFocus;
     node->hitTestVisible = enabled;
     node->tabIndex = canFocus ? spec.tabIndex : -1;
   }
 
   if (!enabled) {
-    Internal::addDisabledScrimOverlay(frame(),
+    Internal::addDisabledScrimOverlay(runtime,
                                       field.nodeId(),
-                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
-                                      spec.visible);
+                                      Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height});
   } else if (readOnly) {
-    Internal::addReadOnlyScrimOverlay(frame(),
+    Internal::addReadOnlyScrimOverlay(runtimeFrame,
                                       field.nodeId(),
                                       Internal::InternalRect{0.0f, 0.0f, bounds.width, bounds.height},
                                       spec.visible);
   }
 
-  return UiNode(frame(), field.nodeId(), allowAbsolute_);
+  return UiNode(runtimeFrame, field.nodeId(), runtime.allowAbsolute);
 }
 
 UiNode UiNode::createTextField(TextFieldState& state,
