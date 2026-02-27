@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [72] Add full end-to-end ergonomics regression tests.
-  - test canonical app flows using only high-level APIs (no low-level hooks) across keyboard/mouse/text input
-  - include compile-time regression tests for convenience overloads and declarative builders
-  - acceptance: ergonomics suite runs in CI and blocks regressions
-
 
 ## P1 (Do Next)
 
@@ -66,6 +61,23 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [72] Add full end-to-end ergonomics regression tests.
+  - added dedicated suite `tests/unit/test_end_to_end_ergonomics.cpp` covering
+    canonical high-level `PrimeStage::App` flows across mouse, keyboard, and
+    text input dispatch via `bridgeHostInputEvent(...)` with no
+    `PrimeStage::LowLevel` hooks
+  - added compile-time regression guards in the same suite
+    (`SupportsDeclarativeConvenienceErgonomics<PrimeStage::UiNode>` and
+    negative `std::is_invocable_v` misuse check) for convenience overload and
+    declarative builder surfaces
+  - wired suite into the test target in `CMakeLists.txt` and expanded CI
+    fail-fast smoke filters in `.github/workflows/presubmit.yml` to include
+    `*ergonomics*` in both primary and headless compatibility jobs
+  - expanded source/workflow guardrails in `tests/unit/test_api_ergonomics.cpp`
+    to require suite wiring, CI gating, and high-level-only suite authoring
+  - documented suite ownership in `AGENTS.md` and linked it from
+    `docs/api-ergonomics-guidelines.md`
 
 - ☑ [71] Add API review checklist for any new widget/control.
   - added required review checklist doc

@@ -1828,7 +1828,66 @@ TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility p
   CHECK(workflow.find("PRIMESTAGE_HEADLESS_ONLY=ON") != std::string::npos);
   CHECK(workflow.find("PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF") != std::string::npos);
 
-  CHECK(workflow.find("--test-case=\"*focus*,*interaction*\"") != std::string::npos);
+  CHECK(workflow.find("--test-case=\"*focus*,*interaction*,*ergonomics*\"") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage end-to-end ergonomics suite is wired and guarded") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path workflowPath = repoRoot / ".github" / "workflows" / "presubmit.yml";
+  std::filesystem::path suitePath = repoRoot / "tests" / "unit" / "test_end_to_end_ergonomics.cpp";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(workflowPath));
+  REQUIRE(std::filesystem::exists(suitePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("tests/unit/test_end_to_end_ergonomics.cpp") != std::string::npos);
+
+  std::ifstream workflowInput(workflowPath);
+  REQUIRE(workflowInput.good());
+  std::string workflow((std::istreambuf_iterator<char>(workflowInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!workflow.empty());
+  CHECK(workflow.find("--test-case=\"*focus*,*interaction*,*ergonomics*\"") != std::string::npos);
+
+  std::ifstream suiteInput(suitePath);
+  REQUIRE(suiteInput.good());
+  std::string suite((std::istreambuf_iterator<char>(suiteInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!suite.empty());
+  CHECK(suite.find("end-to-end ergonomics high-level app flow") != std::string::npos);
+  CHECK(suite.find("bridgeHostInputEvent") != std::string::npos);
+  CHECK(suite.find("PointerPhase::Down") != std::string::npos);
+  CHECK(suite.find("HostKey::Backspace") != std::string::npos);
+  CHECK(suite.find("TextFieldSpec") != std::string::npos);
+  CHECK(suite.find("static_assert(SupportsDeclarativeConvenienceErgonomics<PrimeStage::UiNode>)") !=
+        std::string::npos);
+  CHECK(suite.find("PrimeStage::LowLevel::") == std::string::npos);
+  CHECK(suite.find(".lowLevelNodeId(") == std::string::npos);
+  CHECK(suite.find(".nodeId(") == std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("tests/unit/test_end_to_end_ergonomics.cpp") != std::string::npos);
+  CHECK(agents.find("no `PrimeStage::LowLevel` usage") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("tests/unit/test_end_to_end_ergonomics.cpp") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage deterministic visual-test harness and workflow are wired") {

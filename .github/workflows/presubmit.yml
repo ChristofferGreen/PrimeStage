@@ -31,7 +31,7 @@ jobs:
       - name: Fail Fast On Focus/Interaction Regressions
         run: |
           build_dir="build-${{ matrix.build_type }}"
-          "${build_dir}/PrimeStage_tests" --test-case="*focus*,*interaction*"
+          "${build_dir}/PrimeStage_tests" --test-case="*focus*,*interaction*,*ergonomics*"
 
       - name: Full Test Pass
         run: ./scripts/compile.sh --${{ matrix.build_type }} --test
@@ -92,7 +92,7 @@ jobs:
         run: cmake --build build-headless-compat
 
       - name: Focus/Interaction Smoke
-        run: ./build-headless-compat/PrimeStage_tests --test-case="*focus*,*interaction*"
+        run: ./build-headless-compat/PrimeStage_tests --test-case="*focus*,*interaction*,*ergonomics*"
 
       - name: Full Headless Test Pass
         run: ctest --test-dir build-headless-compat --output-on-failure

@@ -6,6 +6,8 @@ App code should describe state and callbacks at the widget-spec level, while Pri
 Public API compatibility and migration policy is tracked in `docs/api-evolution-policy.md`.
 Ergonomics quality budgets and regression gates are tracked in `docs/api-ergonomics-scorecard.md`.
 Widget/control API merge requirements are tracked in `docs/widget-api-review-checklist.md`.
+End-to-end high-level input ergonomics regressions are gated in
+`tests/unit/test_end_to_end_ergonomics.cpp`.
 
 ## Responsibility Split
 PrimeStage responsibilities:
@@ -306,4 +308,6 @@ router.dispatch(down, frame, layout, &focus);
 
 ## Current Gaps (Tracked Separately)
 These ergonomics are still tracked in `docs/todo.md` and are not complete yet:
-- Additional integration flow coverage (`[16]`/`[20]`).
+- Canonical/advanced example split and onboarding docs (`[73]`/`[74]`).
+- Automated API surface linting and defaults audit (`[75]`/`[76]`).
+- Additional compile-time ergonomics diagnostics (`[77]`).
