@@ -57,6 +57,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createSlider(SliderSpec)` runtime into
     `src/PrimeStageSlider.cpp`, with shared slider-spec normalization and
     focus/scrim helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createButton(ButtonSpec)` runtime into
+    `src/PrimeStageButton.cpp`, with shared button-spec normalization and
+    focus/scrim helper seams routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

@@ -106,6 +106,7 @@ endfunction()
 
 set(PRIMESTAGE_SOURCES
   src/App.cpp
+  src/PrimeStageButton.cpp
   src/PrimeStageBooleanWidgets.cpp
   src/PrimeStageCollections.cpp
   src/PrimeStageDropdown.cpp

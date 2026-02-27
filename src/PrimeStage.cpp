@@ -33,8 +33,6 @@ struct Rect {
   float height = 0.0f;
 };
 
-constexpr int KeyEnter = keyCodeInt(KeyCode::Enter);
-constexpr int KeySpace = keyCodeInt(KeyCode::Space);
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
 constexpr float DefaultParagraphWrapWidth = 360.0f;
@@ -45,15 +43,6 @@ constexpr float DefaultCollectionWidth = 280.0f;
 constexpr float DefaultCollectionHeight = 120.0f;
 constexpr float MinDefaultTextContrastRatio = 4.5f;
 constexpr float MinDefaultFocusContrastRatio = 3.0f;
-
-bool is_activation_key(int key) {
-  return key == KeyEnter || key == KeySpace;
-}
-
-bool is_pointer_inside(PrimeFrame::Event const& event) {
-  return event.localX >= 0.0f && event.localX <= event.targetW &&
-         event.localY >= 0.0f && event.localY <= event.targetH;
-}
 
 void apply_default_accessibility_semantics(AccessibilitySemantics& semantics,
                                            AccessibilityRole role,
@@ -1360,6 +1349,18 @@ SliderSpec normalizeSliderSpec(SliderSpec const& specInput) {
     spec.value = spec.state->value;
   }
   apply_default_range_semantics(spec.accessibility, AccessibilityRole::Slider, enabled, spec.value);
+  return spec;
+}
+
+ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput) {
+  ButtonSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ButtonSpec.size");
+  spec.textInsetX = clamp_non_negative(spec.textInsetX, "ButtonSpec", "textInsetX");
+  spec.baseOpacity = clamp_unit_interval(spec.baseOpacity, "ButtonSpec", "baseOpacity");
+  spec.hoverOpacity = clamp_unit_interval(spec.hoverOpacity, "ButtonSpec", "hoverOpacity");
+  spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ButtonSpec", "tabIndex");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Button, spec.enabled);
   return spec;
 }
 
@@ -2826,271 +2827,6 @@ UiNode UiNode::createSpacer(SizeSpec const& size) {
   SpacerSpec spec;
   spec.size = size;
   return createSpacer(spec);
-}
-
-UiNode UiNode::createButton(ButtonSpec const& specInput) {
-  ButtonSpec spec = specInput;
-  sanitize_size_spec(spec.size, "ButtonSpec.size");
-  spec.textInsetX = clamp_non_negative(spec.textInsetX, "ButtonSpec", "textInsetX");
-  spec.baseOpacity = clamp_unit_interval(spec.baseOpacity, "ButtonSpec", "baseOpacity");
-  spec.hoverOpacity = clamp_unit_interval(spec.hoverOpacity, "ButtonSpec", "hoverOpacity");
-  spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
-  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ButtonSpec", "tabIndex");
-  bool enabled = spec.enabled;
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Button, enabled);
-
-  Rect bounds = resolve_rect(spec.size);
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    if (lineHeight > 0.0f) {
-      bounds.height = lineHeight;
-    }
-  }
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !spec.label.empty()) {
-    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-    bounds.width = std::max(bounds.width, textWidth + spec.textInsetX * 2.0f);
-  }
-  if (bounds.width <= 0.0f &&
-      bounds.height <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    return UiNode(frame(), id_, allowAbsolute_);
-  }
-  PrimeFrame::RectStyleToken baseToken = spec.backgroundStyle;
-  PrimeFrame::RectStyleToken hoverToken = spec.hoverStyle != 0 ? spec.hoverStyle : baseToken;
-  PrimeFrame::RectStyleToken pressedToken = spec.pressedStyle != 0 ? spec.pressedStyle : baseToken;
-  PrimeFrame::RectStyleOverride baseOverride = spec.backgroundStyleOverride;
-  baseOverride.opacity = spec.baseOpacity;
-  PrimeFrame::RectStyleOverride hoverOverride = spec.hoverStyleOverride;
-  hoverOverride.opacity = spec.hoverOpacity;
-  PrimeFrame::RectStyleOverride pressedOverride = spec.pressedStyleOverride;
-  pressedOverride.opacity = spec.pressedOpacity;
-  bool needsInteraction = enabled &&
-                          (spec.callbacks.onActivate ||
-                          spec.callbacks.onClick ||
-                          spec.callbacks.onHoverChanged ||
-                          spec.callbacks.onPressedChanged ||
-                          hoverToken != baseToken ||
-                          pressedToken != baseToken ||
-                          std::abs(spec.hoverOpacity - spec.baseOpacity) > 0.001f ||
-                          std::abs(spec.pressedOpacity - spec.baseOpacity) > 0.001f);
-
-  PanelSpec panel;
-  panel.size = spec.size;
-  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    panel.size.preferredWidth = bounds.width;
-  }
-  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    panel.size.preferredHeight = bounds.height;
-  }
-  panel.rectStyle = baseToken;
-  panel.rectStyleOverride = baseOverride;
-  panel.visible = spec.visible;
-  UiNode button = createPanel(panel);
-  if (!spec.visible) {
-    return UiNode(frame(), button.nodeId(), allowAbsolute_);
-  }
-
-  if (!spec.label.empty()) {
-    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.label);
-    float textY = (bounds.height - lineHeight) * 0.5f + spec.textOffsetY;
-    float textX = spec.textInsetX;
-    float labelWidth = std::max(0.0f, bounds.width - spec.textInsetX);
-    PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start;
-    if (spec.centerText) {
-      textX = (bounds.width - textWidth) * 0.5f;
-      if (textX < 0.0f) {
-        textX = 0.0f;
-      }
-      labelWidth = std::max(0.0f, textWidth);
-    }
-
-    if (!spec.centerText && textWidth > 0.0f) {
-      labelWidth = std::max(labelWidth, textWidth);
-    }
-
-    Rect textRect{textX, textY, labelWidth, lineHeight};
-    create_text_node(frame(),
-                     button.nodeId(),
-                     textRect,
-                     spec.label,
-                     spec.textStyle,
-                     spec.textStyleOverride,
-                     align,
-                     PrimeFrame::WrapMode::None,
-                     labelWidth,
-                     spec.visible);
-  }
-
-  std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible && enabled) {
-    ResolvedFocusStyle focusStyle = resolve_focus_style(
-        frame(),
-        spec.focusStyle,
-        spec.focusStyleOverride,
-        {pressedToken, hoverToken, baseToken},
-        spec.backgroundStyleOverride);
-    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
-    focusOverlay = add_focus_overlay_node(frame(),
-                                          button.nodeId(),
-                                          focusRect,
-                                          focusStyle.token,
-                                          focusStyle.overrideStyle,
-                                          spec.visible);
-    if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
-      node->focusable = true;
-    }
-  }
-
-  if (needsInteraction) {
-    PrimeFrame::Node* node = frame().getNode(button.nodeId());
-    if (node && !node->primitives.empty()) {
-      PrimeFrame::PrimitiveId background = node->primitives.front();
-      PrimeFrame::Frame* framePtr = &frame();
-      auto applyStyle = [framePtr,
-                         background,
-                         baseToken,
-                         hoverToken,
-                         pressedToken,
-                         baseOverride,
-                         hoverOverride,
-                         pressedOverride](bool pressed, bool hovered) {
-        PrimeFrame::Primitive* prim = framePtr->getPrimitive(background);
-        if (!prim || prim->type != PrimeFrame::PrimitiveType::Rect) {
-          return;
-        }
-        if (pressed) {
-          prim->rect.token = pressedToken;
-          prim->rect.overrideStyle = pressedOverride;
-        } else if (hovered) {
-          prim->rect.token = hoverToken;
-          prim->rect.overrideStyle = hoverOverride;
-        } else {
-          prim->rect.token = baseToken;
-          prim->rect.overrideStyle = baseOverride;
-        }
-      };
-      struct ButtonState {
-        bool hovered = false;
-        bool pressed = false;
-      };
-      auto state = std::make_shared<ButtonState>();
-      PrimeFrame::Callback callback;
-      callback.onEvent = [callbacks = spec.callbacks,
-                          applyStyle = std::move(applyStyle),
-                          state](PrimeFrame::Event const& event) mutable -> bool {
-        auto update = [&](bool nextPressed, bool nextHovered) {
-          bool hoverChanged = (nextHovered != state->hovered);
-          bool pressChanged = (nextPressed != state->pressed);
-          state->hovered = nextHovered;
-          state->pressed = nextPressed;
-          applyStyle(state->pressed, state->hovered);
-          if (hoverChanged && callbacks.onHoverChanged) {
-            callbacks.onHoverChanged(state->hovered);
-          }
-          if (pressChanged && callbacks.onPressedChanged) {
-            callbacks.onPressedChanged(state->pressed);
-          }
-        };
-        switch (event.type) {
-          case PrimeFrame::EventType::PointerEnter:
-            update(state->pressed, true);
-            return true;
-          case PrimeFrame::EventType::PointerLeave:
-            update(false, false);
-            return true;
-          case PrimeFrame::EventType::PointerDown:
-            update(true, true);
-            return true;
-          case PrimeFrame::EventType::PointerDrag: {
-            bool inside = is_pointer_inside(event);
-            update(inside, inside);
-            return true;
-          }
-          case PrimeFrame::EventType::PointerUp: {
-            bool inside = is_pointer_inside(event);
-            bool fire = state->pressed && inside;
-            update(false, inside);
-            if (fire) {
-              if (callbacks.onActivate) {
-                callbacks.onActivate();
-              } else if (callbacks.onClick) {
-                callbacks.onClick();
-              }
-            }
-            return true;
-          }
-          case PrimeFrame::EventType::PointerCancel:
-            update(false, false);
-            return true;
-          case PrimeFrame::EventType::PointerMove: {
-            bool inside = is_pointer_inside(event);
-            update(state->pressed && inside, inside);
-            return true;
-          }
-          case PrimeFrame::EventType::KeyDown:
-            if (is_activation_key(event.key)) {
-              if (callbacks.onPressedChanged) {
-                callbacks.onPressedChanged(true);
-                callbacks.onPressedChanged(false);
-              }
-              if (callbacks.onActivate) {
-                callbacks.onActivate();
-              } else if (callbacks.onClick) {
-                callbacks.onClick();
-              }
-              return true;
-            }
-            break;
-          default:
-            break;
-        }
-        return false;
-      };
-      PrimeFrame::CallbackId callbackId = frame().addCallback(std::move(callback));
-      node->callbacks = callbackId;
-      applyStyle(false, false);
-    }
-  }
-
-  if (PrimeFrame::Node* node = frame().getNode(button.nodeId())) {
-    node->focusable = enabled;
-    node->hitTestVisible = enabled;
-    node->tabIndex = enabled ? spec.tabIndex : -1;
-  }
-
-  if (focusOverlay.has_value()) {
-    attach_focus_callbacks(frame(), button.nodeId(), *focusOverlay);
-  }
-
-  if (!enabled) {
-    add_state_scrim_overlay(frame(),
-                            button.nodeId(),
-                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
-                            DisabledScrimOpacity,
-                            spec.visible);
-  }
-
-  return UiNode(frame(), button.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createButton(std::string_view label,
-                            PrimeFrame::RectStyleToken backgroundStyle,
-                            PrimeFrame::TextStyleToken textStyle,
-                            SizeSpec const& size) {
-  ButtonSpec spec;
-  spec.label = label;
-  spec.backgroundStyle = backgroundStyle;
-  spec.textStyle = textStyle;
-  spec.size = size;
-  return createButton(spec);
 }
 
 UiNode UiNode::createTextField(TextFieldSpec const& specInput) {

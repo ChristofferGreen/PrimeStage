@@ -3137,6 +3137,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path buttonCppPath = repoRoot / "src" / "PrimeStageButton.cpp";
   std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path sliderCppPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
@@ -3148,6 +3149,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(buttonCppPath));
   REQUIRE(std::filesystem::exists(booleanCppPath));
   REQUIRE(std::filesystem::exists(sliderCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
@@ -3197,6 +3199,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
+  std::ifstream buttonInput(buttonCppPath);
+  REQUIRE(buttonInput.good());
+  std::string buttonCpp((std::istreambuf_iterator<char>(buttonInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!buttonCpp.empty());
   std::ifstream booleanInput(booleanCppPath);
   REQUIRE(booleanInput.good());
   std::string booleanCpp((std::istreambuf_iterator<char>(booleanInput)),
@@ -3228,7 +3235,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
                       std::istreambuf_iterator<char>());
   REQUIRE(!tabsCpp.empty());
   std::string combinedSource =
-      sourceCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
+      sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3459,6 +3466,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path corePath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path buttonPath = repoRoot / "src" / "PrimeStageButton.cpp";
   std::filesystem::path booleanPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path sliderPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
@@ -3468,6 +3476,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
+  REQUIRE(std::filesystem::exists(buttonPath));
   REQUIRE(std::filesystem::exists(booleanPath));
   REQUIRE(std::filesystem::exists(sliderPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
@@ -3504,6 +3513,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createSlider(SliderSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createSlider(Binding<float> binding, bool vertical)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createButton(ButtonSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createButton(std::string_view label,") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3520,8 +3531,21 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("SliderSpec normalizeSliderSpec(SliderSpec const& specInput)") !=
         std::string::npos);
+  CHECK(core.find("ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput)") !=
+        std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
+
+  std::ifstream buttonInput(buttonPath);
+  REQUIRE(buttonInput.good());
+  std::string buttonSource((std::istreambuf_iterator<char>(buttonInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!buttonSource.empty());
+  CHECK(buttonSource.find("UiNode UiNode::createButton(ButtonSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(buttonSource.find("UiNode UiNode::createButton(std::string_view label,") !=
+        std::string::npos);
+  CHECK(buttonSource.find("Internal::normalizeButtonSpec(specInput)") != std::string::npos);
 
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
@@ -3620,6 +3644,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("CheckboxSpec normalizeCheckboxSpec(CheckboxSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("SliderSpec normalizeSliderSpec(SliderSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
