@@ -625,6 +625,10 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   REQUIRE(!apiRef.empty());
   CHECK(apiRef.find("PrimeStage::FrameLifecycle") != std::string::npos);
   CHECK(apiRef.find("createWindow(...)") != std::string::npos);
+  CHECK(apiRef.find("createPanel(rectStyle, size)") != std::string::npos);
+  CHECK(apiRef.find("createLabel(text, textStyle, size)") != std::string::npos);
+  CHECK(apiRef.find("createDivider(rectStyle, size)") != std::string::npos);
+  CHECK(apiRef.find("createSpacer(size)") != std::string::npos);
   CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
 }
 

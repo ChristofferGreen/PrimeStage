@@ -57,11 +57,15 @@ Container/base:
 - `createHorizontalStack(...)`
 - `createOverlay(...)`
 - `createPanel(...)`
+- `createPanel(rectStyle, size)`
 - `createLabel(...)`
+- `createLabel(text, textStyle, size)`
 - `createParagraph(...)`
 - `createTextLine(...)`
 - `createDivider(...)`
+- `createDivider(rectStyle, size)`
 - `createSpacer(...)`
+- `createSpacer(size)`
 
 Interactive:
 - `createButton(...)`

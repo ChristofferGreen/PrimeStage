@@ -35,6 +35,21 @@ PrimeFrame::RectStyleToken firstRectToken(PrimeFrame::Frame const& frame, PrimeF
   return 0;
 }
 
+PrimeFrame::Primitive const* firstTextPrimitive(PrimeFrame::Frame const& frame,
+                                                PrimeFrame::NodeId nodeId) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive const* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == PrimeFrame::PrimitiveType::Text) {
+      return prim;
+    }
+  }
+  return nullptr;
+}
+
 std::string firstChildText(PrimeFrame::Frame const& frame, PrimeFrame::NodeId parent) {
   PrimeFrame::Node const* parentNode = frame.getNode(parent);
   if (!parentNode) {
@@ -140,6 +155,57 @@ TEST_CASE("PrimeStage size validation clamps invalid ranges and negative values"
   CHECK(panelNode->padding.left == doctest::Approx(0.0f));
   CHECK(panelNode->padding.top == doctest::Approx(0.0f));
   CHECK(panelNode->gap == doctest::Approx(0.0f));
+}
+
+TEST_CASE("PrimeStage helper widgets clamp invalid helper spec inputs") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::LabelSpec label;
+  label.text = "Helper label";
+  label.maxWidth = -120.0f;
+  label.size.preferredWidth = -60.0f;
+  label.size.preferredHeight = -24.0f;
+  label.size.stretchX = -1.0f;
+  label.size.stretchY = -2.0f;
+
+  PrimeStage::UiNode labelNode = root.createLabel(label);
+  PrimeFrame::Node const* labelFrameNode = frame.getNode(labelNode.nodeId());
+  REQUIRE(labelFrameNode != nullptr);
+  REQUIRE(labelFrameNode->sizeHint.width.preferred.has_value());
+  REQUIRE(labelFrameNode->sizeHint.height.preferred.has_value());
+  CHECK(labelFrameNode->sizeHint.width.preferred.value() == doctest::Approx(0.0f));
+  CHECK(labelFrameNode->sizeHint.height.preferred.value() == doctest::Approx(0.0f));
+  CHECK(labelFrameNode->sizeHint.width.stretch == doctest::Approx(0.0f));
+  CHECK(labelFrameNode->sizeHint.height.stretch == doctest::Approx(0.0f));
+
+  PrimeFrame::Primitive const* labelText = firstTextPrimitive(frame, labelNode.nodeId());
+  REQUIRE(labelText != nullptr);
+  CHECK(labelText->textBlock.maxWidth == doctest::Approx(0.0f));
+
+  PrimeStage::DividerSpec divider;
+  divider.size.preferredWidth = -20.0f;
+  divider.size.preferredHeight = -4.0f;
+  PrimeStage::UiNode dividerNode = root.createDivider(divider);
+  PrimeFrame::Node const* dividerFrameNode = frame.getNode(dividerNode.nodeId());
+  REQUIRE(dividerFrameNode != nullptr);
+  REQUIRE(dividerFrameNode->sizeHint.width.preferred.has_value());
+  REQUIRE(dividerFrameNode->sizeHint.height.preferred.has_value());
+  CHECK(dividerFrameNode->sizeHint.width.preferred.value() == doctest::Approx(0.0f));
+  CHECK(dividerFrameNode->sizeHint.height.preferred.value() == doctest::Approx(0.0f));
+  CHECK_FALSE(dividerFrameNode->hitTestVisible);
+
+  PrimeStage::SpacerSpec spacer;
+  spacer.size.preferredWidth = -18.0f;
+  spacer.size.preferredHeight = -8.0f;
+  PrimeStage::UiNode spacerNode = root.createSpacer(spacer);
+  PrimeFrame::Node const* spacerFrameNode = frame.getNode(spacerNode.nodeId());
+  REQUIRE(spacerFrameNode != nullptr);
+  REQUIRE(spacerFrameNode->sizeHint.width.preferred.has_value());
+  REQUIRE(spacerFrameNode->sizeHint.height.preferred.has_value());
+  CHECK(spacerFrameNode->sizeHint.width.preferred.value() == doctest::Approx(0.0f));
+  CHECK(spacerFrameNode->sizeHint.height.preferred.value() == doctest::Approx(0.0f));
+  CHECK_FALSE(spacerFrameNode->hitTestVisible);
 }
 
 TEST_CASE("PrimeStage tabs clamp invalid selected index") {

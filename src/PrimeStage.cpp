@@ -1797,7 +1797,12 @@ UiNode UiNode::createOverlay(StackSpec const& spec) {
   return UiNode(frame(), nodeId, allowAbsolute_);
 }
 
-UiNode UiNode::createPanel(PanelSpec const& spec) {
+UiNode UiNode::createPanel(PanelSpec const& specInput) {
+  PanelSpec spec = specInput;
+  sanitize_size_spec(spec.size, "PanelSpec.size");
+  spec.padding = sanitize_insets(spec.padding, "PanelSpec");
+  spec.gap = clamp_non_negative(spec.gap, "PanelSpec", "gap");
+
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, Rect{},
                                           &spec.size,
                                           spec.layout,
@@ -1817,7 +1822,11 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
 }
 
 
-UiNode UiNode::createLabel(LabelSpec const& spec) {
+UiNode UiNode::createLabel(LabelSpec const& specInput) {
+  LabelSpec spec = specInput;
+  sanitize_size_spec(spec.size, "LabelSpec.size");
+  spec.maxWidth = clamp_non_negative(spec.maxWidth, "LabelSpec", "maxWidth");
+
   Rect rect = resolve_rect(spec.size);
   if ((rect.width <= 0.0f || rect.height <= 0.0f) &&
       !spec.text.empty() &&
@@ -2157,7 +2166,10 @@ UiNode UiNode::createTextLine(std::string_view text,
 
 
 
-UiNode UiNode::createDivider(DividerSpec const& spec) {
+UiNode UiNode::createDivider(DividerSpec const& specInput) {
+  DividerSpec spec = specInput;
+  sanitize_size_spec(spec.size, "DividerSpec.size");
+
   Rect rect = resolve_rect(spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
                                           &spec.size,
@@ -2181,7 +2193,10 @@ UiNode UiNode::createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec cons
   return createDivider(spec);
 }
 
-UiNode UiNode::createSpacer(SpacerSpec const& spec) {
+UiNode UiNode::createSpacer(SpacerSpec const& specInput) {
+  SpacerSpec spec = specInput;
+  sanitize_size_spec(spec.size, "SpacerSpec.size");
+
   Rect rect = resolve_rect(spec.size);
   PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
                                           &spec.size,

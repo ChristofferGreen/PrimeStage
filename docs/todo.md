@@ -249,7 +249,11 @@ Release Exit Criteria (for API-quality milestone):
     fluent-authoring regression coverage in `tests/unit/test_api_ergonomics.cpp`, and builder docs
     updates in `docs/minimal-api-reference.md`, `docs/prime-stage-design.md`, and
     `docs/api-ergonomics-guidelines.md`
-- ☐ [4] Implement widget creation helpers (panel, label, divider, spacer).
+- ☑ [4] Implement widget creation helpers (panel, label, divider, spacer).
+  - delivered via helper-spec normalization in `src/PrimeStage.cpp` (`createPanel`,
+    `createLabel`, `createDivider`, `createSpacer`) with clamped helper inputs, focused helper
+    validation coverage in `tests/unit/test_spec_validation.cpp`, and helper-overload reference
+    updates in `docs/minimal-api-reference.md`
 - ☐ [5] Implement interactive widgets (button, edit box, toggle, checkbox, slider).
 - ☐ [6] Implement collection widgets (scroll view, list, table, tree).
 - ☐ [8] Add minimal unit tests for builder API.
