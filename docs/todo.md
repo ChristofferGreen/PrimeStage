@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [97] Link advanced onboarding docs to widget-spec defaults policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/widget-spec-defaults-audit.md` so advanced per-widget
+    overrides review default/advanced field classification policy first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    widget-spec defaults audit link and guardrail phrasing, preventing
+    undocumented advanced override guidance drift
+
 - ☑ [96] Link advanced onboarding docs to default-visual behavior policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/default-widget-behavior-matrix.md` so advanced visual

@@ -71,6 +71,8 @@ Use only for explicit interop, not canonical app flow.
   expanding advanced usage.
 - Review default interaction/visual behavior expectations in
   `docs/default-widget-behavior-matrix.md` before changing advanced visual behavior.
+- Review widget-spec default/advanced field classifications in
+  `docs/widget-spec-defaults-audit.md` before introducing advanced per-widget overrides.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:
