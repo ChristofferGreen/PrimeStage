@@ -1382,6 +1382,14 @@ TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput) {
   return spec;
 }
 
+LabelSpec normalizeLabelSpec(LabelSpec const& specInput) {
+  LabelSpec spec = specInput;
+  sanitize_size_spec(spec.size, "LabelSpec.size");
+  spec.maxWidth = clamp_non_negative(spec.maxWidth, "LabelSpec", "maxWidth");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
+  return spec;
+}
+
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = specInput;
   sanitize_size_spec(spec.size, "ScrollViewSpec.size");
@@ -2428,76 +2436,6 @@ UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const&
   spec.rectStyle = rectStyle;
   spec.size = size;
   return createPanel(spec);
-}
-
-
-UiNode UiNode::createLabel(LabelSpec const& specInput) {
-  LabelSpec spec = specInput;
-  sanitize_size_spec(spec.size, "LabelSpec.size");
-  spec.maxWidth = clamp_non_negative(spec.maxWidth, "LabelSpec", "maxWidth");
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
-
-  Rect rect = resolve_rect(spec.size);
-  if ((rect.width <= 0.0f || rect.height <= 0.0f) &&
-      !spec.text.empty() &&
-      !spec.size.preferredWidth.has_value() &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      spec.size.stretchY <= 0.0f) {
-    float lineHeight = resolve_line_height(frame(), spec.textStyle);
-    float textWidth = estimate_text_width(frame(), spec.textStyle, spec.text);
-    if (rect.width <= 0.0f) {
-      if (spec.maxWidth > 0.0f) {
-        rect.width = std::min(textWidth, spec.maxWidth);
-      } else {
-        rect.width = textWidth;
-      }
-    }
-    if (rect.height <= 0.0f) {
-      float wrapWidth = rect.width;
-      if (spec.maxWidth > 0.0f) {
-        wrapWidth = spec.maxWidth;
-      }
-      float height = lineHeight;
-      if (spec.wrap != PrimeFrame::WrapMode::None && wrapWidth > 0.0f) {
-        std::vector<std::string> lines = wrap_text_lines(frame(), spec.textStyle, spec.text, wrapWidth, spec.wrap);
-        height = lineHeight * std::max<size_t>(1, lines.size());
-      }
-      rect.height = height;
-    }
-  }
-  PrimeFrame::NodeId nodeId = create_node(frame(), id_, rect,
-                                          &spec.size,
-                                          PrimeFrame::LayoutType::None,
-                                          PrimeFrame::Insets{},
-                                          0.0f,
-                                          false,
-                                          spec.visible);
-  PrimeFrame::Node* node = frame().getNode(nodeId);
-  if (node) {
-    node->hitTestVisible = false;
-  }
-  add_text_primitive(frame(),
-                     nodeId,
-                     spec.text,
-                     spec.textStyle,
-                     spec.textStyleOverride,
-                     spec.align,
-                     spec.wrap,
-                     spec.maxWidth,
-                     rect.width,
-                     rect.height);
-  return UiNode(frame(), nodeId, allowAbsolute_);
-}
-
-UiNode UiNode::createLabel(std::string_view text,
-                           PrimeFrame::TextStyleToken textStyle,
-                           SizeSpec const& size) {
-  LabelSpec spec;
-  spec.text = text;
-  spec.textStyle = textStyle;
-  spec.size = size;
-  return createLabel(spec);
 }
 
 

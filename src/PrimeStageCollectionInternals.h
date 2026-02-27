@@ -29,6 +29,7 @@ ButtonSpec normalizeButtonSpec(ButtonSpec const& specInput);
 DividerSpec normalizeDividerSpec(DividerSpec const& specInput);
 SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput);
 TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput);
+LabelSpec normalizeLabelSpec(LabelSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();
