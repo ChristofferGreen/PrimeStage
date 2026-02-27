@@ -76,6 +76,9 @@ Release Exit Criteria (for API-quality milestone):
     `createHorizontalStack`, `createOverlay`, `createPanel`) into
     `src/PrimeStageContainers.cpp`, with shared panel normalization routed via
     `PrimeStage::Internal`
+  - vertical slice shipped: moved `createTextSelectionOverlay(...)` runtime into
+    `src/PrimeStageTextSelectionOverlay.cpp`, with shared text-selection-overlay
+    normalization routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

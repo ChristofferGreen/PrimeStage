@@ -3147,6 +3147,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path paragraphCppPath = repoRoot / "src" / "PrimeStageParagraph.cpp";
   std::filesystem::path tabsCppPath = repoRoot / "src" / "PrimeStageTabs.cpp";
+  std::filesystem::path textSelectionOverlayCppPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
   std::filesystem::path textLineCppPath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
   REQUIRE(std::filesystem::exists(matrixPath));
@@ -3163,6 +3164,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(progressCppPath));
   REQUIRE(std::filesystem::exists(paragraphCppPath));
   REQUIRE(std::filesystem::exists(tabsCppPath));
+  REQUIRE(std::filesystem::exists(textSelectionOverlayCppPath));
   REQUIRE(std::filesystem::exists(textLineCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
 
@@ -3257,6 +3259,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string tabsCpp((std::istreambuf_iterator<char>(tabsInput)),
                       std::istreambuf_iterator<char>());
   REQUIRE(!tabsCpp.empty());
+  std::ifstream textSelectionOverlayInput(textSelectionOverlayCppPath);
+  REQUIRE(textSelectionOverlayInput.good());
+  std::string textSelectionOverlayCpp((std::istreambuf_iterator<char>(textSelectionOverlayInput)),
+                                      std::istreambuf_iterator<char>());
+  REQUIRE(!textSelectionOverlayCpp.empty());
   std::ifstream textLineInput(textLineCppPath);
   REQUIRE(textLineInput.good());
   std::string textLineCpp((std::istreambuf_iterator<char>(textLineInput)),
@@ -3264,7 +3271,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(!textLineCpp.empty());
   std::string combinedSource =
       sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp +
-      textLineCpp + labelCpp + paragraphCpp + containersCpp;
+      textSelectionOverlayCpp + textLineCpp + labelCpp + paragraphCpp + containersCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3507,6 +3514,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
+  std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
@@ -3523,6 +3531,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(textLinePath));
+  REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(todoPath));
@@ -3573,6 +3582,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createPanel(PanelSpec const& specInput)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec)") ==
+        std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3602,6 +3613,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("PanelSpec normalizePanelSpec(PanelSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3682,6 +3695,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(containersSource.find("UiNode UiNode::createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(containersSource.find("Internal::normalizePanelSpec(specInput)") != std::string::npos);
+
+  std::ifstream textSelectionOverlayInput(textSelectionOverlayPath);
+  REQUIRE(textSelectionOverlayInput.good());
+  std::string textSelectionOverlaySource((std::istreambuf_iterator<char>(textSelectionOverlayInput)),
+                                         std::istreambuf_iterator<char>());
+  REQUIRE(!textSelectionOverlaySource.empty());
+  CHECK(textSelectionOverlaySource.find("UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& specInput)") !=
+        std::string::npos);
+  CHECK(textSelectionOverlaySource.find("Internal::normalizeTextSelectionOverlaySpec(specInput)") !=
+        std::string::npos);
 
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
@@ -3795,6 +3818,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("PanelSpec normalizePanelSpec(PanelSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
@@ -3809,6 +3834,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageLabel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
