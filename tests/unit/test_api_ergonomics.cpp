@@ -763,6 +763,12 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
   CHECK(tests.find("render target diagnostics expose actionable status") != std::string::npos);
   CHECK(tests.find("PNG diagnostics report layout and path failures") != std::string::npos);
   CHECK(tests.find("RenderStatusCode::InvalidTargetStride") != std::string::npos);
+  CHECK(tests.find("render path overloads and png write failures are covered") !=
+        std::string::npos);
+  CHECK(tests.find("RenderStatusCode::PngWriteFailed") != std::string::npos);
+  CHECK(tests.find("renderFrameToTarget(frame, target, options)") != std::string::npos);
+  CHECK(tests.find("renderFrameToPng(frame, \"headless_frame.png\", options)") !=
+        std::string::npos);
   CHECK(tests.find("rounded-corner policy is deterministic under theme changes") !=
         std::string::npos);
 
@@ -815,6 +821,7 @@ TEST_CASE("PrimeStage render diagnostics expose structured status contracts") {
         std::string::npos);
   CHECK(todo.find("[44] Remove renderer style heuristics tied to theme color indices.") !=
         std::string::npos);
+  CHECK(todo.find("[45] Add render-path test coverage.") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {

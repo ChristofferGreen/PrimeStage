@@ -193,9 +193,10 @@ Release Exit Criteria (for API-quality milestone):
   - ensure renderer output is deterministic under theme changes
   - delivered via explicit `CornerStyleMetadata` in `include/PrimeStage/Render.h`, geometry/metadata-driven radius resolution in `src/Render.cpp` (theme-color heuristics removed), deterministic theme-change regression coverage in `tests/unit/test_render.cpp`, and docs/guidance alignment in `docs/render-diagnostics.md`, `docs/prime-stage-design.md`, and `AGENTS.md`
 
-- ☐ [45] Add render-path test coverage.
+- ☑ [45] Add render-path test coverage.
   - add tests for `renderFrameToTarget` and `renderFrameToPng` success/failure paths
   - include headless (`PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF`) behavior expectations
+  - delivered via expanded render-path regression coverage in `tests/unit/test_render.cpp` (target/png overload success paths, PNG write failure path, and explicit headless expectations), source/docs guard updates in `tests/unit/test_api_ergonomics.cpp`, and render diagnostics coverage notes in `docs/render-diagnostics.md`
 
 - ☐ [46] Establish single-source versioning.
   - derive runtime version string from project version metadata

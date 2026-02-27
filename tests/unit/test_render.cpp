@@ -7,6 +7,9 @@
 #include "third_party/doctest.h"
 
 #include <algorithm>
+#include <chrono>
+#include <filesystem>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -64,6 +67,16 @@ size_t countNonZeroAlpha(std::vector<uint8_t> const& rgba) {
     }
   }
   return count;
+}
+
+std::filesystem::path makeTempPngPath(std::string_view tag) {
+  std::error_code error;
+  std::filesystem::path directory = std::filesystem::temp_directory_path(error);
+  if (error) {
+    directory = std::filesystem::current_path(error);
+  }
+  auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+  return directory / ("primestage_render_" + std::string(tag) + "_" + std::to_string(stamp) + ".png");
 }
 
 } // namespace
@@ -176,6 +189,73 @@ TEST_CASE("PrimeStage render status is successful for valid render targets") {
 #else
   CHECK_FALSE(status.ok());
   CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render path overloads and png write failures are covered") {
+  PrimeFrame::Frame frame = makeRenderableFrame(96.0f, 64.0f);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 96.0f, 64.0f);
+
+  std::vector<uint8_t> pixels(96u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 96u;
+  target.height = 64u;
+  target.stride = 96u * 4u;
+  PrimeStage::RenderOptions options{};
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  PrimeStage::RenderStatus targetOverload =
+      PrimeStage::renderFrameToTarget(frame, target, options);
+  CHECK(targetOverload.ok());
+
+  std::filesystem::path withLayoutPath = makeTempPngPath("layout");
+  std::string withLayoutPathText = withLayoutPath.string();
+  PrimeStage::RenderStatus pngWithLayout =
+      PrimeStage::renderFrameToPng(frame, layout, withLayoutPathText, options);
+  CHECK(pngWithLayout.ok());
+  REQUIRE(std::filesystem::exists(withLayoutPath));
+  std::error_code fileError;
+  auto withLayoutSize = std::filesystem::file_size(withLayoutPath, fileError);
+  CHECK_FALSE(fileError);
+  CHECK(withLayoutSize > 0u);
+
+  std::filesystem::path noLayoutPath = makeTempPngPath("frame");
+  std::string noLayoutPathText = noLayoutPath.string();
+  PrimeStage::RenderStatus pngNoLayout =
+      PrimeStage::renderFrameToPng(frame, noLayoutPathText, options);
+  CHECK(pngNoLayout.ok());
+  REQUIRE(std::filesystem::exists(noLayoutPath));
+  fileError.clear();
+  auto noLayoutSize = std::filesystem::file_size(noLayoutPath, fileError);
+  CHECK_FALSE(fileError);
+  CHECK(noLayoutSize > 0u);
+
+  std::error_code removeError;
+  std::filesystem::remove(withLayoutPath, removeError);
+  removeError.clear();
+  std::filesystem::remove(noLayoutPath, removeError);
+
+  std::filesystem::path missingParent =
+      std::filesystem::temp_directory_path() /
+      ("primestage_render_missing_parent_" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::path failurePath = missingParent / "out.png";
+  std::string failurePathText = failurePath.string();
+  std::filesystem::remove_all(missingParent, removeError);
+  PrimeStage::RenderStatus pngWriteFailure =
+      PrimeStage::renderFrameToPng(frame, layout, failurePathText, options);
+  CHECK_FALSE(pngWriteFailure.ok());
+  CHECK(pngWriteFailure.code == PrimeStage::RenderStatusCode::PngWriteFailed);
+#else
+  CHECK(PrimeStage::renderFrameToTarget(frame, layout, target, options).code ==
+        PrimeStage::RenderStatusCode::BackendUnavailable);
+  CHECK(PrimeStage::renderFrameToTarget(frame, target, options).code ==
+        PrimeStage::RenderStatusCode::BackendUnavailable);
+  CHECK(PrimeStage::renderFrameToPng(frame, layout, "headless_layout.png", options).code ==
+        PrimeStage::RenderStatusCode::BackendUnavailable);
+  CHECK(PrimeStage::renderFrameToPng(frame, "headless_frame.png", options).code ==
+        PrimeStage::RenderStatusCode::BackendUnavailable);
 #endif
 }
 

@@ -51,6 +51,15 @@ opaque `bool` values.
 Because this policy is geometry + metadata based (not theme-color matching), rounded-corner output
 is deterministic under theme palette changes unless the metadata itself changes.
 
+## Test Coverage
+
+`tests/unit/test_render.cpp` covers:
+
+- `renderFrameToTarget` success/failure paths for both layout-explicit and layout-derived overloads.
+- `renderFrameToPng` success/failure paths, including PNG write failures.
+- Headless behavior (`PRIMESTAGE_ENABLE_PRIMEMANIFEST=OFF`) expectations where render APIs return
+  `RenderStatusCode::BackendUnavailable`.
+
 ## Example
 
 ```cpp
