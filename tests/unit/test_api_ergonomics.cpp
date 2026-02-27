@@ -279,6 +279,9 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("./scripts/compile.sh") != std::string::npos);
   CHECK(readme.find("./scripts/compile.sh --test") != std::string::npos);
   CHECK(readme.find("docs/api-evolution-policy.md") != std::string::npos);
+  CHECK(readme.find("cmake --install build-release --prefix") != std::string::npos);
+  CHECK(readme.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
+  CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -343,6 +346,71 @@ TEST_CASE("PrimeStage API evolution policy defines semver deprecation and migrat
                      std::istreambuf_iterator<char>());
   REQUIRE(!agents.empty());
   CHECK(agents.find("docs/api-evolution-policy.md") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage install export package workflow supports find_package consumers") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path configTemplatePath = repoRoot / "cmake" / "PrimeStageConfig.cmake.in";
+  std::filesystem::path packagingDocsPath = repoRoot / "docs" / "cmake-packaging.md";
+  std::filesystem::path smokeScriptPath =
+      repoRoot / "tests" / "cmake" / "run_find_package_smoke.cmake";
+  std::filesystem::path smokeProjectPath =
+      repoRoot / "tests" / "cmake" / "find_package_smoke" / "CMakeLists.txt";
+  std::filesystem::path smokeMainPath =
+      repoRoot / "tests" / "cmake" / "find_package_smoke" / "main.cpp";
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(configTemplatePath));
+  REQUIRE(std::filesystem::exists(packagingDocsPath));
+  REQUIRE(std::filesystem::exists(smokeScriptPath));
+  REQUIRE(std::filesystem::exists(smokeProjectPath));
+  REQUIRE(std::filesystem::exists(smokeMainPath));
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("install(TARGETS PrimeStage") != std::string::npos);
+  CHECK(cmake.find("install(EXPORT PrimeStageTargets") != std::string::npos);
+  CHECK(cmake.find("configure_package_config_file") != std::string::npos);
+  CHECK(cmake.find("write_basic_package_version_file") != std::string::npos);
+  CHECK(cmake.find("PrimeStage_find_package_smoke") != std::string::npos);
+  CHECK(cmake.find("tests/cmake/run_find_package_smoke.cmake") != std::string::npos);
+
+  std::ifstream configTemplateInput(configTemplatePath);
+  REQUIRE(configTemplateInput.good());
+  std::string configTemplate((std::istreambuf_iterator<char>(configTemplateInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!configTemplate.empty());
+  CHECK(configTemplate.find("find_package(PrimeFrame CONFIG QUIET)") != std::string::npos);
+  CHECK(configTemplate.find("PrimeStage::PrimeFrame") != std::string::npos);
+  CHECK(configTemplate.find("find_package(PrimeManifest CONFIG QUIET)") != std::string::npos);
+  CHECK(configTemplate.find("PrimeStageTargets.cmake") != std::string::npos);
+  CHECK(configTemplate.find("check_required_components(PrimeStage)") != std::string::npos);
+
+  std::ifstream packagingDocsInput(packagingDocsPath);
+  REQUIRE(packagingDocsInput.good());
+  std::string packagingDocs((std::istreambuf_iterator<char>(packagingDocsInput)),
+                            std::istreambuf_iterator<char>());
+  REQUIRE(!packagingDocs.empty());
+  CHECK(packagingDocs.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
+  CHECK(packagingDocs.find("PrimeStage_find_package_smoke") != std::string::npos);
+
+  std::ifstream smokeProjectInput(smokeProjectPath);
+  REQUIRE(smokeProjectInput.good());
+  std::string smokeProject((std::istreambuf_iterator<char>(smokeProjectInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!smokeProject.empty());
+  CHECK(smokeProject.find("find_package(PrimeStage CONFIG REQUIRED)") != std::string::npos);
+  CHECK(smokeProject.find("PrimeStage::PrimeStage") != std::string::npos);
+
+  std::ifstream smokeMainInput(smokeMainPath);
+  REQUIRE(smokeMainInput.good());
+  std::string smokeMain((std::istreambuf_iterator<char>(smokeMainInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!smokeMain.empty());
+  CHECK(smokeMain.find("PrimeStage/AppRuntime.h") != std::string::npos);
 }
 
 TEST_CASE("PrimeStage presubmit workflow covers build matrix and compatibility path") {

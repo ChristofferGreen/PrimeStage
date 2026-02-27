@@ -167,9 +167,10 @@ Release Exit Criteria (for API-quality milestone):
   - provide migration notes when replacing draft APIs (for example `EditBox` naming in design docs)
   - delivered via compatibility policy doc `docs/api-evolution-policy.md` (semver/deprecation/checklist + `EditBox` -> `TextField` migration notes), design/guideline/readme links in docs, and regression guards in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [41] Add install/export/package support for PrimeStage.
+- ☑ [41] Add install/export/package support for PrimeStage.
   - add `install()` rules and CMake package exports for library + public headers
   - verify consumer integration with `find_package(PrimeStage)` style workflow
+  - delivered via install/export/package config wiring in `CMakeLists.txt` + `cmake/PrimeStageConfig.cmake.in`, consumer smoke assets in `tests/cmake/find_package_smoke/*` with ctest driver `tests/cmake/run_find_package_smoke.cmake`, packaging docs in `docs/cmake-packaging.md`, and regression guards in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [42] Define callback reentrancy/threading guarantees.
   - document which callbacks may trigger rebuild/layout and in what execution context

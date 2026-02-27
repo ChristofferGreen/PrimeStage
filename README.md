@@ -63,6 +63,21 @@ Or run the test binary directly:
 ./PrimeStage_tests
 ```
 
+## Install And Package
+
+Install PrimeStage and exported CMake package files:
+
+```sh
+cmake --install build-release --prefix /tmp/primestage-install
+```
+
+Downstream consumers can use:
+
+```cmake
+find_package(PrimeStage CONFIG REQUIRED)
+target_link_libraries(app PRIVATE PrimeStage::PrimeStage)
+```
+
 ## Spec Validation
 
 PrimeStage clamps invalid widget-spec inputs to safe values at runtime (for example negative sizes,
@@ -76,3 +91,4 @@ diagnostics.
 - `docs/design-decisions.md`
 - `docs/performance-benchmarks.md`
 - `docs/visual-test-harness.md`
+- `docs/cmake-packaging.md`

@@ -1,0 +1,42 @@
+@PACKAGE_INIT@
+
+set(_PrimeStageMissingDependencies)
+
+function(primeStageSetupDependencyAlias aliasTarget)
+  if(TARGET "${aliasTarget}")
+    return()
+  endif()
+  add_library("${aliasTarget}" INTERFACE IMPORTED)
+endfunction()
+
+find_package(PrimeFrame CONFIG QUIET)
+primeStageSetupDependencyAlias(PrimeStage::PrimeFrame)
+if(TARGET PrimeFrame::PrimeFrame)
+  set_property(TARGET PrimeStage::PrimeFrame PROPERTY INTERFACE_LINK_LIBRARIES PrimeFrame::PrimeFrame)
+elseif(TARGET PrimeFrame)
+  set_property(TARGET PrimeStage::PrimeFrame PROPERTY INTERFACE_LINK_LIBRARIES PrimeFrame)
+else()
+  list(APPEND _PrimeStageMissingDependencies "PrimeFrame")
+endif()
+
+if(@PRIMESTAGE_PACKAGE_EXPECTS_PRIMEMANIFEST@)
+  find_package(PrimeManifest CONFIG QUIET)
+  primeStageSetupDependencyAlias(PrimeStage::PrimeManifest)
+  if(TARGET PrimeManifest::PrimeManifest)
+    set_property(TARGET PrimeStage::PrimeManifest PROPERTY INTERFACE_LINK_LIBRARIES PrimeManifest::PrimeManifest)
+  elseif(TARGET PrimeManifest)
+    set_property(TARGET PrimeStage::PrimeManifest PROPERTY INTERFACE_LINK_LIBRARIES PrimeManifest)
+  else()
+    list(APPEND _PrimeStageMissingDependencies "PrimeManifest")
+  endif()
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/PrimeStageTargets.cmake")
+check_required_components(PrimeStage)
+
+if(_PrimeStageMissingDependencies)
+  string(JOIN ", " _PrimeStageMissingDependenciesText ${_PrimeStageMissingDependencies})
+  message(WARNING
+    "PrimeStage package did not find dependency packages: ${_PrimeStageMissingDependenciesText}. "
+    "Target import succeeded, but linking APIs that require those dependencies may fail until they are available.")
+endif()

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(PrimeStage VERSION 0.1.0 LANGUAGES CXX)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 option(PRIMESTAGE_FETCH_PRIMEFRAME "Fetch PrimeFrame dependency" ON)
 set(PRIMEFRAME_GIT_REPOSITORY "git@github.com:ChristofferGreen/PrimeFrame.git" CACHE STRING "PrimeFrame git repository")
 set(PRIMEFRAME_GIT_TAG "master" CACHE STRING "PrimeFrame git tag or commit")
@@ -123,7 +126,11 @@ if(PRIMESTAGE_BUILD_TESTS)
 endif()
 
 if(TARGET PrimeFrame)
-  target_link_libraries(PrimeStage PUBLIC PrimeFrame)
+  target_link_libraries(PrimeStage
+    PUBLIC
+      $<BUILD_INTERFACE:PrimeFrame>
+      $<INSTALL_INTERFACE:PrimeStage::PrimeFrame>
+  )
 endif()
 
 if(NOT PRIMESTAGE_HEADLESS_ONLY AND NOT PRIMESTAGE_ENABLE_PRIMEMANIFEST)
@@ -143,9 +150,52 @@ if(PRIMESTAGE_ENABLE_PRIMEMANIFEST AND NOT TARGET PrimeManifest)
 endif()
 
 if(TARGET PrimeManifest)
-  target_link_libraries(PrimeStage PUBLIC PrimeManifest)
+  target_link_libraries(PrimeStage
+    PUBLIC
+      $<BUILD_INTERFACE:PrimeManifest>
+      $<INSTALL_INTERFACE:PrimeStage::PrimeManifest>
+  )
   target_compile_definitions(PrimeStage PUBLIC PRIMESTAGE_HAS_PRIMEMANIFEST=1)
 endif()
+
+set(PrimeStageInstallCMakeDir "${CMAKE_INSTALL_LIBDIR}/cmake/PrimeStage")
+set(PRIMESTAGE_PACKAGE_EXPECTS_PRIMEMANIFEST OFF)
+if(TARGET PrimeManifest)
+  set(PRIMESTAGE_PACKAGE_EXPECTS_PRIMEMANIFEST ON)
+endif()
+
+install(TARGETS PrimeStage
+  EXPORT PrimeStageTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(EXPORT PrimeStageTargets
+  FILE PrimeStageTargets.cmake
+  NAMESPACE PrimeStage::
+  DESTINATION ${PrimeStageInstallCMakeDir}
+)
+
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PrimeStageConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/PrimeStageConfig.cmake"
+  INSTALL_DESTINATION ${PrimeStageInstallCMakeDir}
+)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/PrimeStageConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/PrimeStageConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/PrimeStageConfigVersion.cmake"
+  DESTINATION ${PrimeStageInstallCMakeDir}
+)
 
 if(PRIMESTAGE_BUILD_TESTS)
   enable_testing()
@@ -180,6 +230,15 @@ if(PRIMESTAGE_BUILD_TESTS)
   ps_require_cxx23(PrimeStage_tests)
   ps_enable_sanitizers(PrimeStage_tests)
   add_test(NAME PrimeStage_tests COMMAND $<TARGET_FILE:PrimeStage_tests>)
+
+  add_test(
+    NAME PrimeStage_find_package_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DPRIMESTAGE_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DPRIMESTAGE_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -DPRIMESTAGE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/run_find_package_smoke.cmake
+  )
 endif()
 
 if(PRIMESTAGE_BUILD_BENCHMARKS)
