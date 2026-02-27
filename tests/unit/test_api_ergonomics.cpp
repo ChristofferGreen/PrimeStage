@@ -828,6 +828,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   std::filesystem::path advancedExamplesPath = repoRoot / "examples" / "advanced";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path fiveMinutePath = repoRoot / "docs" / "5-minute-app.md";
+  std::filesystem::path advancedEscapePath = repoRoot / "docs" / "advanced-escape-hatches.md";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
   REQUIRE(std::filesystem::exists(modernExamplePath));
@@ -837,6 +838,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   REQUIRE(std::filesystem::exists(advancedExamplesPath));
   REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(fiveMinutePath));
+  REQUIRE(std::filesystem::exists(advancedEscapePath));
   REQUIRE(std::filesystem::exists(checklistPath));
 
   std::ifstream widgetsInput(widgetsExamplePath);
@@ -1245,6 +1247,16 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(fiveMinute.find("docs/advanced-escape-hatches.md") != std::string::npos);
   CHECK(fiveMinute.find(PrimeFrameIntegrationTag) == std::string::npos);
   CHECK(fiveMinute.find(LifecycleOrchestrationTag) == std::string::npos);
+
+  std::ifstream advancedEscapeInput(advancedEscapePath);
+  REQUIRE(advancedEscapeInput.good());
+  std::string advancedEscape((std::istreambuf_iterator<char>(advancedEscapeInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!advancedEscape.empty());
+  CHECK(advancedEscape.find("examples/advanced/primestage_widgets.cpp") != std::string::npos);
+  CHECK(advancedEscape.find("examples/advanced/primestage_scene.cpp") != std::string::npos);
+  CHECK(advancedEscape.find(PrimeFrameIntegrationTag) != std::string::npos);
+  CHECK(advancedEscape.find(LifecycleOrchestrationTag) != std::string::npos);
 }
 
 TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {

@@ -59,6 +59,12 @@ Use only for explicit interop, not canonical app flow.
 
 - Keep advanced usage isolated to `examples/advanced` or explicitly advanced app modules.
 - Do not leak low-level types into canonical examples or quick-start docs.
+- When directly touching PrimeFrame/PrimeHost internals in advanced sample code, tag the local
+  integration site inline with:
+  `Advanced PrimeFrame integration (documented exception):`
+- When manually orchestrating lifecycle scheduling (`requestRebuild`, `requestLayout`,
+  `requestFrame`) in advanced sample code, tag the local site inline with:
+  `Advanced lifecycle orchestration (documented exception):`
 - When adding a new escape hatch, update:
   - `docs/example-app-consumer-checklist.md`
   - `docs/api-ergonomics-guidelines.md`

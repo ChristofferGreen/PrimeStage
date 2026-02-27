@@ -138,6 +138,19 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [91] Require advanced exception tags in advanced onboarding docs.
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require
+    `docs/advanced-escape-hatches.md` to include both advanced exception
+    markers:
+    `Advanced PrimeFrame integration (documented exception):` and
+    `Advanced lifecycle orchestration (documented exception):`
+  - added regression checks that advanced onboarding doc references both
+    `examples/advanced/primestage_widgets.cpp` and
+    `examples/advanced/primestage_scene.cpp`
+  - updated `docs/advanced-escape-hatches.md` guardrails with explicit
+    instructions for both exception tags so advanced guidance remains complete
+    while canonical docs stay tag-free
+
 - ☑ [90] Keep advanced exception tags out of canonical docs surfaces.
   - expanded `tests/unit/test_api_ergonomics.cpp` to assert canonical-facing
     docs (`README.md` and `docs/5-minute-app.md`) do not contain advanced
