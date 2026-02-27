@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [100] Link advanced onboarding docs to render diagnostics policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/render-diagnostics.md` so advanced rendering escape-hatch
+    additions review render failure-reporting expectations first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    render-diagnostics link and guardrail phrasing, preventing undocumented
+    advanced render-path diagnostics drift
+
 - ☑ [99] Link advanced onboarding docs to API evolution policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/api-evolution-policy.md` so advanced public-facing API

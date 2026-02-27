@@ -1275,6 +1275,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/api-evolution-policy.md") != std::string::npos);
   CHECK(advancedEscape.find("Review API compatibility and deprecation rules in `docs/api-evolution-policy.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/render-diagnostics.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review render failure reporting expectations in `docs/render-diagnostics.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1730,6 +1733,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/api-evolution-policy.md") != std::string::npos);
   CHECK(advanced.find("Review API compatibility and deprecation rules in `docs/api-evolution-policy.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/render-diagnostics.md") != std::string::npos);
+  CHECK(advanced.find("Review render failure reporting expectations in `docs/render-diagnostics.md`") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);

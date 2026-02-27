@@ -77,6 +77,8 @@ Use only for explicit interop, not canonical app flow.
   advanced escape-hatch API paths.
 - Review API compatibility and deprecation rules in `docs/api-evolution-policy.md` before adding
   advanced public-facing API surface.
+- Review render failure reporting expectations in `docs/render-diagnostics.md` before adding
+  advanced rendering escape hatches.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:
