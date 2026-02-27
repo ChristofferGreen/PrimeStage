@@ -138,6 +138,18 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [84] Enforce proximity of advanced PrimeFrame exception tags.
+  - tightened `tests/unit/test_api_ergonomics.cpp` so advanced-tier
+    `PrimeFrame::` integration lines require a nearby inline exception tag
+    `Advanced PrimeFrame integration (documented exception):` (line-proximity
+    check with deterministic diagnostics)
+  - retained file-level exception-tag enforcement while adding per-marker
+    proximity assertions for stronger policy guarantees
+  - added inline exception tags at remaining advanced PrimeFrame integration
+    sites in `examples/advanced/primestage_widgets.cpp` and
+    `examples/advanced/primestage_scene.cpp` so each integration cluster is
+    locally documented
+
 - ☑ [83] Enforce advanced PrimeFrame exception tagging across advanced examples.
   - expanded `tests/unit/test_api_ergonomics.cpp` to scan
     `examples/advanced/*.cpp` and enforce that any file with direct

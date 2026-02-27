@@ -871,6 +871,36 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
            source.find("PrimeFrame::") != std::string::npos;
   };
 
+  constexpr std::string_view PrimeFrameIntegrationTag =
+      "Advanced PrimeFrame integration (documented exception):";
+  constexpr size_t PrimeFrameTagLookbackLines = 24u;
+
+  auto splitLines = [](std::string const& source) {
+    std::vector<std::string> lines;
+    std::istringstream stream(source);
+    std::string line;
+    while (std::getline(stream, line)) {
+      lines.push_back(line);
+    }
+    return lines;
+  };
+
+  auto hasNearbyTag = [](std::vector<std::string> const& lines,
+                         size_t markerLine,
+                         std::string_view tag,
+                         size_t lookbackLines) {
+    if (lines.empty()) {
+      return false;
+    }
+    size_t start = markerLine > lookbackLines ? markerLine - lookbackLines : 0u;
+    for (size_t lineIndex = start; lineIndex <= markerLine && lineIndex < lines.size(); ++lineIndex) {
+      if (lines[lineIndex].find(tag) != std::string::npos) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   bool foundLifecycleOrchestrationExample = false;
   bool foundPrimeFrameIntegrationExample = false;
   for (std::filesystem::path const& advancedSourcePath : advancedSources) {
@@ -879,6 +909,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
     std::string advancedSource((std::istreambuf_iterator<char>(advancedInput)),
                                std::istreambuf_iterator<char>());
     REQUIRE(!advancedSource.empty());
+    std::vector<std::string> advancedSourceLines = splitLines(advancedSource);
+    REQUIRE(!advancedSourceLines.empty());
     if (hasLifecycleOrchestrationCall(advancedSource)) {
       foundLifecycleOrchestrationExample = true;
       INFO("advanced lifecycle orchestration file: " << advancedSourcePath.string());
@@ -888,8 +920,14 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
     if (hasPrimeFrameIntegration(advancedSource)) {
       foundPrimeFrameIntegrationExample = true;
       INFO("advanced PrimeFrame integration file: " << advancedSourcePath.string());
-      CHECK(advancedSource.find("Advanced PrimeFrame integration (documented exception):") !=
-            std::string::npos);
+      CHECK(advancedSource.find(PrimeFrameIntegrationTag) != std::string::npos);
+      for (size_t lineIndex = 0u; lineIndex < advancedSourceLines.size(); ++lineIndex) {
+        if (advancedSourceLines[lineIndex].find("PrimeFrame::") == std::string::npos) {
+          continue;
+        }
+        INFO("advanced PrimeFrame marker line: " << (lineIndex + 1u));
+        CHECK(hasNearbyTag(advancedSourceLines, lineIndex, PrimeFrameIntegrationTag, PrimeFrameTagLookbackLines));
+      }
     }
   }
   CHECK(foundLifecycleOrchestrationExample);

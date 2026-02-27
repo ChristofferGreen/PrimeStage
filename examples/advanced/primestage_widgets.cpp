@@ -320,6 +320,8 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
     PrimeStage::PanelSpec contentPanel;
     contentPanel.size.preferredWidth = 520.0f;
     contentPanel.size.preferredHeight = 200.0f;
+    // Advanced PrimeFrame integration (documented exception): this advanced sample demonstrates
+    // selective low-level layout interop through PrimeFrame layout enums.
     contentPanel.layout = PrimeFrame::LayoutType::VerticalStack;
     contentPanel.padding.left = 12.0f;
     contentPanel.padding.top = 10.0f;

@@ -111,6 +111,8 @@ PrimeStage::Window buildWindowScene(PrimeStage::UiNode root, SceneState& state) 
 } // namespace
 
 int main() {
+  // Advanced PrimeFrame integration (documented exception): this sample intentionally demonstrates
+  // direct PrimeFrame frame + layout hosting APIs.
   PrimeFrame::Frame frame;
   SceneState state;
   state.nameField.text = "PrimeScene";
