@@ -110,8 +110,8 @@ For app-level commands:
 - invoke from widget callbacks via `App::makeActionCallback(...)` or `App::invokeAction(...)`
 - this unifies shortcut/button/programmatic entrypoints on one command id
 
-## Controlled, Binding, and State-Backed Widgets
-PrimeStage supports three widget value models for interactive controls:
+## Controlled, Binding, Owned-Default, and State-Backed Widgets
+PrimeStage supports four widget value models for interactive controls:
 - Controlled:
   - widget value comes from spec fields (`on`, `checked`, `selectedIndex`).
   - app callbacks update canonical app state, then rebuild.
@@ -120,6 +120,11 @@ PrimeStage supports three widget value models for interactive controls:
   - supported on `Toggle`, `Checkbox`, `Slider`, `Tabs`, `Dropdown`, and `ProgressBar`.
   - PrimeStage mutates bound state values during interaction; callbacks are optional.
   - this is the preferred default for concise app-side value ownership in modern API usage.
+- Owned-default (text widgets):
+  - `TextFieldSpec` / `SelectableTextSpec` can omit raw state pointers and still remain interactive.
+  - PrimeStage provisions owned interaction state automatically.
+  - for rebuild-persistent text state without raw pointers, app code can pass
+    `spec.ownedState` (`std::shared_ptr<TextFieldState>` / `std::shared_ptr<SelectableTextState>`).
 - Legacy state-backed:
   - widget value comes from state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`,
     `TabsState*`, `DropdownState*`, `TextFieldState*`, `SelectableTextState*`).
@@ -144,12 +149,20 @@ primary.callbacks.onActivate = [&] { appState.pendingApply = true; };
 root.createButton(primary);
 
 TextFieldSpec field;
-field.state = &appState.nameField;
 field.placeholder = "Name";
 field.callbacks.onChange = [&](std::string_view text) {
   appState.name = std::string(text);
 };
 root.createTextField(field);
+
+auto retainedName = std::make_shared<TextFieldState>();
+TextFieldSpec retainedField;
+retainedField.ownedState = retainedName;
+retainedField.placeholder = "Name";
+retainedField.callbacks.onChange = [&](std::string_view text) {
+  appState.name = std::string(text);
+};
+root.createTextField(retainedField);
 
 root.createVerticalStack(layoutSpec, [](UiNode& col) {
   col.createButton(primary).with([](UiNode& button) {
@@ -300,7 +313,7 @@ When focus changes, the rect morphs to the new target bounds via simple interpol
 This keeps animation transient and does not require a rebuild.
 
 ## Focus Behavior (Current)
-- Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,
+- Focusable by default: `Button`, `TextField`, `Toggle`, `Checkbox`, `Slider`,
   `ProgressBar`, `Table`, `TreeView`.
 - Not focusable by default: `SelectableText`.
 - Focus visuals are semantic-by-default for focusable controls; `focusStyle` is an optional override.

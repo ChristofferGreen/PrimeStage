@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [69] Add migration path toward retained-state widgets with owned defaults.
-  - provide opt-in owned state for controls that currently require external state structs
-  - keep externally-controlled model supported, but make default usage minimal
-  - acceptance: simple apps can instantiate controls without managing dedicated state structs unless needed
-
 - ☐ [70] Introduce low-level API quarantine and naming.
   - explicitly separate stable high-level API from advanced/experimental low-level layers
   - enforce naming/namespaces to prevent accidental use of internal primitives
@@ -81,6 +76,22 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [69] Add migration path toward retained-state widgets with owned defaults.
+  - added owned-default text-widget state slots in public specs:
+    `TextFieldSpec::ownedState` and `SelectableTextSpec::ownedState` in
+    `include/PrimeStage/Ui.h`, while preserving raw-pointer state-backed compatibility
+  - updated `src/PrimeStage.cpp` text-widget construction to provision owned state when explicit
+    state pointers are omitted, so `TextField`/`SelectableText` default instantiation remains
+    interactive
+  - expanded regression coverage in `tests/unit/test_api_ergonomics.cpp` for:
+    state-backed compatibility, default-owned text field editing, owned-state rebuild persistence,
+    selectable-text owned-default callback wiring, and docs/source contract guards
+  - migrated canonical example usage in `examples/primestage_widgets.cpp` to owned-default text
+    widget construction (no raw `TextFieldState` / `SelectableTextState` fields required)
+  - updated docs/guidance in `docs/api-ergonomics-guidelines.md`,
+    `docs/minimal-api-reference.md`, `docs/prime-stage-design.md`,
+    `docs/default-widget-behavior-matrix.md`, and `AGENTS.md`
 
 - ☑ [68] Harden default behavior consistency matrix.
   - added `docs/default-widget-behavior-matrix.md` with per-widget defaults for focusability,

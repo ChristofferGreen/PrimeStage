@@ -42,6 +42,14 @@ What app code should avoid:
   - supported on `Toggle`, `Checkbox`, `Slider`, `Tabs`, `Dropdown`, and `ProgressBar`.
   - PrimeStage reads/writes bound values directly during interaction; callbacks are optional.
   - use this as the default modern C++ value-ownership path for interactive controls.
+- Owned-default mode (text widgets):
+  - omit raw `state` pointers on `TextFieldSpec` and `SelectableTextSpec`; PrimeStage provisions
+    owned interaction state so controls remain interactive by default.
+  - for rebuild-persistent text interaction state without raw pointers, store
+    `std::shared_ptr<TextFieldState>` / `std::shared_ptr<SelectableTextState>` in app state and
+    assign `spec.ownedState`.
+  - use this for minimal default widget usage; migrate to explicit app-owned/raw state only when
+    you need custom lifetime/control semantics.
 - State-backed mode (legacy convenience for compatibility):
   - pass widget state pointers (`ToggleState*`, `CheckboxState*`, `SliderState*`, `TabsState*`,
     `DropdownState*`, `ProgressBarState*`, `TextFieldState*`, `SelectableTextState*`).
@@ -57,17 +65,20 @@ What app code should avoid:
 - For accessibility role/state planning, see `docs/accessibility-semantics-roadmap.md`.
 - For `std::string_view`/callback-capture lifetime rules, see `docs/data-ownership-lifetime.md`.
 
-Example (`TextField` with app-owned state):
+Example (`TextField` with owned defaults + optional retained state):
 
 ```cpp
 struct AppState {
-  PrimeStage::TextFieldState nameField;
+  std::shared_ptr<PrimeStage::TextFieldState> nameField;
   std::string status;
 };
 
 void buildUi(PrimeStage::UiNode root, AppState& state) {
+  if (!state.nameField) {
+    state.nameField = std::make_shared<PrimeStage::TextFieldState>();
+  }
   PrimeStage::TextFieldSpec field;
-  field.state = &state.nameField;
+  field.ownedState = state.nameField;
   field.placeholder = "Name";
   field.size.preferredWidth = 220.0f;
   field.size.preferredHeight = 28.0f;

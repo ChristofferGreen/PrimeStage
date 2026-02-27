@@ -6,7 +6,7 @@ This matrix defines baseline defaults for interactive widgets in canonical Prime
 | Widget | Focusable Default | Keyboard Default | Pointer Default | Accessibility Role Default |
 | --- | --- | --- | --- | --- |
 | `Button` | Yes | `Enter`/`Space` activate | Press + release inside activates | `Button` |
-| `TextField` (with state) | Yes | Editing keys + `Enter` submit | Click places caret, drag selects | `TextField` |
+| `TextField` | Yes | Editing keys + `Enter` submit | Click places caret, drag selects | `TextField` |
 | `SelectableText` | No | Selection keys when externally focused | Drag selection and clipboard shortcuts | `StaticText` |
 | `Toggle` | Yes | `Enter`/`Space` toggle | Click toggles | `Toggle` |
 | `Checkbox` | Yes | `Enter`/`Space` toggle | Click toggles | `Checkbox` |

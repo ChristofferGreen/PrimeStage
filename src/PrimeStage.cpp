@@ -300,6 +300,31 @@ uint32_t clamp_text_index(uint32_t value,
   return adjusted;
 }
 
+bool text_field_state_is_pristine(TextFieldState const& state) {
+  return state.text.empty() &&
+         state.cursor == 0u &&
+         state.selectionAnchor == 0u &&
+         state.selectionStart == 0u &&
+         state.selectionEnd == 0u &&
+         !state.focused &&
+         !state.hovered &&
+         !state.selecting &&
+         state.pointerId == -1 &&
+         !state.cursorVisible &&
+         state.nextBlink == std::chrono::steady_clock::time_point{} &&
+         state.cursorHint == CursorHint::Arrow;
+}
+
+void seed_text_field_state_from_spec(TextFieldState& state, TextFieldSpec const& spec) {
+  state.text = std::string(spec.text);
+  uint32_t size = static_cast<uint32_t>(state.text.size());
+  state.cursor = std::min(spec.cursorIndex, size);
+  state.selectionAnchor = state.cursor;
+  state.selectionStart = std::min(spec.selectionStart, size);
+  state.selectionEnd = std::min(spec.selectionEnd, size);
+  state.cursorVisible = spec.showCursor;
+}
+
 #if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
 PrimeManifest::Typography make_typography(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token) {
   PrimeManifest::Typography typography;
@@ -2809,8 +2834,18 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::TextField, enabled);
 
   Rect bounds = resolve_rect(spec.size);
+  std::shared_ptr<TextFieldState> stateOwner = spec.ownedState;
   TextFieldState* state = spec.state;
-  std::string_view previewText = state ? std::string_view(state->text) : spec.text;
+  if (!state) {
+    if (!stateOwner) {
+      stateOwner = std::make_shared<TextFieldState>();
+    }
+    if (text_field_state_is_pristine(*stateOwner)) {
+      seed_text_field_state_from_spec(*stateOwner, spec);
+    }
+    state = stateOwner.get();
+  }
+  std::string_view previewText = std::string_view(state->text);
   PrimeFrame::TextStyleToken previewStyle = spec.textStyle;
   if (previewText.empty() && spec.showPlaceholderWhenEmpty) {
     previewText = spec.placeholder;
@@ -2859,7 +2894,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     return UiNode(frame(), field.nodeId(), allowAbsolute_);
   }
 
-  std::string_view activeText = state ? std::string_view(state->text) : spec.text;
+  std::string_view activeText = std::string_view(state->text);
   uint32_t textSize = static_cast<uint32_t>(activeText.size());
   uint32_t cursorIndex = state ? state->cursor : spec.cursorIndex;
   uint32_t selectionAnchor = state ? state->selectionAnchor : cursorIndex;
@@ -2878,7 +2913,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
     state->selectionEnd = selectionEnd;
   }
 
-  std::string_view content = state ? std::string_view(state->text) : spec.text;
+  std::string_view content = std::string_view(state->text);
   PrimeFrame::TextStyleToken style = spec.textStyle;
   PrimeFrame::TextStyleOverride overrideStyle = spec.textStyleOverride;
   if (content.empty() && spec.showPlaceholderWhenEmpty) {
@@ -3040,7 +3075,8 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   patchState->placeholderStyle = spec.placeholderStyle;
   patchState->placeholderStyleOverride = spec.placeholderStyleOverride;
 
-  auto patchTextFieldVisuals = [patchState]() {
+  auto patchTextFieldVisuals = [patchState, stateOwner]() {
+    (void)stateOwner;
     if (!patchState || !patchState->frame || !patchState->state) {
       return;
     }
@@ -3691,6 +3727,14 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, enabled);
 
   Rect bounds = resolve_rect(spec.size);
+  std::shared_ptr<SelectableTextState> stateOwner = spec.ownedState;
+  SelectableTextState* state = spec.state;
+  if (!state) {
+    if (!stateOwner) {
+      stateOwner = std::make_shared<SelectableTextState>();
+    }
+    state = stateOwner.get();
+  }
   std::string_view text = spec.text;
   float maxWidth = spec.maxWidth;
   if (maxWidth <= 0.0f && spec.size.maxWidth.has_value()) {
@@ -3771,22 +3815,22 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       clamp_text_index(spec.selectionStart, textSize, "SelectableTextSpec", "selectionStart");
   uint32_t selectionEnd =
       clamp_text_index(spec.selectionEnd, textSize, "SelectableTextSpec", "selectionEnd");
-  if (spec.state && enabled) {
-    spec.state->text = text;
-    spec.state->selectionAnchor = clamp_text_index(spec.state->selectionAnchor,
-                                                   textSize,
-                                                   "SelectableTextState",
-                                                   "selectionAnchor");
-    spec.state->selectionStart = clamp_text_index(spec.state->selectionStart,
-                                                  textSize,
-                                                  "SelectableTextState",
-                                                  "selectionStart");
-    spec.state->selectionEnd = clamp_text_index(spec.state->selectionEnd,
-                                                textSize,
-                                                "SelectableTextState",
-                                                "selectionEnd");
-    selectionStart = spec.state->selectionStart;
-    selectionEnd = spec.state->selectionEnd;
+  if (state && enabled) {
+    state->text = text;
+    state->selectionAnchor = clamp_text_index(state->selectionAnchor,
+                                              textSize,
+                                              "SelectableTextState",
+                                              "selectionAnchor");
+    state->selectionStart = clamp_text_index(state->selectionStart,
+                                             textSize,
+                                             "SelectableTextState",
+                                             "selectionStart");
+    state->selectionEnd = clamp_text_index(state->selectionEnd,
+                                           textSize,
+                                           "SelectableTextState",
+                                           "selectionEnd");
+    selectionStart = state->selectionStart;
+    selectionEnd = state->selectionEnd;
   }
 
   TextSelectionOverlaySpec selectionSpec;
@@ -3817,18 +3861,20 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   paragraphSpec.visible = spec.visible;
   overlay.createParagraph(paragraphSpec);
 
-  if (spec.state) {
+  if (state) {
     auto layoutPtr = std::make_shared<TextSelectionLayout>(layout);
     PrimeFrame::Callback callback;
-    callback.onEvent = [state = spec.state,
+    callback.onEvent = [state,
                         callbacks = spec.callbacks,
                         clipboard = spec.clipboard,
                         layoutPtr,
                         framePtr = &frame(),
                         textStyle = spec.textStyle,
                         paddingX = spec.paddingX,
-                        handleClipboardShortcuts = spec.handleClipboardShortcuts](
+                        handleClipboardShortcuts = spec.handleClipboardShortcuts,
+                        stateOwner](
                            PrimeFrame::Event const& event) -> bool {
+      (void)stateOwner;
       if (!state) {
         return false;
       }
@@ -4172,7 +4218,8 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       return false;
     };
 
-    callback.onFocus = [state = spec.state, callbacks = spec.callbacks]() {
+    callback.onFocus = [state, callbacks = spec.callbacks, stateOwner]() {
+      (void)stateOwner;
       if (!state) {
         return;
       }
@@ -4189,7 +4236,8 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
       }
     };
 
-    callback.onBlur = [state = spec.state, callbacks = spec.callbacks]() {
+    callback.onBlur = [state, callbacks = spec.callbacks, stateOwner]() {
+      (void)stateOwner;
       if (!state) {
         return;
       }

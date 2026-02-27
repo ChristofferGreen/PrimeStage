@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -360,6 +361,7 @@ struct TextFieldCallbacks {
 
 struct TextFieldSpec : FocusableWidgetSpec {
   TextFieldState* state = nullptr;
+  std::shared_ptr<TextFieldState> ownedState{};
   TextCompositionState* compositionState = nullptr;
   TextFieldCallbacks callbacks{};
   TextCompositionCallbacks compositionCallbacks{};
@@ -419,6 +421,7 @@ struct SelectableTextCallbacks {
 
 struct SelectableTextSpec : EnableableWidgetSpec {
   SelectableTextState* state = nullptr;
+  std::shared_ptr<SelectableTextState> ownedState{};
   SelectableTextCallbacks callbacks{};
   SelectableTextClipboard clipboard{};
   std::string_view text;

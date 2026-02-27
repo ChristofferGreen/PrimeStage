@@ -46,6 +46,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 - For settings-like canonical UI flows, prefer `UiNode::form(...)` + `UiNode::formField(...)` over manual row/column label-control-help assembly.
 - Keep canonical API ergonomics within `docs/api-ergonomics-scorecard.md` thresholds; update scorecard docs and enforcing tests together when intentionally changing budgets.
 - Keep widget interaction defaults aligned with `docs/default-widget-behavior-matrix.md`; when default focus/keyboard/pointer/accessibility behavior changes, update the matrix and its enforcing tests in the same change.
+- For `TextFieldSpec` / `SelectableTextSpec`, prefer owned-default state (`spec.ownedState`) in canonical examples and reserve raw `state` pointers for explicit compatibility/advanced control paths.
 - For `PrimeStage::App`-based host loops, prefer `connectHostServices(...)` + `applyPlatformServices(...)` for text widgets instead of per-widget clipboard/cursor host lambdas.
 - For keyboard shortcuts and cross-widget commands in canonical host loops, prefer `PrimeStage::App` action routing (`registerAction`, `bindShortcut`, `makeActionCallback`) over ad-hoc raw key event branching.
 - For `createWindow(WindowSpec)` usage, keep window geometry in app-owned durable state and treat move/resize callbacks as stateless deltas that drive runtime rebuild/layout requests.

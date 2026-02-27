@@ -359,7 +359,7 @@ TEST_CASE("PrimeStage button interactions wire through spec callbacks") {
   CHECK(clickCount == 1);
 }
 
-TEST_CASE("PrimeStage text field editing is owned by app state") {
+TEST_CASE("PrimeStage text field state-backed editing remains supported") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
 
@@ -405,7 +405,7 @@ TEST_CASE("PrimeStage text field editing is owned by app state") {
   CHECK(stateChangedCount >= 2);
 }
 
-TEST_CASE("PrimeStage text field without state is non-editable by default") {
+TEST_CASE("PrimeStage text field without explicit state uses owned defaults") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
 
@@ -413,12 +413,14 @@ TEST_CASE("PrimeStage text field without state is non-editable by default") {
   fieldSpec.text = "Preview";
   fieldSpec.size.preferredWidth = 180.0f;
   fieldSpec.size.preferredHeight = 24.0f;
+  std::string lastText;
+  fieldSpec.callbacks.onChange = [&](std::string_view text) { lastText = std::string(text); };
 
   PrimeStage::UiNode field = root.createTextField(fieldSpec);
   PrimeFrame::Node const* node = frame.getNode(field.nodeId());
   REQUIRE(node != nullptr);
-  CHECK_FALSE(node->focusable);
-  CHECK(node->callbacks == PrimeFrame::InvalidCallbackId);
+  CHECK(node->focusable);
+  CHECK(node->callbacks != PrimeFrame::InvalidCallbackId);
 
   PrimeFrame::LayoutOutput layout = layoutFrame(frame);
   PrimeFrame::LayoutOut const* out = layout.get(field.nodeId());
@@ -432,7 +434,115 @@ TEST_CASE("PrimeStage text field without state is non-editable by default") {
                   frame,
                   layout,
                   &focus);
-  CHECK_FALSE(focus.focusedNode().isValid());
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(focus.focusedNode() == field.nodeId());
+
+  PrimeFrame::Event textInput;
+  textInput.type = PrimeFrame::EventType::TextInput;
+  textInput.text = "!";
+  router.dispatch(textInput, frame, layout, &focus);
+  CHECK(lastText == "Preview!");
+}
+
+TEST_CASE("PrimeStage text field owned state can persist across rebuilds") {
+  auto owned = std::make_shared<PrimeStage::TextFieldState>();
+
+  {
+    PrimeFrame::Frame frame;
+    PrimeStage::UiNode root = createRoot(frame);
+
+    PrimeStage::TextFieldSpec fieldSpec;
+    fieldSpec.ownedState = owned;
+    fieldSpec.text = "Prime";
+    fieldSpec.size.preferredWidth = 180.0f;
+    fieldSpec.size.preferredHeight = 24.0f;
+    PrimeStage::UiNode field = root.createTextField(fieldSpec);
+
+    PrimeFrame::Node const* node = frame.getNode(field.nodeId());
+    REQUIRE(node != nullptr);
+    REQUIRE(node->callbacks != PrimeFrame::InvalidCallbackId);
+    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+    REQUIRE(callback != nullptr);
+    REQUIRE(callback->onEvent);
+
+    CHECK(owned->text == "Prime");
+    owned->cursor = static_cast<uint32_t>(owned->text.size());
+    owned->selectionAnchor = owned->cursor;
+    owned->selectionStart = owned->cursor;
+    owned->selectionEnd = owned->cursor;
+    owned->focused = true;
+
+    PrimeFrame::Event textInput;
+    textInput.type = PrimeFrame::EventType::TextInput;
+    textInput.text = " Stage";
+    CHECK(callback->onEvent(textInput));
+    CHECK(owned->text == "Prime Stage");
+  }
+
+  {
+    PrimeFrame::Frame frame;
+    PrimeStage::UiNode root = createRoot(frame);
+
+    PrimeStage::TextFieldSpec fieldSpec;
+    fieldSpec.ownedState = owned;
+    fieldSpec.text = "Reset";
+    fieldSpec.size.preferredWidth = 180.0f;
+    fieldSpec.size.preferredHeight = 24.0f;
+    (void)root.createTextField(fieldSpec);
+    CHECK(owned->text == "Prime Stage");
+  }
+}
+
+TEST_CASE("PrimeStage selectable text without explicit state installs owned defaults") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  uint32_t selectionStart = 0u;
+  uint32_t selectionEnd = 0u;
+  int selectionChanges = 0;
+
+  PrimeStage::SelectableTextSpec spec;
+  spec.text = "Selectable text sample";
+  spec.size.preferredWidth = 220.0f;
+  spec.size.preferredHeight = 42.0f;
+  spec.callbacks.onSelectionChanged = [&](uint32_t start, uint32_t end) {
+    selectionStart = start;
+    selectionEnd = end;
+    selectionChanges += 1;
+  };
+
+  PrimeStage::UiNode selectable = root.createSelectableText(spec);
+  PrimeFrame::Node const* node = frame.getNode(selectable.nodeId());
+  REQUIRE(node != nullptr);
+  CHECK(node->callbacks != PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame);
+  PrimeFrame::LayoutOut const* out = layout.get(selectable.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float y = out->absY + out->absH * 0.5f;
+  float beginX = out->absX + out->absW * 0.1f;
+  float endX = out->absX + out->absW * 0.8f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, beginX, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDrag, endX, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, endX, y),
+                  frame,
+                  layout,
+                  &focus);
+
+  CHECK(selectionChanges > 0);
+  CHECK(selectionEnd >= selectionStart);
 }
 
 TEST_CASE("PrimeStage UiNode fluent builder supports nested frame authoring") {
@@ -2485,6 +2595,71 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
         std::string::npos);
   CHECK(interaction.find("table and list keyboard selection matches pointer selection defaults") !=
         std::string::npos);
+}
+
+TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "primestage_widgets.cpp";
+  REQUIRE(std::filesystem::exists(uiHeaderPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(widgetsExamplePath));
+
+  std::ifstream uiInput(uiHeaderPath);
+  REQUIRE(uiInput.good());
+  std::string ui((std::istreambuf_iterator<char>(uiInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!ui.empty());
+  CHECK(ui.find("std::shared_ptr<TextFieldState> ownedState{};") != std::string::npos);
+  CHECK(ui.find("std::shared_ptr<SelectableTextState> ownedState{};") != std::string::npos);
+
+  std::ifstream sourceInput(sourceCppPath);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("text_field_state_is_pristine") != std::string::npos);
+  CHECK(source.find("seed_text_field_state_from_spec") != std::string::npos);
+  CHECK(source.find("std::shared_ptr<TextFieldState> stateOwner") != std::string::npos);
+  CHECK(source.find("std::shared_ptr<SelectableTextState> stateOwner") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("Owned-default mode (text widgets)") != std::string::npos);
+  CHECK(guidelines.find("spec.ownedState") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("TextFieldSpec::ownedState") != std::string::npos);
+  CHECK(apiRef.find("SelectableTextSpec::ownedState") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("Owned-default (text widgets)") != std::string::npos);
+
+  std::ifstream exampleInput(widgetsExamplePath);
+  REQUIRE(exampleInput.good());
+  std::string example((std::istreambuf_iterator<char>(exampleInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!example.empty());
+  CHECK(example.find("field.state = &app.state.textField") == std::string::npos);
+  CHECK(example.find("selectable.state = &app.state.selectableText") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {

@@ -35,8 +35,6 @@ struct AssetTreeNode {
 };
 
 struct DemoState {
-  PrimeStage::TextFieldState textField{};
-  PrimeStage::SelectableTextState selectableText{};
   PrimeStage::State<bool> toggle{};
   PrimeStage::State<bool> checkbox{};
   PrimeStage::State<int> tabs{};
@@ -45,6 +43,7 @@ struct DemoState {
   PrimeStage::State<float> progressValue{};
   std::vector<AssetRow> tableRows;
   std::vector<AssetTreeNode> tree;
+  std::string displayName;
   std::string selectableTextContent;
   std::vector<std::string> listItems;
   int actionCount = 0;
@@ -69,7 +68,7 @@ PrimeStage::UiNode createSection(PrimeStage::UiNode parent, std::string_view tit
 }
 
 void initializeState(DemoState& state) {
-  state.textField.text = "Editable text field";
+  state.displayName = "Editable text field";
   state.toggle.value = true;
   state.checkbox.value = false;
   state.sliderValue.value = 0.35f;
@@ -216,12 +215,15 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
       PrimeStage::FormFieldSpec nameField;
       nameField.label = "Display name";
       nameField.helpText = "Used by project-level labels and command previews.";
-      nameField.invalid = app.state.textField.text.empty();
+      nameField.invalid = app.state.displayName.empty();
       nameField.errorText = "Display name cannot be empty.";
       form.formField(nameField, [&](PrimeStage::UiNode& fieldSlot) {
         PrimeStage::TextFieldSpec field;
-        field.state = &app.state.textField;
+        field.text = app.state.displayName;
         field.placeholder = "Type here";
+        field.callbacks.onChange = [&app](std::string_view text) {
+          app.state.displayName = std::string(text);
+        };
         app.ui.applyPlatformServices(field);
         fieldSlot.createTextField(field);
       });
@@ -236,7 +238,6 @@ void rebuildUi(PrimeStage::UiNode root, DemoApp& app) {
       form.formField("Selectable notes",
                      [&](PrimeStage::UiNode& fieldSlot) {
                        PrimeStage::SelectableTextSpec selectable;
-                       selectable.state = &app.state.selectableText;
                        selectable.text = app.state.selectableTextContent;
                        app.ui.applyPlatformServices(selectable);
                        fieldSlot.createSelectableText(selectable);

@@ -104,6 +104,10 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::bind(...)`
 - `PrimeStage::SliderState`
 - `PrimeStage::ProgressBarState`
+- `PrimeStage::TextFieldState`
+- `PrimeStage::SelectableTextState`
+- `TextFieldSpec::ownedState` (`std::shared_ptr<TextFieldState>`)
+- `SelectableTextSpec::ownedState` (`std::shared_ptr<SelectableTextState>`)
 
 ## Typed Widget Handles
 
@@ -252,8 +256,8 @@ Callback semantics:
 
 ## Patch-First Widget Interaction Paths
 
-- State-backed `createTextField(...)` edits (text input, caret movement, selection updates) patch
-  existing field visuals in place.
+- `createTextField(...)` edits (text input, caret movement, selection updates) patch existing
+  field visuals in place for owned-default and state-backed modes.
 - `createToggle(...)`, `createCheckbox(...)`, and `createSlider(...)` interactions patch their
   value visuals in place in both binding-backed and legacy state-backed modes.
 - `createProgressBar(...)` value changes patch fill geometry in place in both binding-backed and
