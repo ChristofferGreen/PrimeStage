@@ -6,11 +6,11 @@ include(CMakePackageConfigHelpers)
 
 option(PRIMESTAGE_FETCH_PRIMEFRAME "Fetch PrimeFrame dependency" ON)
 set(PRIMEFRAME_GIT_REPOSITORY "git@github.com:ChristofferGreen/PrimeFrame.git" CACHE STRING "PrimeFrame git repository")
-set(PRIMEFRAME_GIT_TAG "master" CACHE STRING "PrimeFrame git tag or commit")
+set(PRIMEFRAME_GIT_TAG "180a3c2ec0af4b56eba1f5e74b4e74ba90efdecc" CACHE STRING "PrimeFrame git tag or commit")
 
 option(PRIMESTAGE_FETCH_PRIMEHOST "Fetch PrimeHost dependency" ON)
 set(PRIMEHOST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeHost.git" CACHE STRING "PrimeHost git repository")
-set(PRIMEHOST_GIT_TAG "master" CACHE STRING "PrimeHost git tag or commit")
+set(PRIMEHOST_GIT_TAG "762dbfbc77cd46a009e8a9b352404ffe7b81e66e" CACHE STRING "PrimeHost git tag or commit")
 
 option(PRIMESTAGE_HEADLESS_ONLY "Build PrimeStage without PrimeManifest (no rendering)" OFF)
 option(PRIMESTAGE_ENABLE_PRIMEMANIFEST "Enable PrimeManifest integration" ON)
@@ -22,7 +22,7 @@ option(PRIMESTAGE_ENABLE_ASAN "Enable AddressSanitizer for PrimeStage test build
 option(PRIMESTAGE_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for PrimeStage test builds" OFF)
 set(PRIMESTAGE_PRIMEMANIFEST_GIT_REPOSITORY "https://github.com/ChristofferGreen/PrimeManifest.git"
     CACHE STRING "PrimeManifest git repository")
-set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "master" CACHE STRING "PrimeManifest git tag or commit")
+set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG "4e65e2b393b63ec798f35fdd89f6f32d2205675c" CACHE STRING "PrimeManifest git tag or commit")
 
 if((PRIMESTAGE_ENABLE_ASAN OR PRIMESTAGE_ENABLE_UBSAN) AND NOT PRIMESTAGE_BUILD_TESTS)
   message(FATAL_ERROR "Sanitizers are intended for test builds; configure with -DPRIMESTAGE_BUILD_TESTS=ON.")

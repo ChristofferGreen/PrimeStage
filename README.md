@@ -90,6 +90,7 @@ diagnostics.
 - `docs/callback-reentrancy-threading.md`
 - `docs/data-ownership-lifetime.md`
 - `docs/render-diagnostics.md`
+- `docs/dependency-resolution-policy.md`
 - `docs/api-evolution-policy.md`
 - `docs/design-decisions.md`
 - `docs/performance-benchmarks.md`

@@ -11,6 +11,8 @@ Render failure/status diagnostics for `PrimeStage/Render.h` APIs are documented 
 `docs/render-diagnostics.md`.
 Renderer rounded-corner behavior is controlled by explicit `RenderOptions::cornerStyle`
 metadata (not theme-color index matching heuristics).
+Dependency pin/update expectations for fetched third-party components are documented in
+`docs/dependency-resolution-policy.md`.
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.

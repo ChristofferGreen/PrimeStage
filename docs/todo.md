@@ -203,9 +203,10 @@ Release Exit Criteria (for API-quality milestone):
   - add checks to prevent drift between CMake version, `getVersionString()`, and tests
   - delivered via generated CMake version header template `cmake/PrimeStageVersion.h.in`, configure/include wiring in `CMakeLists.txt`, runtime version derivation in `src/PrimeStage.cpp`, CMake-sourced version assertions in `tests/unit/test_sanity.cpp`, source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`, and contributor guidance update in `AGENTS.md`
 
-- ☐ [47] Make dependency resolution reproducible.
+- ☑ [47] Make dependency resolution reproducible.
   - avoid floating `master` defaults for fetched dependencies in release-grade workflows
   - document pin/update policy for PrimeFrame/PrimeHost/PrimeManifest revisions
+  - delivered via pinned FetchContent defaults in `CMakeLists.txt` (`PRIMEFRAME_GIT_TAG`, `PRIMEHOST_GIT_TAG`, `PRIMESTAGE_PRIMEMANIFEST_GIT_TAG`), dependency pin/update policy doc `docs/dependency-resolution-policy.md`, README/agents alignment, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [49] Add property/fuzz testing for input and focus state machines.
   - generate mixed pointer/keyboard/text event sequences and assert invariants (no crashes, valid focus, stable selection bounds)

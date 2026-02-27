@@ -887,6 +887,67 @@ TEST_CASE("PrimeStage versioning derives runtime version from CMake metadata") {
   CHECK(todo.find("[46] Establish single-source versioning.") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage dependency refs are pinned and policy is documented") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path policyPath = repoRoot / "docs" / "dependency-resolution-policy.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(policyPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("set(PRIMEFRAME_GIT_TAG \"master\"") == std::string::npos);
+  CHECK(cmake.find("set(PRIMEHOST_GIT_TAG \"master\"") == std::string::npos);
+  CHECK(cmake.find("set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG \"master\"") == std::string::npos);
+  CHECK(cmake.find("set(PRIMEFRAME_GIT_TAG \"180a3c2ec0af4b56eba1f5e74b4e74ba90efdecc\"") !=
+        std::string::npos);
+  CHECK(cmake.find("set(PRIMEHOST_GIT_TAG \"762dbfbc77cd46a009e8a9b352404ffe7b81e66e\"") !=
+        std::string::npos);
+  CHECK(cmake.find("set(PRIMESTAGE_PRIMEMANIFEST_GIT_TAG \"4e65e2b393b63ec798f35fdd89f6f32d2205675c\"") !=
+        std::string::npos);
+
+  std::ifstream policyInput(policyPath);
+  REQUIRE(policyInput.good());
+  std::string policy((std::istreambuf_iterator<char>(policyInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!policy.empty());
+  CHECK(policy.find("Default Pins") != std::string::npos);
+  CHECK(policy.find("Do not use floating defaults such as `master`") != std::string::npos);
+  CHECK(policy.find("PRIMEFRAME_GIT_TAG") != std::string::npos);
+  CHECK(policy.find("PRIMEHOST_GIT_TAG") != std::string::npos);
+  CHECK(policy.find("PRIMESTAGE_PRIMEMANIFEST_GIT_TAG") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("docs/dependency-resolution-policy.md") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("docs/dependency-resolution-policy.md") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[47] Make dependency resolution reproducible.") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
