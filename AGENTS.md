@@ -48,6 +48,9 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   host/frame internals live in `examples/advanced`; any direct PrimeFrame integration must be
   explicitly tagged inline with `Advanced PrimeFrame integration (documented exception):` and
   aligned with `docs/example-app-consumer-checklist.md`.
+- Keep canonical examples free of manual lifecycle scheduling calls (`requestRebuild`,
+  `requestLayout`, `requestFrame`) for ordinary interactions; advanced examples may use them only
+  when tagged inline as `Advanced lifecycle orchestration (documented exception):`.
 - Keep onboarding docs split and aligned with shipped examples: update
   `docs/5-minute-app.md` for canonical-first guidance and
   `docs/advanced-escape-hatches.md` for low-level paths whenever tier guidance changes.

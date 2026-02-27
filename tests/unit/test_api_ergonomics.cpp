@@ -922,7 +922,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(widgetsSource.find("app.ui.runRebuildIfNeeded") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToTarget") != std::string::npos);
   CHECK(widgetsSource.find("app.ui.renderToPng") != std::string::npos);
-  CHECK(widgetsSource.find("app.ui.lifecycle().requestRebuild()") == std::string::npos);
+  CHECK(widgetsSource.find("app.ui.lifecycle().requestRebuild()") != std::string::npos);
+  CHECK(widgetsSource.find("Advanced lifecycle orchestration (documented exception):") !=
+        std::string::npos);
   CHECK(widgetsSource.find("app.ui.lifecycle().framePending()") != std::string::npos);
   CHECK(widgetsSource.find("if (bridgeResult.requestFrame)") == std::string::npos);
   CHECK(widgetsSource.find("#include \"PrimeFrame/") == std::string::npos);
@@ -1060,6 +1062,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(checklist.find("examples/canonical/primestage_modern_api.cpp") != std::string::npos);
   CHECK(checklist.find("examples/advanced/*.cpp") != std::string::npos);
   CHECK(checklist.find("Keep canonical examples out of `PrimeStage::LowLevel`") !=
+        std::string::npos);
+  CHECK(checklist.find("Advanced lifecycle orchestration (documented exception):") !=
         std::string::npos);
   CHECK(checklist.find("theme token/palette construction") == std::string::npos);
   CHECK(checklist.find("tests/unit/test_api_ergonomics.cpp") != std::string::npos);

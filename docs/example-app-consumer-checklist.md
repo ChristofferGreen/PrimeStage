@@ -38,9 +38,13 @@ advanced host/runtime integration concern and no PrimeStage wrapper currently ex
 
 Current documented advanced exceptions:
 - none for canonical examples; low-level runtime ownership belongs to `PrimeStage::App`.
+- advanced examples may call `app.ui.lifecycle().requestRebuild()` / `requestLayout()` /
+  `requestFrame()` when intentionally demonstrating runtime orchestration beyond canonical defaults.
 
 These exceptions must be clearly tagged inline in the example source with
 `Advanced PrimeFrame integration (documented exception):`.
+For lifecycle scheduling exceptions, use
+`Advanced lifecycle orchestration (documented exception):`.
 
 ## Review Checklist
 

@@ -132,6 +132,8 @@ void registerActions(DemoApp& app) {
     app.state.dropdown.value = cycleIndex(app.state.dropdown.value, 4u, 1);
     app.state.actionCount += 1;
     app.state.lastAction = std::string(ActionNextTab);
+    // Advanced lifecycle orchestration (documented exception): this demo mirrors action state
+    // into summary text labels that require rebuild to update.
     app.ui.lifecycle().requestRebuild();
   });
   (void)app.ui.registerAction(ActionToggleCheckbox, [&app](PrimeStage::AppActionInvocation const&) {

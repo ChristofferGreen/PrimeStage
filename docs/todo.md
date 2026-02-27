@@ -39,6 +39,19 @@ Completed items moved here to keep active backlog focused.
 
 ### P1 (Do Next)
 
+- ☑ [79] Clarify lifecycle scheduling exceptions between canonical and advanced examples.
+  - aligned tier guardrails in `tests/unit/test_api_ergonomics.cpp` so canonical
+    examples still forbid manual lifecycle orchestration while advanced examples
+    may intentionally call `app.ui.lifecycle().requestRebuild()`
+  - added explicit advanced-source tag in
+    `examples/advanced/primestage_widgets.cpp`:
+    `Advanced lifecycle orchestration (documented exception):`
+  - documented lifecycle exception policy in
+    `docs/example-app-consumer-checklist.md` and contributor guidance in
+    `AGENTS.md`
+  - ensures canonical constraints remain strict without falsely failing advanced
+    integration examples that intentionally demonstrate orchestration behavior
+
 - ☑ [77] Improve compile-time ergonomics and diagnostics.
   - added `constexpr` validation helpers in `include/PrimeStage/Ui.h` for
     common high-level API misuse:
