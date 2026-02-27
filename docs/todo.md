@@ -143,6 +143,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: adopted the runtime seam in
     `src/PrimeStageTextField.cpp` (`createTextField`) so runtime frame access
     and focus/scrim overlays route through `WidgetRuntimeContext`
+  - vertical slice shipped: adopted the runtime seam in
+    `src/PrimeStageCollections.cpp` (`createScrollView`) so parent/frame/return
+    runtime wiring routes through `WidgetRuntimeContext`
 
 - ☐ [113] Add CI architecture-size guardrails for implementation hotspots.
   - fail CI when agreed max thresholds are exceeded for single-file or single-function size

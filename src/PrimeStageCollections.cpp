@@ -54,6 +54,13 @@ UiNode UiNode::createList(ListSpec const& specInput) {
 
 ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
   ScrollViewSpec spec = Internal::normalizeScrollViewSpec(specInput);
+  Internal::WidgetRuntimeContext runtime = Internal::makeWidgetRuntimeContext(frame(),
+                                                                              nodeId(),
+                                                                              allowAbsolute(),
+                                                                              true,
+                                                                              spec.visible,
+                                                                              -1);
+  PrimeFrame::Frame& runtimeFrame = Internal::runtimeFrame(runtime);
   Internal::InternalRect bounds = Internal::resolveRect(spec.size);
   if (bounds.width <= 0.0f && !spec.size.preferredWidth.has_value()) {
     bounds.width = Internal::defaultScrollViewWidth();
@@ -62,8 +69,8 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
     bounds.height = Internal::defaultScrollViewHeight();
   }
   if (bounds.width <= 0.0f || bounds.height <= 0.0f) {
-    return ScrollView{UiNode(frame(), nodeId(), allowAbsolute()),
-                      UiNode(frame(), PrimeFrame::NodeId{}, allowAbsolute())};
+    return ScrollView{UiNode(runtimeFrame, runtime.parentId, runtime.allowAbsolute),
+                      UiNode(runtimeFrame, PrimeFrame::NodeId{}, runtime.allowAbsolute)};
   }
 
   SizeSpec scrollSize = spec.size;
@@ -73,8 +80,8 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
   if (!scrollSize.preferredHeight.has_value() && bounds.height > 0.0f) {
     scrollSize.preferredHeight = bounds.height;
   }
-  PrimeFrame::NodeId scrollId = Internal::createNode(frame(),
-                                                     nodeId(),
+  PrimeFrame::NodeId scrollId = Internal::createNode(runtimeFrame,
+                                                     runtime.parentId,
                                                      bounds,
                                                      &scrollSize,
                                                      PrimeFrame::LayoutType::None,
@@ -85,7 +92,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
   SizeSpec contentSize;
   contentSize.stretchX = 1.0f;
   contentSize.stretchY = 1.0f;
-  PrimeFrame::NodeId contentId = Internal::createNode(frame(),
+  PrimeFrame::NodeId contentId = Internal::createNode(runtimeFrame,
                                                       scrollId,
                                                       Internal::InternalRect{},
                                                       &contentSize,
@@ -100,7 +107,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
     float trackH = std::max(0.0f, bounds.height - spec.vertical.startPadding - spec.vertical.endPadding);
     float trackX = bounds.width - spec.vertical.inset;
     float trackY = spec.vertical.startPadding;
-    Internal::createRectNode(frame(),
+    Internal::createRectNode(runtimeFrame,
                              scrollId,
                              Internal::InternalRect{trackX, trackY, trackW, trackH},
                              spec.vertical.trackStyle,
@@ -112,7 +119,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
     float maxOffset = std::max(0.0f, trackH - thumbH);
     float thumbOffset = std::clamp(spec.vertical.thumbOffset, 0.0f, maxOffset);
     float thumbY = trackY + thumbOffset;
-    Internal::createRectNode(frame(),
+    Internal::createRectNode(runtimeFrame,
                              scrollId,
                              Internal::InternalRect{trackX, thumbY, trackW, thumbH},
                              spec.vertical.thumbStyle,
@@ -126,7 +133,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
     float trackW = std::max(0.0f, bounds.width - spec.horizontal.startPadding - spec.horizontal.endPadding);
     float trackX = spec.horizontal.startPadding;
     float trackY = bounds.height - spec.horizontal.inset;
-    Internal::createRectNode(frame(),
+    Internal::createRectNode(runtimeFrame,
                              scrollId,
                              Internal::InternalRect{trackX, trackY, trackW, trackH},
                              spec.horizontal.trackStyle,
@@ -138,7 +145,7 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
     float maxOffset = std::max(0.0f, trackW - thumbW);
     float thumbOffset = std::clamp(spec.horizontal.thumbOffset, 0.0f, maxOffset);
     float thumbX = trackX + thumbOffset;
-    Internal::createRectNode(frame(),
+    Internal::createRectNode(runtimeFrame,
                              scrollId,
                              Internal::InternalRect{thumbX, trackY, thumbW, trackH},
                              spec.horizontal.thumbStyle,
@@ -147,8 +154,8 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
                              spec.visible);
   }
 
-  return ScrollView{UiNode(frame(), scrollId, allowAbsolute()),
-                    UiNode(frame(), contentId, allowAbsolute())};
+  return ScrollView{UiNode(runtimeFrame, scrollId, runtime.allowAbsolute),
+                    UiNode(runtimeFrame, contentId, runtime.allowAbsolute)};
 }
 
 ScrollView UiNode::createScrollView(SizeSpec const& size,
