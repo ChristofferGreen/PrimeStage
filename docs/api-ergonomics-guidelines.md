@@ -262,6 +262,8 @@ Default focus behavior expected by app code:
 - Focusable by default: `Button`, `TextField` (with state), `Toggle`, `Checkbox`, `Slider`,
   `ProgressBar`, `Table`, `TreeView`.
 - Not focusable by default: `SelectableText`.
+- Per-widget focus/keyboard/pointer/accessibility defaults are defined in
+  `docs/default-widget-behavior-matrix.md`.
 - Focus visuals should render by default for focusable widgets using semantic focus styling;
   `focusStyle` remains an opt-in override, not a requirement.
 - App code should drive focus through `PrimeStage::App::focusWidget(...)` with

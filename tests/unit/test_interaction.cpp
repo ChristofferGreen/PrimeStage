@@ -1763,6 +1763,149 @@ TEST_CASE("PrimeStage disabled progress bar ignores interaction callbacks") {
   CHECK(state.value == doctest::Approx(0.45f));
 }
 
+TEST_CASE("PrimeStage default progress bar supports pointer and keyboard adjustments") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 240.0f, 100.0f);
+
+  PrimeStage::ProgressBarSpec spec;
+  spec.trackStyle = 341u;
+  spec.fillStyle = 342u;
+  spec.focusStyle = 343u;
+  spec.size.preferredWidth = 180.0f;
+  spec.size.preferredHeight = 12.0f;
+
+  PrimeStage::UiNode progress = root.createProgressBar(spec);
+  PrimeFrame::NodeId fillNodeId =
+      findFirstNodeWithRectTokenInSubtree(frame, progress.nodeId(), spec.fillStyle);
+  REQUIRE(fillNodeId.isValid());
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 240.0f, 100.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(progress.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float x = out->absX + out->absW * 0.75f;
+  float y = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x, y), frame, layout, &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x, y), frame, layout, &focus);
+
+  PrimeFrame::Node const* fillAfterPointer = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterPointer != nullptr);
+  CHECK(fillAfterPointer->visible);
+  REQUIRE(fillAfterPointer->sizeHint.width.preferred.has_value());
+  CHECK(fillAfterPointer->sizeHint.width.preferred.value() > 0.0f);
+
+  focus.setFocus(frame, layout, progress.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Home), frame, layout, &focus);
+  PrimeFrame::Node const* fillAfterHome = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterHome != nullptr);
+  CHECK_FALSE(fillAfterHome->visible);
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::End), frame, layout, &focus);
+  PrimeFrame::Node const* fillAfterEnd = frame.getNode(fillNodeId);
+  REQUIRE(fillAfterEnd != nullptr);
+  CHECK(fillAfterEnd->visible);
+  REQUIRE(fillAfterEnd->sizeHint.width.preferred.has_value());
+  CHECK(fillAfterEnd->sizeHint.width.preferred.value() == doctest::Approx(180.0f));
+}
+
+TEST_CASE("PrimeStage table and list keyboard selection matches pointer selection defaults") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 420.0f, 260.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  int tableSelected = -1;
+  int tableSelectionEvents = 0;
+  PrimeStage::TableSpec tableSpec;
+  tableSpec.columns = {{"Name", 160.0f, 0u, 0u}};
+  tableSpec.rows = {{"Alpha"}, {"Beta"}, {"Gamma"}, {"Delta"}};
+  tableSpec.size.preferredWidth = 220.0f;
+  tableSpec.size.preferredHeight = 120.0f;
+  tableSpec.headerInset = 0.0f;
+  tableSpec.headerHeight = 0.0f;
+  tableSpec.rowHeight = 24.0f;
+  tableSpec.rowGap = 0.0f;
+  tableSpec.rowStyle = 351u;
+  tableSpec.rowAltStyle = 352u;
+  tableSpec.selectionStyle = 353u;
+  tableSpec.callbacks.onSelect = [&](PrimeStage::TableRowInfo const& info) {
+    tableSelected = info.rowIndex;
+    tableSelectionEvents += 1;
+  };
+  PrimeStage::UiNode table = stack.createTable(tableSpec);
+
+  int listSelected = -1;
+  int listSelectionEvents = 0;
+  PrimeStage::ListSpec listSpec;
+  listSpec.items = {"One", "Two", "Three"};
+  listSpec.size.preferredWidth = 220.0f;
+  listSpec.size.preferredHeight = 96.0f;
+  listSpec.rowHeight = 24.0f;
+  listSpec.rowGap = 0.0f;
+  listSpec.rowStyle = 361u;
+  listSpec.rowAltStyle = 362u;
+  listSpec.selectionStyle = 363u;
+  listSpec.callbacks.onSelect = [&](PrimeStage::ListRowInfo const& info) {
+    listSelected = info.rowIndex;
+    listSelectionEvents += 1;
+  };
+  PrimeStage::UiNode list = stack.createList(listSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 420.0f, 260.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::NodeId tableCallbackNode =
+      findFirstNodeWithOnEventInSubtree(frame, table.nodeId());
+  REQUIRE(tableCallbackNode.isValid());
+  PrimeFrame::LayoutOut const* tableOut = layout.get(tableCallbackNode);
+  REQUIRE(tableOut != nullptr);
+  float tableClickX = tableOut->absX + tableOut->absW * 0.5f;
+  float tableClickY = tableOut->absY + tableSpec.rowHeight * 1.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, tableClickX, tableClickY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(tableSelected == 1);
+
+  focus.setFocus(frame, layout, table.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::End), frame, layout, &focus);
+  CHECK(tableSelected == 3);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Home), frame, layout, &focus);
+  CHECK(tableSelected == 0);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Down), frame, layout, &focus);
+  CHECK(tableSelected == 1);
+  int tableEventsBeforeEnter = tableSelectionEvents;
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(tableSelected == 1);
+  CHECK(tableSelectionEvents == tableEventsBeforeEnter + 1);
+
+  PrimeFrame::NodeId listCallbackNode = findFirstNodeWithOnEventInSubtree(frame, list.nodeId());
+  REQUIRE(listCallbackNode.isValid());
+  PrimeFrame::LayoutOut const* listOut = layout.get(listCallbackNode);
+  REQUIRE(listOut != nullptr);
+  float listClickX = listOut->absX + listOut->absW * 0.5f;
+  float listClickY = listOut->absY + listSpec.rowHeight * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, listClickX, listClickY),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(listSelected == 0);
+
+  focus.setFocus(frame, layout, list.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::End), frame, layout, &focus);
+  CHECK(listSelected == 2);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Up), frame, layout, &focus);
+  CHECK(listSelected == 1);
+  CHECK(listSelectionEvents >= 3);
+}
+
 TEST_CASE("PrimeStage table callbacks keep row text alive for short-lived source buffers") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 320.0f, 180.0f);

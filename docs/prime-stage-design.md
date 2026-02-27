@@ -304,6 +304,8 @@ This keeps animation transient and does not require a rebuild.
   `ProgressBar`, `Table`, `TreeView`.
 - Not focusable by default: `SelectableText`.
 - Focus visuals are semantic-by-default for focusable controls; `focusStyle` is an optional override.
+- Full per-widget focus/keyboard/pointer/accessibility defaults are tracked in
+  `docs/default-widget-behavior-matrix.md`.
 
 ## HTML Stack
 PrimeStage can target an HTML backend as a separate surface.

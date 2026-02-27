@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [68] Harden default behavior consistency matrix.
-  - define per-widget defaults for focusability, keyboard activation, pointer semantics, and accessibility role
-  - verify matrix via automated tests and docs tables
-  - acceptance: no behavior surprises between similar controls under default config
-
 - ☐ [69] Add migration path toward retained-state widgets with owned defaults.
   - provide opt-in owned state for controls that currently require external state structs
   - keep externally-controlled model supported, but make default usage minimal
@@ -86,6 +81,20 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [68] Harden default behavior consistency matrix.
+  - added `docs/default-widget-behavior-matrix.md` with per-widget defaults for focusability,
+    keyboard activation, pointer semantics, and accessibility role
+  - aligned default runtime behavior for consistency:
+    `ProgressBar` now supports default pointer/keyboard adjustment when enabled, and `Table`/`List`
+    support keyboard row selection parity with pointer row selection
+  - added centralized default accessibility-semantic role/state assignment in
+    `src/PrimeStage.cpp` for standard interactive widgets and text/window defaults
+  - expanded regression coverage in `tests/unit/test_interaction.cpp` for progress and table/list
+    default interaction behavior plus docs/source contract guards in
+    `tests/unit/test_api_ergonomics.cpp`
+  - linked matrix policy into contributor/reference docs (`AGENTS.md`,
+    `docs/api-ergonomics-guidelines.md`, and `docs/minimal-api-reference.md`)
 
 - ☑ [67] Add explicit API ergonomics scorecard and measurable thresholds.
   - added `docs/api-ergonomics-scorecard.md` with explicit thresholds for canonical UI LOC,

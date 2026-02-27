@@ -2404,6 +2404,89 @@ TEST_CASE("PrimeStage accessibility roadmap defines semantics model and behavior
         std::string::npos);
 }
 
+TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path matrixPath = repoRoot / "docs" / "default-widget-behavior-matrix.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  REQUIRE(std::filesystem::exists(matrixPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(interactionPath));
+
+  std::ifstream matrixInput(matrixPath);
+  REQUIRE(matrixInput.good());
+  std::string matrix((std::istreambuf_iterator<char>(matrixInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!matrix.empty());
+  CHECK(matrix.find("Default Widget Behavior Matrix") != std::string::npos);
+  CHECK(matrix.find("| Widget | Focusable Default | Keyboard Default | Pointer Default | Accessibility Role Default |") !=
+        std::string::npos);
+  CHECK(matrix.find("| `Button` |") != std::string::npos);
+  CHECK(matrix.find("| `Toggle` |") != std::string::npos);
+  CHECK(matrix.find("| `Checkbox` |") != std::string::npos);
+  CHECK(matrix.find("| `Slider` |") != std::string::npos);
+  CHECK(matrix.find("| `ProgressBar` |") != std::string::npos);
+  CHECK(matrix.find("| `Tabs` |") != std::string::npos);
+  CHECK(matrix.find("| `Dropdown` |") != std::string::npos);
+  CHECK(matrix.find("| `Table` |") != std::string::npos);
+  CHECK(matrix.find("| `List` |") != std::string::npos);
+  CHECK(matrix.find("| `TreeView` |") != std::string::npos);
+  CHECK(matrix.find("| `Window` |") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/default-widget-behavior-matrix.md") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("docs/default-widget-behavior-matrix.md") != std::string::npos);
+
+  std::ifstream sourceCppInput(sourceCppPath);
+  REQUIRE(sourceCppInput.good());
+  std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!sourceCpp.empty());
+  CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
+  CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
+  CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Button") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::TextField") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::StaticText") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Toggle") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Checkbox") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Slider") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::TabList") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::ComboBox") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::ProgressBar") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Table") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Tree") != std::string::npos);
+  CHECK(sourceCpp.find("AccessibilityRole::Group") != std::string::npos);
+  CHECK(sourceCpp.find("bool needsPatchState = enabled ||") != std::string::npos);
+  CHECK(sourceCpp.find("appendNodeOnEvent(frame(),") != std::string::npos);
+  CHECK(sourceCpp.find("tableRoot.nodeId()") != std::string::npos);
+
+  std::ifstream interactionInput(interactionPath);
+  REQUIRE(interactionInput.good());
+  std::string interaction((std::istreambuf_iterator<char>(interactionInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!interaction.empty());
+  CHECK(interaction.find("default progress bar supports pointer and keyboard adjustments") !=
+        std::string::npos);
+  CHECK(interaction.find("table and list keyboard selection matches pointer selection defaults") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();

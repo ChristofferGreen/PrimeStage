@@ -263,6 +263,8 @@ Callback semantics:
 
 ## Focus And Identity Helpers
 
+- Default focus/keyboard/pointer/accessibility behavior by widget is documented in
+  `docs/default-widget-behavior-matrix.md`.
 - `PrimeStage::WidgetIdentityReconciler`
   - `beginRebuild(...)`
   - `registerNode(...)`

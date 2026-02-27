@@ -60,6 +60,33 @@ bool is_pointer_inside(PrimeFrame::Event const& event) {
          event.localY >= 0.0f && event.localY <= event.targetH;
 }
 
+void apply_default_accessibility_semantics(AccessibilitySemantics& semantics,
+                                           AccessibilityRole role,
+                                           bool enabled) {
+  if (semantics.role == AccessibilityRole::Unspecified) {
+    semantics.role = role;
+  }
+  semantics.state.disabled = !enabled;
+}
+
+void apply_default_checked_semantics(AccessibilitySemantics& semantics,
+                                     AccessibilityRole role,
+                                     bool enabled,
+                                     bool checked) {
+  apply_default_accessibility_semantics(semantics, role, enabled);
+  semantics.state.checked = checked;
+}
+
+void apply_default_range_semantics(AccessibilitySemantics& semantics,
+                                   AccessibilityRole role,
+                                   bool enabled,
+                                   float value) {
+  apply_default_accessibility_semantics(semantics, role, enabled);
+  semantics.state.valueNow = value;
+  semantics.state.valueMin = 0.0f;
+  semantics.state.valueMax = 1.0f;
+}
+
 bool is_utf8_continuation(uint8_t value) {
   return (value & 0xC0u) == 0x80u;
 }
@@ -2087,6 +2114,7 @@ UiNode UiNode::createLabel(LabelSpec const& specInput) {
   LabelSpec spec = specInput;
   sanitize_size_spec(spec.size, "LabelSpec.size");
   spec.maxWidth = clamp_non_negative(spec.maxWidth, "LabelSpec", "maxWidth");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
 
   Rect rect = resolve_rect(spec.size);
   if ((rect.width <= 0.0f || rect.height <= 0.0f) &&
@@ -2156,6 +2184,7 @@ UiNode UiNode::createParagraph(ParagraphSpec const& specInput) {
   ParagraphSpec spec = specInput;
   sanitize_size_spec(spec.size, "ParagraphSpec.size");
   spec.maxWidth = clamp_non_negative(spec.maxWidth, "ParagraphSpec", "maxWidth");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
 
   Rect bounds = resolve_rect(spec.size);
   PrimeFrame::TextStyleToken token = spec.textStyle;
@@ -2362,7 +2391,9 @@ UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec) 
 }
 
 
-UiNode UiNode::createTextLine(TextLineSpec const& spec) {
+UiNode UiNode::createTextLine(TextLineSpec const& specInput) {
+  TextLineSpec spec = specInput;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, true);
   PrimeFrame::TextStyleToken token = spec.textStyle;
   float lineHeight = resolve_line_height(frame(), token);
   Rect bounds = resolve_rect(spec.size);
@@ -2504,6 +2535,7 @@ UiNode UiNode::createButton(ButtonSpec const& specInput) {
   spec.pressedOpacity = clamp_unit_interval(spec.pressedOpacity, "ButtonSpec", "pressedOpacity");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ButtonSpec", "tabIndex");
   bool enabled = spec.enabled;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Button, enabled);
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -2774,6 +2806,7 @@ UiNode UiNode::createTextField(TextFieldSpec const& specInput) {
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "TextFieldSpec", "tabIndex");
   bool enabled = spec.enabled;
   bool readOnly = spec.readOnly;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::TextField, enabled);
 
   Rect bounds = resolve_rect(spec.size);
   TextFieldState* state = spec.state;
@@ -3655,6 +3688,7 @@ UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput) {
   spec.paddingX = clamp_non_negative(spec.paddingX, "SelectableTextSpec", "paddingX");
   spec.maxWidth = clamp_non_negative(spec.maxWidth, "SelectableTextSpec", "maxWidth");
   bool enabled = spec.enabled;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::StaticText, enabled);
 
   Rect bounds = resolve_rect(spec.size);
   std::string_view text = spec.text;
@@ -4223,6 +4257,7 @@ UiNode UiNode::createToggle(ToggleSpec const& specInput) {
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ToggleSpec", "tabIndex");
   bool enabled = spec.enabled;
   bool on = spec.binding.state ? spec.binding.state->value : (spec.state ? spec.state->on : spec.on);
+  apply_default_checked_semantics(spec.accessibility, AccessibilityRole::Toggle, enabled, on);
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -4419,6 +4454,7 @@ UiNode UiNode::createCheckbox(CheckboxSpec const& specInput) {
   bool enabled = spec.enabled;
   bool checked = spec.binding.state ? spec.binding.state->value
                                     : (spec.state ? spec.state->checked : spec.checked);
+  apply_default_checked_semantics(spec.accessibility, AccessibilityRole::Checkbox, enabled, checked);
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -4660,6 +4696,7 @@ UiNode UiNode::createSlider(SliderSpec const& specInput) {
     spec.state->value = clamp_unit_interval(spec.state->value, "SliderState", "value");
     spec.value = spec.state->value;
   }
+  apply_default_range_semantics(spec.accessibility, AccessibilityRole::Slider, enabled, spec.value);
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -5068,6 +5105,14 @@ UiNode UiNode::createTabs(TabsSpec const& specInput) {
                                          "selectedIndex");
     spec.state->selectedIndex = selectedIndex;
   }
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::TabList, enabled);
+  if (tabCount > 0) {
+    spec.accessibility.state.positionInSet = selectedIndex + 1;
+    spec.accessibility.state.setSize = tabCount;
+  } else {
+    spec.accessibility.state.positionInSet.reset();
+    spec.accessibility.state.setSize.reset();
+  }
 
   Rect bounds = resolve_rect(spec.size);
   float lineHeight = resolve_line_height(frame(), spec.textStyle);
@@ -5292,6 +5337,14 @@ UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
                                          "selectedIndex");
     spec.state->selectedIndex = selectedIndex;
   }
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::ComboBox, enabled);
+  if (optionCount > 0) {
+    spec.accessibility.state.positionInSet = selectedIndex + 1;
+    spec.accessibility.state.setSize = optionCount;
+  } else {
+    spec.accessibility.state.positionInSet.reset();
+    spec.accessibility.state.setSize.reset();
+  }
   std::string_view selectedLabel = spec.label;
   if (optionCount > 0) {
     selectedLabel = spec.options[static_cast<size_t>(selectedIndex)];
@@ -5509,6 +5562,7 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
     spec.state->value = clamp_unit_interval(spec.state->value, "ProgressBarState", "value");
     spec.value = spec.state->value;
   }
+  apply_default_range_semantics(spec.accessibility, AccessibilityRole::ProgressBar, enabled, spec.value);
 
   Rect bounds = resolve_rect(spec.size);
   if (bounds.width <= 0.0f &&
@@ -5552,7 +5606,8 @@ UiNode UiNode::createProgressBar(ProgressBarSpec const& specInput) {
   };
   float value = std::clamp(spec.value, 0.0f, 1.0f);
   float fillW = computeFillWidth(value);
-  bool needsPatchState = spec.binding.state != nullptr ||
+  bool needsPatchState = enabled ||
+                         spec.binding.state != nullptr ||
                          spec.state != nullptr ||
                          static_cast<bool>(spec.callbacks.onChange) ||
                          static_cast<bool>(spec.callbacks.onValueChanged);
@@ -5730,6 +5785,7 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
                                                 "selectedRow");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "TableSpec", "tabIndex");
   bool enabled = spec.enabled;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Table, enabled);
 
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
@@ -6070,8 +6126,50 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
       }
     };
 
+    auto notifyRowSelect = [interaction](int index) {
+      if (!interaction->callbacks.onSelect && !interaction->callbacks.onRowClicked) {
+        return;
+      }
+      TableRowInfo info;
+      info.rowIndex = index;
+      if (index >= 0 && index < static_cast<int>(interaction->ownedRows.size())) {
+        auto const& row = interaction->ownedRows[static_cast<size_t>(index)];
+        interaction->rowViewScratch.clear();
+        interaction->rowViewScratch.reserve(row.size());
+        for (std::string const& cell : row) {
+          interaction->rowViewScratch.push_back(cell);
+        }
+        info.row = std::span<const std::string_view>(interaction->rowViewScratch);
+      }
+      if (interaction->callbacks.onSelect) {
+        interaction->callbacks.onSelect(info);
+      } else if (interaction->callbacks.onRowClicked) {
+        interaction->callbacks.onRowClicked(info);
+      }
+    };
+
+    auto selectRow = [interaction, updateRowStyle, notifyRowSelect](int index,
+                                                                     bool notifyWhenUnchanged) {
+      if (index < 0 || index >= static_cast<int>(interaction->backgrounds.size())) {
+        return false;
+      }
+      if (interaction->selectedRow != index) {
+        int previous = interaction->selectedRow;
+        interaction->selectedRow = index;
+        updateRowStyle(previous, false);
+        updateRowStyle(index, true);
+        notifyRowSelect(index);
+        return true;
+      }
+      if (notifyWhenUnchanged) {
+        notifyRowSelect(index);
+        return true;
+      }
+      return false;
+    };
+
     PrimeFrame::Callback rowCallback;
-    rowCallback.onEvent = [interaction, updateRowStyle](PrimeFrame::Event const& event) -> bool {
+    rowCallback.onEvent = [interaction, selectRow](PrimeFrame::Event const& event) -> bool {
       if (event.type != PrimeFrame::EventType::PointerDown) {
         return false;
       }
@@ -6087,35 +6185,44 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
       if (rowLocalY < 0.0f || rowLocalY > interaction->rowHeight) {
         return false;
       }
-      if (interaction->selectedRow != index) {
-        int previous = interaction->selectedRow;
-        interaction->selectedRow = index;
-        updateRowStyle(previous, false);
-        updateRowStyle(index, true);
-      }
-      if (interaction->callbacks.onSelect || interaction->callbacks.onRowClicked) {
-        TableRowInfo info;
-        info.rowIndex = index;
-        if (index >= 0 && index < static_cast<int>(interaction->ownedRows.size())) {
-          auto const& row = interaction->ownedRows[static_cast<size_t>(index)];
-          interaction->rowViewScratch.clear();
-          interaction->rowViewScratch.reserve(row.size());
-          for (std::string const& cell : row) {
-            interaction->rowViewScratch.push_back(cell);
-          }
-          info.row = std::span<const std::string_view>(interaction->rowViewScratch);
-        }
-        if (interaction->callbacks.onSelect) {
-          interaction->callbacks.onSelect(info);
-        } else if (interaction->callbacks.onRowClicked) {
-          interaction->callbacks.onRowClicked(info);
-        }
-      }
+      (void)selectRow(index, true);
       return true;
     };
     if (PrimeFrame::Node* rowsNodePtr = frame().getNode(rowsNode.nodeId())) {
       rowsNodePtr->callbacks = frame().addCallback(std::move(rowCallback));
     }
+
+    (void)appendNodeOnEvent(frame(),
+                            tableRoot.nodeId(),
+                            [interaction, selectRow](PrimeFrame::Event const& event) {
+                              if (event.type != PrimeFrame::EventType::KeyDown) {
+                                return false;
+                              }
+                              if (interaction->backgrounds.empty()) {
+                                return false;
+                              }
+                              int lastIndex = static_cast<int>(interaction->backgrounds.size()) - 1;
+                              int current = interaction->selectedRow;
+                              if (current < 0) {
+                                current = 0;
+                              }
+
+                              int target = current;
+                              if (event.key == KeyUp) {
+                                target = std::max(0, current - 1);
+                              } else if (event.key == KeyDown) {
+                                target = std::min(lastIndex, current + 1);
+                              } else if (event.key == KeyHome) {
+                                target = 0;
+                              } else if (event.key == KeyEnd) {
+                                target = lastIndex;
+                              } else if (event.key == KeyEnter) {
+                                return selectRow(current, true);
+                              } else {
+                                return false;
+                              }
+                              return selectRow(target, false) || target == current;
+                            });
   }
 
   if (spec.visible && enabled) {
@@ -6172,6 +6279,7 @@ UiNode UiNode::createList(ListSpec const& specInput) {
                                                   "ListSpec",
                                                   "selectedIndex");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "ListSpec", "tabIndex");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Table, spec.enabled);
 
   TableSpec table;
   table.accessibility = spec.accessibility;
@@ -6358,6 +6466,7 @@ Window UiNode::createWindow(WindowSpec const& specInput) {
   spec.resizeHandleSize =
       clamp_non_negative(spec.resizeHandleSize, "WindowSpec", "resizeHandleSize");
   spec.tabIndex = clamp_tab_index(spec.tabIndex, "WindowSpec", "tabIndex");
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::Group, spec.focusable);
 
   if (spec.width < spec.minWidth) {
     report_validation_float("WindowSpec", "width", spec.width, spec.minWidth);
@@ -6635,6 +6744,7 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   TreeViewSpec normalized = spec;
   normalized.tabIndex = clamp_tab_index(normalized.tabIndex, "TreeViewSpec", "tabIndex");
   bool enabled = normalized.enabled;
+  apply_default_accessibility_semantics(normalized.accessibility, AccessibilityRole::Tree, enabled);
   PrimeFrame::NodeId id_ = nodeId();
   bool allowAbsolute_ = allowAbsolute();
 
