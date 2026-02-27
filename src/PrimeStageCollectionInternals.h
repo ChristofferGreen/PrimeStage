@@ -31,15 +31,21 @@ SpacerSpec normalizeSpacerSpec(SpacerSpec const& specInput);
 TextLineSpec normalizeTextLineSpec(TextLineSpec const& specInput);
 LabelSpec normalizeLabelSpec(LabelSpec const& specInput);
 ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);
+SelectableTextSpec normalizeSelectableTextSpec(SelectableTextSpec const& specInput);
 PanelSpec normalizePanelSpec(PanelSpec const& specInput);
 TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);
 WindowSpec normalizeWindowSpec(WindowSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
+float defaultSelectableTextWrapWidth();
 float defaultScrollViewWidth();
 float defaultScrollViewHeight();
 float defaultCollectionWidth();
 float defaultCollectionHeight();
+uint32_t clampTextIndex(uint32_t value,
+                        uint32_t maxValue,
+                        char const* context,
+                        char const* field);
 float estimateTextWidth(PrimeFrame::Frame& frame,
                         PrimeFrame::TextStyleToken token,
                         std::string_view text);

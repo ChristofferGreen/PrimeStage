@@ -117,6 +117,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageProgress.cpp
   src/PrimeStageSlider.cpp
   src/PrimeStageTabs.cpp
+  src/PrimeStageSelectableText.cpp
   src/PrimeStageTextSelectionOverlay.cpp
   src/PrimeStageTextLine.cpp
   src/PrimeStageWindow.cpp

@@ -3446,12 +3446,14 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path selectableTextCppPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(selectableTextCppPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(apiRefPath));
   REQUIRE(std::filesystem::exists(designPath));
@@ -3469,10 +3471,16 @@ TEST_CASE("PrimeStage owned text widget defaults are documented and enforced") {
   std::string source((std::istreambuf_iterator<char>(sourceInput)),
                      std::istreambuf_iterator<char>());
   REQUIRE(!source.empty());
+  std::ifstream selectableInput(selectableTextCppPath);
+  REQUIRE(selectableInput.good());
+  std::string selectableSource((std::istreambuf_iterator<char>(selectableInput)),
+                               std::istreambuf_iterator<char>());
+  REQUIRE(!selectableSource.empty());
   CHECK(source.find("text_field_state_is_pristine") != std::string::npos);
   CHECK(source.find("seed_text_field_state_from_spec") != std::string::npos);
   CHECK(source.find("std::shared_ptr<TextFieldState> stateOwner") != std::string::npos);
-  CHECK(source.find("std::shared_ptr<SelectableTextState> stateOwner") != std::string::npos);
+  CHECK(selectableSource.find("std::shared_ptr<SelectableTextState> stateOwner") !=
+        std::string::npos);
 
   std::ifstream guidelinesInput(guidelinesPath);
   REQUIRE(guidelinesInput.good());
@@ -3521,6 +3529,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path paragraphPath = repoRoot / "src" / "PrimeStageParagraph.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
+  std::filesystem::path selectableTextPath = repoRoot / "src" / "PrimeStageSelectableText.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
   std::filesystem::path windowPath = repoRoot / "src" / "PrimeStageWindow.cpp";
@@ -3539,6 +3548,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(paragraphPath));
   REQUIRE(std::filesystem::exists(progressPath));
   REQUIRE(std::filesystem::exists(tabsPath));
+  REQUIRE(std::filesystem::exists(selectableTextPath));
   REQUIRE(std::filesystem::exists(textLinePath));
   REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
   REQUIRE(std::filesystem::exists(windowPath));
@@ -3594,6 +3604,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput)") ==
+        std::string::npos);
   CHECK(core.find("Window UiNode::createWindow(WindowSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
@@ -3622,6 +3634,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("LabelSpec normalizeLabelSpec(LabelSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("SelectableTextSpec normalizeSelectableTextSpec(SelectableTextSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("PanelSpec normalizePanelSpec(PanelSpec const& specInput)") !=
         std::string::npos);
@@ -3689,6 +3703,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(paragraphSource.find("UiNode UiNode::createParagraph(std::string_view text,") !=
         std::string::npos);
   CHECK(paragraphSource.find("Internal::normalizeParagraphSpec(specInput)") != std::string::npos);
+
+  std::ifstream selectableTextInput(selectableTextPath);
+  REQUIRE(selectableTextInput.good());
+  std::string selectableTextSource((std::istreambuf_iterator<char>(selectableTextInput)),
+                                   std::istreambuf_iterator<char>());
+  REQUIRE(!selectableTextSource.empty());
+  CHECK(selectableTextSource.find("UiNode UiNode::createSelectableText(SelectableTextSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(selectableTextSource.find("Internal::normalizeSelectableTextSpec(specInput)") !=
+        std::string::npos);
 
   std::ifstream containersInput(containersPath);
   REQUIRE(containersInput.good());
@@ -3836,12 +3860,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("SelectableTextSpec normalizeSelectableTextSpec(SelectableTextSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("PanelSpec normalizePanelSpec(PanelSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("WindowSpec normalizeWindowSpec(WindowSpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("float defaultSelectableTextWrapWidth();") != std::string::npos);
+  CHECK(internals.find("uint32_t clampTextIndex(uint32_t value,") != std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
@@ -3856,6 +3884,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageLabel.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageWindow.cpp") != std::string::npos);
 
