@@ -48,12 +48,20 @@ public:
   [[nodiscard]] InputBridgeResult bridgeHostInputEvent(PrimeHost::InputEvent const& input,
                                                        PrimeHost::EventBatch const& batch,
                                                        HostKey exitKey = HostKey::Escape);
+  [[nodiscard]] bool focusWidget(WidgetFocusHandle handle);
+  [[nodiscard]] bool isWidgetFocused(WidgetFocusHandle handle) const;
+  [[nodiscard]] bool setWidgetVisible(WidgetVisibilityHandle handle, bool visible);
+  [[nodiscard]] bool setWidgetHitTestVisible(WidgetVisibilityHandle handle, bool visible);
+  [[nodiscard]] bool setWidgetSize(WidgetActionHandle handle, SizeSpec const& size);
+  [[nodiscard]] bool dispatchWidgetEvent(WidgetActionHandle handle,
+                                         PrimeFrame::Event const& event);
 
   [[nodiscard]] RenderStatus renderToTarget(RenderTarget const& target);
   [[nodiscard]] RenderStatus renderToPng(std::string_view path);
 
   void markFramePresented() { lifecycle_.markFramePresented(); }
 
+  // Low-level escape hatches for advanced runtime integrations.
   [[nodiscard]] PrimeFrame::Frame& frame() { return frame_; }
   [[nodiscard]] PrimeFrame::Frame const& frame() const { return frame_; }
   [[nodiscard]] PrimeFrame::LayoutOutput& layout() { return layout_; }

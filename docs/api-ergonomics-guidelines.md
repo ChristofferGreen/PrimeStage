@@ -24,6 +24,7 @@ Application responsibilities:
 What app code should avoid:
 - Writing `node->callbacks = ...` directly for standard widgets.
 - Composing low-level `PrimeFrame::Callback` chains in feature code.
+- Storing/querying raw `NodeId` in canonical app code when typed widget handles are sufficient.
 - Re-implementing focus visuals per widget by patching primitives.
 - Translating raw key constants inside each feature/widget usage site.
 - Owning `PrimeFrame::Frame`/`LayoutEngine`/`EventRouter`/`FocusManager` in canonical app paths.
@@ -100,7 +101,7 @@ void rebuild(App& app) {
 
   PrimeStage::UiNode root(app.frame, app.frame.createNode(), true);
   PrimeStage::UiNode field = root.createTextField(fieldSpec);
-  widgetIdentity.registerNode("settings.field", field.nodeId());
+  widgetIdentity.registerNode("settings.field", field.lowLevelNodeId());
 }
 
 void afterLayout(App& app) {
@@ -245,7 +246,9 @@ Default focus behavior expected by app code:
 - Not focusable by default: `SelectableText`.
 - Focus visuals should render by default for focusable widgets using semantic focus styling;
   `focusStyle` remains an opt-in override, not a requirement.
-- App code should drive focus through `PrimeFrame::FocusManager`, not by patching focus primitives manually.
+- App code should drive focus through `PrimeStage::App::focusWidget(...)` with
+  `WidgetFocusHandle` in canonical paths, not by patching focus primitives manually.
+- Raw `PrimeFrame::FocusManager` and `NodeId` usage is reserved for advanced/low-level interop.
 
 ## Default Styling Readability Contract
 - Default theme text on default surface must maintain at least `4.5:1` contrast.

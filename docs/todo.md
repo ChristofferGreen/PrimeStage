@@ -23,11 +23,6 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P0 (Do First)
 
-- ☐ [60] Introduce typed widget handles and remove `NodeId` from app-facing APIs.
-  - expose stable typed handles for focus, visibility, and imperative actions
-  - keep raw `NodeId` internal or explicitly low-level
-  - acceptance: canonical examples do not store/query `NodeId` directly
-
 - ☐ [61] Add domain-model adapters for collection widgets.
   - support typed row/item models for list/table/tree with adapters and key extractors
   - avoid repeated conversion to `std::vector<std::string_view>` in app code
@@ -126,6 +121,21 @@ _No open items._
 Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
+
+- ☑ [60] Introduce typed widget handles and remove `NodeId` from app-facing APIs.
+  - added typed handles (`WidgetFocusHandle`, `WidgetVisibilityHandle`, `WidgetActionHandle`) to
+    `include/PrimeStage/Ui.h` and exposed them from `UiNode` via
+    `focusHandle()`/`visibilityHandle()`/`actionHandle()`
+  - added app-facing typed-handle operations in `include/PrimeStage/App.h` / `src/App.cpp`
+    (`focusWidget`, `isWidgetFocused`, `setWidgetVisible`, `setWidgetHitTestVisible`,
+    `setWidgetSize`, `dispatchWidgetEvent`)
+  - kept raw node ids as explicitly low-level via `lowLevelNodeId()` and tightened canonical
+    example guardrails to ban `.nodeId(...)` usage in `examples/primestage_widgets.cpp`
+  - expanded regression coverage in `tests/unit/test_app_runtime.cpp` and
+    `tests/unit/test_api_ergonomics.cpp`
+  - updated API/docs references in `docs/minimal-api-reference.md`,
+    `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, and
+    `docs/example-app-consumer-checklist.md`
 
 - ☑ [59] Reduce mandatory manual sizing and layout micromanagement.
   - added intrinsic fallback sizing for unsized `ScrollView` and empty collection widgets

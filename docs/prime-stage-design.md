@@ -159,7 +159,10 @@ For low-ceremony composition, `UiNode` also exposes declarative helpers:
 - `label(text)`, `paragraph(text, maxWidth)`, `textLine(text)`
 - `divider(height)`, `spacer(height)`, `button(text, onActivate)`, `window(spec, fn)`
 
-`UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
+`UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`, but app-facing focus,
+visibility, and imperative flows should use typed handles (`WidgetFocusHandle`,
+`WidgetVisibilityHandle`, `WidgetActionHandle`) exposed from `UiNode`.
+Raw `NodeId` access is explicitly low-level via `lowLevelNodeId()`.
 All widget specs use `std::optional` for optional fields.
 Shared spec bases (`WidgetSpec`, `EnableableWidgetSpec`, `FocusableWidgetSpec`) centralize
 common accessibility/visibility/enablement/focus-order fields across widget families.
@@ -176,6 +179,11 @@ so callers can attach children and apply scroll offsets without mixing in scroll
 struct UiNode {
   std::reference_wrapper<Frame> frame;
   NodeId id;
+
+  WidgetFocusHandle focusHandle() const;
+  WidgetVisibilityHandle visibilityHandle() const;
+  WidgetActionHandle actionHandle() const;
+  NodeId lowLevelNodeId() const;
 
   template <typename Fn>
   UiNode with(Fn&& fn);

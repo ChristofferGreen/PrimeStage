@@ -195,6 +195,79 @@ InputBridgeResult App::bridgeHostInputEvent(PrimeHost::InputEvent const& input,
       exitKey);
 }
 
+bool App::focusWidget(WidgetFocusHandle handle) {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  if (!nodeId.isValid()) {
+    return false;
+  }
+  (void)runLayoutIfNeeded();
+  bool changed = focus_.setFocus(frame_, layout_, nodeId);
+  syncImeCompositionRect();
+  return changed;
+}
+
+bool App::isWidgetFocused(WidgetFocusHandle handle) const {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  if (!nodeId.isValid()) {
+    return false;
+  }
+  return focus_.focusedNode() == nodeId;
+}
+
+bool App::setWidgetVisible(WidgetVisibilityHandle handle, bool visible) {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  PrimeFrame::Node* node = nodeId.isValid() ? frame_.getNode(nodeId) : nullptr;
+  if (!node) {
+    return false;
+  }
+  if (node->visible != visible) {
+    node->visible = visible;
+    lifecycle_.requestLayout();
+    syncImeCompositionRect();
+  }
+  return true;
+}
+
+bool App::setWidgetHitTestVisible(WidgetVisibilityHandle handle, bool visible) {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  PrimeFrame::Node* node = nodeId.isValid() ? frame_.getNode(nodeId) : nullptr;
+  if (!node) {
+    return false;
+  }
+  if (node->hitTestVisible != visible) {
+    node->hitTestVisible = visible;
+    lifecycle_.requestFrame();
+  }
+  return true;
+}
+
+bool App::setWidgetSize(WidgetActionHandle handle, SizeSpec const& size) {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  PrimeFrame::Node* node = nodeId.isValid() ? frame_.getNode(nodeId) : nullptr;
+  if (!node) {
+    return false;
+  }
+  UiNode(frame_, nodeId, true).setSize(size);
+  lifecycle_.requestLayout();
+  syncImeCompositionRect();
+  return true;
+}
+
+bool App::dispatchWidgetEvent(WidgetActionHandle handle, PrimeFrame::Event const& event) {
+  PrimeFrame::NodeId nodeId = handle.lowLevelNodeId();
+  PrimeFrame::Node const* node = nodeId.isValid() ? frame_.getNode(nodeId) : nullptr;
+  if (!node || node->callbacks == PrimeFrame::InvalidCallbackId) {
+    return false;
+  }
+  PrimeFrame::Callback const* callback = frame_.getCallback(node->callbacks);
+  if (!callback || !callback->onEvent) {
+    return false;
+  }
+  bool handled = callback->onEvent(event);
+  syncImeCompositionRect();
+  return handled;
+}
+
 RenderStatus App::renderToTarget(RenderTarget const& target) {
   (void)runLayoutIfNeeded();
   return renderFrameToTarget(frame_, layout_, target, renderOptions_);

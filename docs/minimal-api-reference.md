@@ -27,6 +27,12 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
   - `runLayoutIfNeeded()`
   - `dispatchFrameEvent(...)`
   - `bridgeHostInputEvent(...)`
+  - `focusWidget(...)`
+  - `isWidgetFocused(...)`
+  - `setWidgetVisible(...)`
+  - `setWidgetHitTestVisible(...)`
+  - `setWidgetSize(...)`
+  - `dispatchWidgetEvent(...)`
   - `setSurfaceMetrics(...)`
   - `setRenderMetrics(...)`
   - `renderToTarget(...)`
@@ -81,11 +87,23 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 - `PrimeStage::SliderState`
 - `PrimeStage::ProgressBarState`
 
+## Typed Widget Handles
+
+- `PrimeStage::WidgetFocusHandle`
+- `PrimeStage::WidgetVisibilityHandle`
+- `PrimeStage::WidgetActionHandle`
+- `PrimeStage::UiNode::focusHandle()`
+- `PrimeStage::UiNode::visibilityHandle()`
+- `PrimeStage::UiNode::actionHandle()`
+- `PrimeStage::UiNode::lowLevelNodeId()` (advanced/low-level escape hatch)
+
 ## UiNode Widget Builders
 
 Fluent helpers:
 - `with(lambda)` for inline post-create node configuration.
 - `createX(spec, lambda)` overloads for nested composition across container, widget, `ScrollView`, and `Window` builders.
+- typed handle accessors (`focusHandle()`, `visibilityHandle()`, `actionHandle()`) for focus,
+  visibility, and imperative widget operations without storing raw `NodeId`.
 
 Declarative helpers:
 - `column(...)`

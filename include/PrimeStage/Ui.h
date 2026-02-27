@@ -946,11 +946,69 @@ private:
 struct ScrollView;
 struct Window;
 
+class WidgetFocusHandle {
+public:
+  WidgetFocusHandle() = default;
+  [[nodiscard]] bool valid() const { return nodeId_.isValid(); }
+  // Explicit low-level escape hatch for advanced PrimeFrame interop.
+  [[nodiscard]] PrimeFrame::NodeId lowLevelNodeId() const { return nodeId_; }
+
+  friend constexpr bool operator==(WidgetFocusHandle lhs, WidgetFocusHandle rhs) {
+    return lhs.nodeId_ == rhs.nodeId_;
+  }
+
+private:
+  friend class UiNode;
+  explicit WidgetFocusHandle(PrimeFrame::NodeId nodeId) : nodeId_(nodeId) {}
+
+  PrimeFrame::NodeId nodeId_{};
+};
+
+class WidgetVisibilityHandle {
+public:
+  WidgetVisibilityHandle() = default;
+  [[nodiscard]] bool valid() const { return nodeId_.isValid(); }
+  // Explicit low-level escape hatch for advanced PrimeFrame interop.
+  [[nodiscard]] PrimeFrame::NodeId lowLevelNodeId() const { return nodeId_; }
+
+  friend constexpr bool operator==(WidgetVisibilityHandle lhs, WidgetVisibilityHandle rhs) {
+    return lhs.nodeId_ == rhs.nodeId_;
+  }
+
+private:
+  friend class UiNode;
+  explicit WidgetVisibilityHandle(PrimeFrame::NodeId nodeId) : nodeId_(nodeId) {}
+
+  PrimeFrame::NodeId nodeId_{};
+};
+
+class WidgetActionHandle {
+public:
+  WidgetActionHandle() = default;
+  [[nodiscard]] bool valid() const { return nodeId_.isValid(); }
+  // Explicit low-level escape hatch for advanced PrimeFrame interop.
+  [[nodiscard]] PrimeFrame::NodeId lowLevelNodeId() const { return nodeId_; }
+
+  friend constexpr bool operator==(WidgetActionHandle lhs, WidgetActionHandle rhs) {
+    return lhs.nodeId_ == rhs.nodeId_;
+  }
+
+private:
+  friend class UiNode;
+  explicit WidgetActionHandle(PrimeFrame::NodeId nodeId) : nodeId_(nodeId) {}
+
+  PrimeFrame::NodeId nodeId_{};
+};
+
 class UiNode {
 public:
   UiNode(PrimeFrame::Frame& frame, PrimeFrame::NodeId id, bool allowAbsolute = false);
 
-  PrimeFrame::NodeId nodeId() const { return id_; }
+  [[nodiscard]] WidgetFocusHandle focusHandle() const { return WidgetFocusHandle(id_); }
+  [[nodiscard]] WidgetVisibilityHandle visibilityHandle() const { return WidgetVisibilityHandle(id_); }
+  [[nodiscard]] WidgetActionHandle actionHandle() const { return WidgetActionHandle(id_); }
+  [[nodiscard]] PrimeFrame::NodeId lowLevelNodeId() const { return id_; }
+  PrimeFrame::NodeId nodeId() const { return lowLevelNodeId(); }
   PrimeFrame::Frame& frame() const { return frame_.get(); }
   bool allowAbsolute() const { return allowAbsolute_; }
 

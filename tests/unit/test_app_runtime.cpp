@@ -123,6 +123,74 @@ TEST_CASE("App dispatchFrameEvent routes through owned router and focus manager"
   CHECK(app.focus().focusedNode() == buttonId);
 }
 
+TEST_CASE("App typed widget handles drive focus visibility and imperative actions") {
+  PrimeStage::App app;
+
+  PrimeFrame::NodeId buttonId{};
+  PrimeStage::WidgetFocusHandle focusHandle;
+  PrimeStage::WidgetVisibilityHandle visibilityHandle;
+  PrimeStage::WidgetActionHandle actionHandle;
+  int activateCount = 0;
+
+  CHECK(app.runRebuildIfNeeded([&](PrimeStage::UiNode root) {
+    PrimeStage::ButtonSpec button;
+    button.label = "Handle";
+    button.size.preferredWidth = 100.0f;
+    button.size.preferredHeight = 28.0f;
+    button.callbacks.onActivate = [&]() { activateCount += 1; };
+    PrimeStage::UiNode built = root.createButton(button);
+    buttonId = built.lowLevelNodeId();
+    focusHandle = built.focusHandle();
+    visibilityHandle = built.visibilityHandle();
+    actionHandle = built.actionHandle();
+  }));
+  CHECK(app.runLayoutIfNeeded());
+
+  CHECK(app.focusWidget(focusHandle));
+  CHECK(app.isWidgetFocused(focusHandle));
+
+  PrimeFrame::Node const* node = app.frame().getNode(buttonId);
+  REQUIRE(node != nullptr);
+  CHECK(node->visible);
+
+  CHECK(app.setWidgetVisible(visibilityHandle, false));
+  node = app.frame().getNode(buttonId);
+  REQUIRE(node != nullptr);
+  CHECK_FALSE(node->visible);
+
+  CHECK(app.setWidgetVisible(visibilityHandle, true));
+  node = app.frame().getNode(buttonId);
+  REQUIRE(node != nullptr);
+  CHECK(node->visible);
+
+  CHECK(app.setWidgetHitTestVisible(visibilityHandle, false));
+  node = app.frame().getNode(buttonId);
+  REQUIRE(node != nullptr);
+  CHECK_FALSE(node->hitTestVisible);
+
+  PrimeStage::SizeSpec size;
+  size.minWidth = 90.0f;
+  size.maxWidth = 180.0f;
+  CHECK(app.setWidgetSize(actionHandle, size));
+  node = app.frame().getNode(buttonId);
+  REQUIRE(node != nullptr);
+  REQUIRE(node->sizeHint.width.min.has_value());
+  REQUIRE(node->sizeHint.width.max.has_value());
+  CHECK(*node->sizeHint.width.min == doctest::Approx(90.0f));
+  CHECK(*node->sizeHint.width.max == doctest::Approx(180.0f));
+
+  PrimeFrame::Event event;
+  event.type = PrimeFrame::EventType::KeyDown;
+  event.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter);
+  CHECK(app.dispatchWidgetEvent(actionHandle, event));
+  CHECK(activateCount == 1);
+
+  CHECK_FALSE(app.focusWidget(PrimeStage::WidgetFocusHandle{}));
+  CHECK_FALSE(app.setWidgetVisible(PrimeStage::WidgetVisibilityHandle{}, true));
+  CHECK_FALSE(app.setWidgetSize(PrimeStage::WidgetActionHandle{}, PrimeStage::SizeSpec{}));
+  CHECK_FALSE(app.dispatchWidgetEvent(PrimeStage::WidgetActionHandle{}, event));
+}
+
 TEST_CASE("App bridges host input events through the owned input bridge state") {
   PrimeStage::App app;
 

@@ -365,6 +365,13 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode createToggle(bool on,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createSlider(float value,") != std::string::npos);
+  CHECK(uiHeader.find("class WidgetFocusHandle") != std::string::npos);
+  CHECK(uiHeader.find("class WidgetVisibilityHandle") != std::string::npos);
+  CHECK(uiHeader.find("class WidgetActionHandle") != std::string::npos);
+  CHECK(uiHeader.find("WidgetFocusHandle focusHandle() const") != std::string::npos);
+  CHECK(uiHeader.find("WidgetVisibilityHandle visibilityHandle() const") != std::string::npos);
+  CHECK(uiHeader.find("WidgetActionHandle actionHandle() const") != std::string::npos);
+  CHECK(uiHeader.find("PrimeFrame::NodeId lowLevelNodeId() const") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct State") != std::string::npos);
   CHECK(uiHeader.find("template <typename T>\nstruct Binding") != std::string::npos);
   CHECK(uiHeader.find("Binding<T> bind(State<T>& state)") != std::string::npos);
@@ -406,6 +413,10 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(apiRef.find("row(...)") != std::string::npos);
   CHECK(apiRef.find("window(spec, lambda)") != std::string::npos);
   CHECK(apiRef.find("Semantic Callback Surface") != std::string::npos);
+  CHECK(apiRef.find("Typed Widget Handles") != std::string::npos);
+  CHECK(apiRef.find("focusWidget(...)") != std::string::npos);
+  CHECK(apiRef.find("setWidgetVisible(...)") != std::string::npos);
+  CHECK(apiRef.find("dispatchWidgetEvent(...)") != std::string::npos);
   CHECK(apiRef.find("onActivate") != std::string::npos);
   CHECK(apiRef.find("onChange") != std::string::npos);
   CHECK(apiRef.find("onOpen") != std::string::npos);
@@ -499,6 +510,7 @@ TEST_CASE("PrimeStage examples stay canonical API consumers") {
   CHECK(widgetsSource.find("PrimeFrame::LayoutEngine") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::EventRouter") == std::string::npos);
   CHECK(widgetsSource.find("PrimeFrame::FocusManager") == std::string::npos);
+  CHECK(widgetsSource.find(".nodeId(") == std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<bool> toggle{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<int> tabs{};") != std::string::npos);
   CHECK(widgetsSource.find("PrimeStage::State<float> sliderValue{};") != std::string::npos);

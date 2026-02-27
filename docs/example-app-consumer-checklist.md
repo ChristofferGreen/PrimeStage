@@ -15,6 +15,8 @@ Example apps should model canonical PrimeStage consumption patterns for applicat
 7. Avoid app-level `node->callbacks = ...` and ad-hoc callback composition helpers.
 8. Prefer declarative composition helpers (`column`, `row`, `window`, `label`, `button`) over
    per-node spec boilerplate in canonical examples.
+9. Prefer typed widget handles (`focusHandle`, `visibilityHandle`, `actionHandle`) over storing
+   raw `NodeId` in canonical examples.
 
 ## Advanced Exceptions
 
