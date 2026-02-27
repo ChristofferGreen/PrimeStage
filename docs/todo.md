@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [107] Require docs+tests coupling language for escape-hatch additions.
+  - updated `docs/advanced-escape-hatches.md` guardrails with explicit
+    “docs+tests-coupled changes” phrasing requiring docs updates and
+    `tests/unit/test_api_ergonomics.cpp` updates in the same change
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require that coupling
+    phrasing in advanced onboarding docs, preventing regression to checklist
+    bullets without an explicit same-change coupling requirement
+
 - ☑ [106] Link advanced onboarding docs to full checklist review policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with explicit
     checklist-review phrasing requiring full review of

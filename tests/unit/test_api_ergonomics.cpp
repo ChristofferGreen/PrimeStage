@@ -1295,6 +1295,8 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/api-ergonomics-scorecard.md") != std::string::npos);
   CHECK(advancedEscape.find("Review complexity/ergonomics budget expectations in `docs/api-ergonomics-scorecard.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("Treat escape-hatch additions as docs+tests-coupled changes: update docs and") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1770,6 +1772,8 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/api-ergonomics-scorecard.md") != std::string::npos);
   CHECK(advanced.find("Review complexity/ergonomics budget expectations in `docs/api-ergonomics-scorecard.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("Treat escape-hatch additions as docs+tests-coupled changes: update docs and") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);

@@ -93,6 +93,8 @@ Use only for explicit interop, not canonical app flow.
   expanding advanced-path complexity.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
+- Treat escape-hatch additions as docs+tests-coupled changes: update docs and
+  `tests/unit/test_api_ergonomics.cpp` in the same change.
 - When adding a new escape hatch, update:
   - `docs/example-app-consumer-checklist.md`
   - `docs/api-ergonomics-guidelines.md`
