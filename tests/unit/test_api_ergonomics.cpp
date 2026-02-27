@@ -2086,6 +2086,7 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path tableCppPath = repoRoot / "src" / "PrimeStageTable.cpp";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(ownershipDocPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -2094,6 +2095,7 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   REQUIRE(std::filesystem::exists(agentsPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
+  REQUIRE(std::filesystem::exists(tableCppPath));
   REQUIRE(std::filesystem::exists(todoPath));
 
   std::ifstream ownershipInput(ownershipDocPath);
@@ -2148,7 +2150,12 @@ TEST_CASE("PrimeStage data ownership and lifetime contract is documented and wir
   std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
                              std::istreambuf_iterator<char>());
   REQUIRE(!collectionsCpp.empty());
-  std::string combinedSource = sourceCpp + collectionsCpp;
+  std::ifstream tableInput(tableCppPath);
+  REQUIRE(tableInput.good());
+  std::string tableCpp((std::istreambuf_iterator<char>(tableInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!tableCpp.empty());
+  std::string combinedSource = sourceCpp + collectionsCpp + tableCpp;
   CHECK(combinedSource.find("ownedRows") != std::string::npos);
   CHECK(combinedSource.find("rowViewScratch") != std::string::npos);
   CHECK(combinedSource.find("interaction->ownedRows.push_back(std::move(ownedRow));") !=
@@ -3172,6 +3179,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path booleanCppPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path sliderCppPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path tableCppPath = repoRoot / "src" / "PrimeStageTable.cpp";
   std::filesystem::path containersCppPath = repoRoot / "src" / "PrimeStageContainers.cpp";
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelCppPath = repoRoot / "src" / "PrimeStageLabel.cpp";
@@ -3189,6 +3197,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(booleanCppPath));
   REQUIRE(std::filesystem::exists(sliderCppPath));
   REQUIRE(std::filesystem::exists(collectionsCppPath));
+  REQUIRE(std::filesystem::exists(tableCppPath));
   REQUIRE(std::filesystem::exists(containersCppPath));
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(labelCppPath));
@@ -3260,6 +3269,11 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string collectionsCpp((std::istreambuf_iterator<char>(collectionsInput)),
                              std::istreambuf_iterator<char>());
   REQUIRE(!collectionsCpp.empty());
+  std::ifstream tableInput(tableCppPath);
+  REQUIRE(tableInput.good());
+  std::string tableCpp((std::istreambuf_iterator<char>(tableInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!tableCpp.empty());
   std::ifstream containersInput(containersCppPath);
   REQUIRE(containersInput.good());
   std::string containersCpp((std::istreambuf_iterator<char>(containersInput)),
@@ -3301,7 +3315,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
                           std::istreambuf_iterator<char>());
   REQUIRE(!textLineCpp.empty());
   std::string combinedSource =
-      sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp +
+      sourceCpp + buttonCpp + booleanCpp + sliderCpp + collectionsCpp + tableCpp + dropdownCpp + progressCpp + tabsCpp +
       textSelectionOverlayCpp + textLineCpp + labelCpp + paragraphCpp + containersCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
@@ -3553,6 +3567,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path booleanPath = repoRoot / "src" / "PrimeStageBooleanWidgets.cpp";
   std::filesystem::path sliderPath = repoRoot / "src" / "PrimeStageSlider.cpp";
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
+  std::filesystem::path tablePath = repoRoot / "src" / "PrimeStageTable.cpp";
   std::filesystem::path containersPath = repoRoot / "src" / "PrimeStageContainers.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path labelPath = repoRoot / "src" / "PrimeStageLabel.cpp";
@@ -3574,6 +3589,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(booleanPath));
   REQUIRE(std::filesystem::exists(sliderPath));
   REQUIRE(std::filesystem::exists(collectionsPath));
+  REQUIRE(std::filesystem::exists(tablePath));
   REQUIRE(std::filesystem::exists(containersPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(labelPath));
@@ -3844,8 +3860,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
                           std::istreambuf_iterator<char>());
   REQUIRE(!collections.empty());
   CHECK(collections.find("UiNode UiNode::createList(ListSpec const& specInput)") != std::string::npos);
-  CHECK(collections.find("UiNode UiNode::createTable(TableSpec const& specInput)") != std::string::npos);
-  CHECK(collections.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
+  CHECK(collections.find("UiNode UiNode::createTable(TableSpec const& specInput)") == std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") ==
         std::string::npos);
   CHECK(collections.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3853,9 +3869,19 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
-  CHECK(collections.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
+  CHECK(collections.find("Internal::normalizeTableSpec(specInput)") == std::string::npos);
   CHECK(collections.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
+
+  std::ifstream tableInput(tablePath);
+  REQUIRE(tableInput.good());
+  std::string table((std::istreambuf_iterator<char>(tableInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!table.empty());
+  CHECK(table.find("UiNode UiNode::createTable(TableSpec const& specInput)") != std::string::npos);
+  CHECK(table.find("UiNode UiNode::createTable(std::vector<TableColumn> columns,") !=
+        std::string::npos);
+  CHECK(table.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
 
   std::ifstream dropdownInput(dropdownPath);
   REQUIRE(dropdownInput.good());
@@ -3960,6 +3986,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageLowLevel.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageTable.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextField.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageSelectableText.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
