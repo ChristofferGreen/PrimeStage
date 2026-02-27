@@ -13,6 +13,7 @@ Renderer rounded-corner behavior is controlled by explicit `RenderOptions::corne
 metadata (not theme-color index matching heuristics).
 Dependency pin/update expectations for fetched third-party components are documented in
 `docs/dependency-resolution-policy.md`.
+A compact symbol-level API lookup is provided in `docs/minimal-api-reference.md`.
 
 PrimeStage does not render. PrimeFrame handles layout, hit testing, and render batch emission.
 PrimeHost handles OS integration and input delivery.

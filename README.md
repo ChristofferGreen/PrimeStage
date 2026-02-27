@@ -97,3 +97,4 @@ diagnostics.
 - `docs/visual-test-harness.md`
 - `docs/cmake-packaging.md`
 - `docs/example-app-consumer-checklist.md`
+- `docs/minimal-api-reference.md`

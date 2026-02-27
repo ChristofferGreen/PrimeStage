@@ -10,7 +10,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <regex>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -362,9 +364,11 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   std::filesystem::path readmePath = repoRoot / "README.md";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path policyPath = repoRoot / "docs" / "api-evolution-policy.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
   REQUIRE(std::filesystem::exists(readmePath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(policyPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
 
   std::ifstream readmeInput(readmePath);
   REQUIRE(readmeInput.good());
@@ -379,6 +383,7 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(readme.find("docs/cmake-packaging.md") != std::string::npos);
   CHECK(readme.find("docs/callback-reentrancy-threading.md") != std::string::npos);
   CHECK(readme.find("docs/example-app-consumer-checklist.md") != std::string::npos);
+  CHECK(readme.find("docs/minimal-api-reference.md") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -392,6 +397,66 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
   CHECK(design.find("Focusable by default") != std::string::npos);
   CHECK(design.find("docs/api-evolution-policy.md") != std::string::npos);
   CHECK(design.find("docs/example-app-consumer-checklist.md") != std::string::npos);
+  CHECK(design.find("docs/minimal-api-reference.md") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("PrimeStage::FrameLifecycle") != std::string::npos);
+  CHECK(apiRef.find("createWindow(...)") != std::string::npos);
+  CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
+}
+
+TEST_CASE("PrimeStage public naming rules remain aligned with AGENTS guidance") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path includeDir = repoRoot / "include" / "PrimeStage";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(includeDir));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("lowerCamelCase") != std::string::npos);
+  CHECK(agents.find("avoid `k`-prefixes") != std::string::npos);
+
+  std::regex kPrefixConstantPattern("\\bk[A-Z][A-Za-z0-9_]*\\b");
+  std::regex macroPattern("^\\s*#\\s*define\\s+([A-Za-z_][A-Za-z0-9_]*)",
+                          std::regex::ECMAScript);
+  std::vector<std::filesystem::path> headerPaths;
+  for (auto const& entry : std::filesystem::directory_iterator(includeDir)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".h") {
+      headerPaths.push_back(entry.path());
+    }
+  }
+  REQUIRE(!headerPaths.empty());
+
+  for (auto const& headerPath : headerPaths) {
+    std::ifstream input(headerPath);
+    REQUIRE(input.good());
+    std::string source((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    REQUIRE(!source.empty());
+    CHECK(source.find("namespace PrimeStage") != std::string::npos);
+    CHECK(std::regex_search(source, kPrefixConstantPattern) == false);
+    CHECK(source.find("create_edit") == std::string::npos);
+    CHECK(source.find("Edit_Box") == std::string::npos);
+
+    std::smatch macroMatch;
+    std::string::const_iterator cursor = source.cbegin();
+    while (std::regex_search(cursor, source.cend(), macroMatch, macroPattern)) {
+      std::string macroName = macroMatch[1].str();
+      bool allowed = macroName == "PRAGMA_ONCE" ||
+                     macroName.rfind("PS_", 0) == 0 ||
+                     macroName.rfind("PRIMESTAGE_", 0) == 0;
+      CHECK(allowed);
+      cursor = macroMatch.suffix().first;
+    }
+  }
 }
 
 TEST_CASE("PrimeStage API evolution policy defines semver deprecation and migration notes") {

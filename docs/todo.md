@@ -221,7 +221,8 @@ Release Exit Criteria (for API-quality milestone):
 - ☑ [7] Implement window builder (stateless) + callback wiring.
   - delivered via `WindowSpec`/`WindowCallbacks`/`Window` API additions and `UiNode::createWindow(...)` in `include/PrimeStage/Ui.h` + `src/PrimeStage.cpp` (stateless move/resize/focus callback wiring), regression coverage in `tests/unit/test_interaction.cpp` + `tests/unit/test_api_ergonomics.cpp`, and guidance updates in `docs/prime-stage-design.md`, `docs/api-ergonomics-guidelines.md`, and `AGENTS.md`
 
-- ☐ [10] Final pass: validate naming rules, add minimal API docs, and run tests.
+- ☑ [10] Final pass: validate naming rules, add minimal API docs, and run tests.
+  - delivered via minimal symbol reference `docs/minimal-api-reference.md` with README/design/agents alignment, automated naming/doc guard coverage in `tests/unit/test_api_ergonomics.cpp` (public-header naming + API-reference checks), and full validation runs through `scripts/compile.sh --test` and `scripts/compile.sh`
 
 ## P2 (Foundational Cleanup / Backlog)
 
