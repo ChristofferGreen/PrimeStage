@@ -948,6 +948,53 @@ TEST_CASE("PrimeStage dependency refs are pinned and policy is documented") {
   CHECK(todo.find("[47] Make dependency resolution reproducible.") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage input focus property fuzz coverage is wired and deterministic") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path fuzzTestPath = repoRoot / "tests" / "unit" / "test_state_machine_fuzz.cpp";
+  std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  REQUIRE(std::filesystem::exists(fuzzTestPath));
+  REQUIRE(std::filesystem::exists(cmakePath));
+  REQUIRE(std::filesystem::exists(todoPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+
+  std::ifstream fuzzInput(fuzzTestPath);
+  REQUIRE(fuzzInput.good());
+  std::string fuzz((std::istreambuf_iterator<char>(fuzzInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!fuzz.empty());
+  CHECK(fuzz.find("FuzzSeed = 0xD1CEB00Cu") != std::string::npos);
+  CHECK(fuzz.find("input focus state machine keeps invariants under deterministic fuzz") !=
+        std::string::npos);
+  CHECK(fuzz.find("input focus regression corpus preserves invariants") != std::string::npos);
+  CHECK(fuzz.find("assertInvariants") != std::string::npos);
+  CHECK(fuzz.find("handleTab") != std::string::npos);
+  CHECK(fuzz.find("renderFrameTo") == std::string::npos);
+
+  std::ifstream cmakeInput(cmakePath);
+  REQUIRE(cmakeInput.good());
+  std::string cmake((std::istreambuf_iterator<char>(cmakeInput)), std::istreambuf_iterator<char>());
+  REQUIRE(!cmake.empty());
+  CHECK(cmake.find("tests/unit/test_state_machine_fuzz.cpp") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[49] Add property/fuzz testing for input and focus state machines.") !=
+        std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("fuzz/property tests deterministic") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

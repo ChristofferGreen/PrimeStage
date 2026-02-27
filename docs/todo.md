@@ -208,9 +208,10 @@ Release Exit Criteria (for API-quality milestone):
   - document pin/update policy for PrimeFrame/PrimeHost/PrimeManifest revisions
   - delivered via pinned FetchContent defaults in `CMakeLists.txt` (`PRIMEFRAME_GIT_TAG`, `PRIMEHOST_GIT_TAG`, `PRIMESTAGE_PRIMEMANIFEST_GIT_TAG`), dependency pin/update policy doc `docs/dependency-resolution-policy.md`, README/agents alignment, and source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`
 
-- ☐ [49] Add property/fuzz testing for input and focus state machines.
+- ☑ [49] Add property/fuzz testing for input and focus state machines.
   - generate mixed pointer/keyboard/text event sequences and assert invariants (no crashes, valid focus, stable selection bounds)
   - include regression corpus for previously observed focus/callback bugs
+  - delivered via deterministic property/fuzz suite `tests/unit/test_state_machine_fuzz.cpp` (seeded mixed-event generation + invariant checks + regression corpus), test-target wiring in `CMakeLists.txt`, source/docs guard coverage in `tests/unit/test_api_ergonomics.cpp`, and reproducibility guidance in `AGENTS.md`
 
 - ☐ [50] Make example apps canonical API consumers.
   - ensure examples avoid direct `PrimeFrame` internals except where explicitly documented as advanced
