@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [108] Include advanced escape-hatch doc in its own update checklist.
+  - updated `docs/advanced-escape-hatches.md` checklist so escape-hatch
+    additions explicitly include updating `docs/advanced-escape-hatches.md`
+    itself alongside related docs/tests
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require the
+    `docs/advanced-escape-hatches.md` checklist entry in advanced onboarding
+    docs, preventing omission of self-doc updates during new escape-hatch work
+
 - ☑ [107] Require docs+tests coupling language for escape-hatch additions.
   - updated `docs/advanced-escape-hatches.md` guardrails with explicit
     “docs+tests-coupled changes” phrasing requiring docs updates and

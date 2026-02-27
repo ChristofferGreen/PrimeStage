@@ -96,6 +96,7 @@ Use only for explicit interop, not canonical app flow.
 - Treat escape-hatch additions as docs+tests-coupled changes: update docs and
   `tests/unit/test_api_ergonomics.cpp` in the same change.
 - When adding a new escape hatch, update:
+  - `docs/advanced-escape-hatches.md`
   - `docs/example-app-consumer-checklist.md`
   - `docs/api-ergonomics-guidelines.md`
   - `AGENTS.md`
