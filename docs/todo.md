@@ -138,6 +138,16 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [92] Keep advanced onboarding docs canonical-first (not default-path).
+  - expanded `tests/unit/test_api_ergonomics.cpp` checks for
+    `docs/advanced-escape-hatches.md` to enforce canonical-first framing:
+    - must keep explicit handoff to `docs/5-minute-app.md`
+    - must keep “stay on canonical tier unless needed” guidance
+    - must keep “do not drop to advanced APIs” guidance
+  - added negative guards so advanced onboarding doc does not drift into
+    canonical quick-start/default-path wording (`Use This Path By Default` and
+    5-minute app “build first app” phrasing)
+
 - ☑ [91] Require advanced exception tags in advanced onboarding docs.
   - expanded `tests/unit/test_api_ergonomics.cpp` to require
     `docs/advanced-escape-hatches.md` to include both advanced exception

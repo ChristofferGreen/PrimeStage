@@ -1257,6 +1257,15 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("examples/advanced/primestage_scene.cpp") != std::string::npos);
   CHECK(advancedEscape.find(PrimeFrameIntegrationTag) != std::string::npos);
   CHECK(advancedEscape.find(LifecycleOrchestrationTag) != std::string::npos);
+  CHECK(advancedEscape.find("Default onboarding starts in `docs/5-minute-app.md`.") !=
+        std::string::npos);
+  CHECK(advancedEscape.find("Stay on the canonical tier unless you explicitly need low-level control:") !=
+        std::string::npos);
+  CHECK(advancedEscape.find("If this covers your needs, do not drop to advanced APIs.") !=
+        std::string::npos);
+  CHECK(advancedEscape.find("Build a first PrimeStage app using only the recommended canonical API path.") ==
+        std::string::npos);
+  CHECK(advancedEscape.find("Use This Path By Default") == std::string::npos);
 }
 
 TEST_CASE("PrimeStage API ergonomics scorecard thresholds stay within budget") {
