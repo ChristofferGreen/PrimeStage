@@ -48,6 +48,10 @@ It complements the design and ergonomics docs with symbol-level quick lookup.
 
 ## UiNode Widget Builders
 
+Fluent helpers:
+- `with(lambda)` for inline post-create node configuration.
+- `createX(spec, lambda)` overloads for nested composition across container, widget, `ScrollView`, and `Window` builders.
+
 Container/base:
 - `createVerticalStack(...)`
 - `createHorizontalStack(...)`

@@ -180,6 +180,149 @@ TEST_CASE("PrimeStage text field without state is non-editable by default") {
   CHECK_FALSE(focus.focusedNode().isValid());
 }
 
+TEST_CASE("PrimeStage UiNode fluent builder supports nested frame authoring") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Build";
+  buttonSpec.size.preferredWidth = 96.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+
+  int withCallCount = 0;
+  PrimeStage::UiNode button = root.createButton(buttonSpec).with([&](PrimeStage::UiNode& node) {
+    withCallCount += 1;
+    node.setVisible(false);
+  });
+  CHECK(withCallCount == 1);
+  PrimeFrame::Node const* buttonNode = frame.getNode(button.nodeId());
+  REQUIRE(buttonNode != nullptr);
+  CHECK_FALSE(buttonNode->visible);
+
+  PrimeStage::StackSpec columnSpec;
+  columnSpec.size.preferredWidth = 260.0f;
+  columnSpec.size.preferredHeight = 140.0f;
+
+  PrimeStage::PanelSpec panelSpec;
+  panelSpec.layout = PrimeFrame::LayoutType::VerticalStack;
+  panelSpec.gap = 4.0f;
+
+  PrimeStage::LabelSpec labelSpec;
+  labelSpec.text = "Fluent";
+  labelSpec.size.preferredWidth = 80.0f;
+  labelSpec.size.preferredHeight = 20.0f;
+
+  int stackCallCount = 0;
+  int panelCallCount = 0;
+  int labelCallCount = 0;
+  PrimeFrame::NodeId panelId{};
+  PrimeFrame::NodeId labelId{};
+  PrimeStage::UiNode stack = root.createVerticalStack(columnSpec, [&](PrimeStage::UiNode& col) {
+    stackCallCount += 1;
+    col.createPanel(panelSpec, [&](PrimeStage::UiNode& panel) {
+      panelCallCount += 1;
+      panelId = panel.nodeId();
+      panel.createLabel(labelSpec, [&](PrimeStage::UiNode& label) {
+        labelCallCount += 1;
+        labelId = label.nodeId();
+      });
+    });
+  });
+  CHECK(stackCallCount == 1);
+  CHECK(panelCallCount == 1);
+  CHECK(labelCallCount == 1);
+  CHECK(frame.getNode(stack.nodeId()) != nullptr);
+  CHECK(frame.getNode(panelId) != nullptr);
+  CHECK(frame.getNode(labelId) != nullptr);
+
+  PrimeStage::ScrollViewSpec scrollSpec;
+  scrollSpec.size.preferredWidth = 220.0f;
+  scrollSpec.size.preferredHeight = 80.0f;
+  int scrollCallCount = 0;
+  PrimeFrame::NodeId scrollRootId{};
+  PrimeFrame::NodeId scrollContentId{};
+  PrimeStage::ScrollView scrollView =
+      root.createScrollView(scrollSpec, [&](PrimeStage::ScrollView& view) {
+        scrollCallCount += 1;
+        scrollRootId = view.root.nodeId();
+        scrollContentId = view.content.nodeId();
+        view.content.createLabel(labelSpec);
+      });
+  CHECK(scrollCallCount == 1);
+  CHECK(scrollView.root.nodeId() == scrollRootId);
+  CHECK(scrollView.content.nodeId() == scrollContentId);
+  CHECK(frame.getNode(scrollView.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(scrollView.content.nodeId()) != nullptr);
+
+  PrimeStage::WindowSpec windowSpec;
+  windowSpec.title = "Fluent Window";
+  windowSpec.width = 240.0f;
+  windowSpec.height = 140.0f;
+  int windowCallCount = 0;
+  PrimeFrame::NodeId windowContentId{};
+  PrimeStage::Window window = root.createWindow(windowSpec, [&](PrimeStage::Window& built) {
+    windowCallCount += 1;
+    windowContentId = built.content.nodeId();
+    built.content.createSpacer(PrimeStage::SizeSpec{});
+  });
+  CHECK(windowCallCount == 1);
+  CHECK(window.content.nodeId() == windowContentId);
+  CHECK(frame.getNode(window.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(window.titleBar.nodeId()) != nullptr);
+  CHECK(frame.getNode(window.content.nodeId()) != nullptr);
+  CHECK(frame.getNode(window.resizeHandleId) != nullptr);
+}
+
+TEST_CASE("PrimeStage fluent builder API remains documented") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  REQUIRE(std::filesystem::exists(uiHeaderPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(designPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+
+  std::ifstream uiHeaderInput(uiHeaderPath);
+  REQUIRE(uiHeaderInput.good());
+  std::string uiHeader((std::istreambuf_iterator<char>(uiHeaderInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!uiHeader.empty());
+  CHECK(uiHeader.find("UiNode with(Fn&& fn)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createPanel(PanelSpec const& spec, Fn&& fn)") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createButton(ButtonSpec const& spec, Fn&& fn)") != std::string::npos);
+  CHECK(uiHeader.find("ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn)") !=
+        std::string::npos);
+  CHECK(uiHeader.find("Window createWindow(WindowSpec const& spec, Fn&& fn)") !=
+        std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("Fluent helpers") != std::string::npos);
+  CHECK(apiRef.find("createX(spec, lambda)") != std::string::npos);
+
+  std::ifstream designInput(designPath);
+  REQUIRE(designInput.good());
+  std::string design((std::istreambuf_iterator<char>(designInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!design.empty());
+  CHECK(design.find("createX(spec, fn)") != std::string::npos);
+  CHECK(design.find("createWindow(spec, fn)") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("Fluent Builder Authoring") != std::string::npos);
+  CHECK(guidelines.find("UiNode::with(...)") != std::string::npos);
+}
+
 TEST_CASE("PrimeStage examples stay canonical API consumers") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

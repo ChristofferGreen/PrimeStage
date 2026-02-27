@@ -118,10 +118,17 @@ field.callbacks.onTextChanged = [&](std::string_view text) {
 root.createTextField(field);
 
 root.createVerticalStack(layoutSpec, [](UiNode& col) {
-  col.createButton(primary);
+  col.createButton(primary).with([](UiNode& button) {
+    button.setVisible(true);
+  });
   col.createTextField(field);
 });
 ```
+
+All `UiNode` builders support a fluent nested form `createX(spec, fn)` that returns the created node
+after invoking `fn(createdNode)`. For composed return types, `createScrollView(spec, fn)` passes a
+`ScrollView` (`root` + `content`), and `createWindow(spec, fn)` passes a `Window` (`root`,
+`titleBar`, `content`, `resizeHandleId`).
 
 `UiNode` stores a `Frame&` via `std::reference_wrapper` and a `NodeId`.
 All widget specs use `std::optional` for optional fields.
@@ -141,8 +148,15 @@ struct UiNode {
   std::reference_wrapper<Frame> frame;
   NodeId id;
 
+  template <typename Fn>
+  UiNode with(Fn&& fn);
+
   UiNode createPanel(PanelSpec const& spec);
+  template <typename Fn>
+  UiNode createPanel(PanelSpec const& spec, Fn&& fn);
   UiNode createLabel(LabelSpec const& spec);
+  template <typename Fn>
+  UiNode createLabel(LabelSpec const& spec, Fn&& fn);
   UiNode createParagraph(ParagraphSpec const& spec);
   UiNode createTextLine(TextLineSpec const& spec);
   UiNode createDivider(DividerSpec const& spec);
@@ -160,6 +174,11 @@ struct UiNode {
   UiNode createTable(TableSpec const& spec);
   UiNode createTreeView(TreeViewSpec const& spec);
   ScrollView createScrollView(ScrollViewSpec const& spec);
+  template <typename Fn>
+  ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn);
+  Window createWindow(WindowSpec const& spec);
+  template <typename Fn>
+  Window createWindow(WindowSpec const& spec, Fn&& fn);
 
   template <typename Fn>
   UiNode createVerticalStack(StackSpec const& spec, Fn&& fn) {

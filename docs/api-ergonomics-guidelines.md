@@ -140,6 +140,13 @@ apply.callbacks.onClick = [&] {
 root.createButton(apply);
 ```
 
+## Fluent Builder Authoring
+- `UiNode::with(...)` applies inline node configuration and returns the same `UiNode` value.
+- Use `createX(spec, fn)` overloads to author nested trees without temporary variables when that
+  improves readability.
+- `createScrollView(spec, fn)` and `createWindow(spec, fn)` pass typed builder payloads
+  (`ScrollView`/`Window`) so composition can target `content` and title/chrome nodes directly.
+
 ## Host Input Bridge
 - Use `PrimeStage::bridgeHostInputEvent(...)` to centralize translation from `PrimeHost::InputEvent`
   to `PrimeFrame::Event`.

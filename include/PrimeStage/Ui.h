@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace PrimeFrame {
@@ -868,6 +869,11 @@ public:
   UiNode& setVisible(bool visible);
   UiNode& setSize(SizeSpec const& size);
   UiNode& setHitTestVisible(bool visible);
+  template <typename Fn>
+  UiNode with(Fn&& fn) {
+    std::forward<Fn>(fn)(*this);
+    return *this;
+  }
 
   UiNode createVerticalStack(StackSpec const& spec);
   UiNode createHorizontalStack(StackSpec const& spec);
@@ -875,55 +881,167 @@ public:
   template <typename Fn>
   UiNode createVerticalStack(StackSpec const& spec, Fn&& fn) {
     UiNode child = createVerticalStack(spec);
-    fn(child);
+    std::forward<Fn>(fn)(child);
     return child;
   }
   template <typename Fn>
   UiNode createHorizontalStack(StackSpec const& spec, Fn&& fn) {
     UiNode child = createHorizontalStack(spec);
-    fn(child);
+    std::forward<Fn>(fn)(child);
     return child;
   }
   template <typename Fn>
   UiNode createOverlay(StackSpec const& spec, Fn&& fn) {
     UiNode child = createOverlay(spec);
-    fn(child);
+    std::forward<Fn>(fn)(child);
     return child;
   }
 
   UiNode createPanel(PanelSpec const& spec);
+  template <typename Fn>
+  UiNode createPanel(PanelSpec const& spec, Fn&& fn) {
+    UiNode child = createPanel(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createPanel(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createLabel(LabelSpec const& spec);
+  template <typename Fn>
+  UiNode createLabel(LabelSpec const& spec, Fn&& fn) {
+    UiNode child = createLabel(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createLabel(std::string_view text,
                      PrimeFrame::TextStyleToken textStyle,
                      SizeSpec const& size);
   UiNode createParagraph(ParagraphSpec const& spec);
+  template <typename Fn>
+  UiNode createParagraph(ParagraphSpec const& spec, Fn&& fn) {
+    UiNode child = createParagraph(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createParagraph(std::string_view text,
                          PrimeFrame::TextStyleToken textStyle,
                          SizeSpec const& size);
   UiNode createTextSelectionOverlay(TextSelectionOverlaySpec const& spec);
+  template <typename Fn>
+  UiNode createTextSelectionOverlay(TextSelectionOverlaySpec const& spec, Fn&& fn) {
+    UiNode child = createTextSelectionOverlay(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTextLine(TextLineSpec const& spec);
+  template <typename Fn>
+  UiNode createTextLine(TextLineSpec const& spec, Fn&& fn) {
+    UiNode child = createTextLine(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTextLine(std::string_view text,
                         PrimeFrame::TextStyleToken textStyle,
                         SizeSpec const& size,
                         PrimeFrame::TextAlign align = PrimeFrame::TextAlign::Start);
   UiNode createDivider(DividerSpec const& spec);
+  template <typename Fn>
+  UiNode createDivider(DividerSpec const& spec, Fn&& fn) {
+    UiNode child = createDivider(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createDivider(PrimeFrame::RectStyleToken rectStyle, SizeSpec const& size);
   UiNode createSpacer(SpacerSpec const& spec);
+  template <typename Fn>
+  UiNode createSpacer(SpacerSpec const& spec, Fn&& fn) {
+    UiNode child = createSpacer(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createSpacer(SizeSpec const& size);
   UiNode createButton(ButtonSpec const& spec);
+  template <typename Fn>
+  UiNode createButton(ButtonSpec const& spec, Fn&& fn) {
+    UiNode child = createButton(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTextField(TextFieldSpec const& spec);
+  template <typename Fn>
+  UiNode createTextField(TextFieldSpec const& spec, Fn&& fn) {
+    UiNode child = createTextField(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createSelectableText(SelectableTextSpec const& spec);
+  template <typename Fn>
+  UiNode createSelectableText(SelectableTextSpec const& spec, Fn&& fn) {
+    UiNode child = createSelectableText(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createToggle(ToggleSpec const& spec);
+  template <typename Fn>
+  UiNode createToggle(ToggleSpec const& spec, Fn&& fn) {
+    UiNode child = createToggle(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createCheckbox(CheckboxSpec const& spec);
+  template <typename Fn>
+  UiNode createCheckbox(CheckboxSpec const& spec, Fn&& fn) {
+    UiNode child = createCheckbox(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createSlider(SliderSpec const& spec);
+  template <typename Fn>
+  UiNode createSlider(SliderSpec const& spec, Fn&& fn) {
+    UiNode child = createSlider(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTabs(TabsSpec const& spec);
+  template <typename Fn>
+  UiNode createTabs(TabsSpec const& spec, Fn&& fn) {
+    UiNode child = createTabs(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createDropdown(DropdownSpec const& spec);
+  template <typename Fn>
+  UiNode createDropdown(DropdownSpec const& spec, Fn&& fn) {
+    UiNode child = createDropdown(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  template <typename Fn>
+  UiNode createProgressBar(ProgressBarSpec const& spec, Fn&& fn) {
+    UiNode child = createProgressBar(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTable(TableSpec const& spec);
+  template <typename Fn>
+  UiNode createTable(TableSpec const& spec, Fn&& fn) {
+    UiNode child = createTable(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTreeView(TreeViewSpec const& spec);
+  template <typename Fn>
+  UiNode createTreeView(TreeViewSpec const& spec, Fn&& fn) {
+    UiNode child = createTreeView(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   ScrollView createScrollView(ScrollViewSpec const& spec);
+  template <typename Fn>
+  ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn);
   Window createWindow(WindowSpec const& spec);
+  template <typename Fn>
+  Window createWindow(WindowSpec const& spec, Fn&& fn);
 
 private:
   std::reference_wrapper<PrimeFrame::Frame> frame_;
@@ -942,5 +1060,19 @@ struct Window {
   UiNode content;
   PrimeFrame::NodeId resizeHandleId{};
 };
+
+template <typename Fn>
+ScrollView UiNode::createScrollView(ScrollViewSpec const& spec, Fn&& fn) {
+  ScrollView view = createScrollView(spec);
+  std::forward<Fn>(fn)(view);
+  return view;
+}
+
+template <typename Fn>
+Window UiNode::createWindow(WindowSpec const& spec, Fn&& fn) {
+  Window window = createWindow(spec);
+  std::forward<Fn>(fn)(window);
+  return window;
+}
 
 } // namespace PrimeStage
