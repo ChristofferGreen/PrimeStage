@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [98] Link advanced onboarding docs to minimal API reference policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/minimal-api-reference.md` so advanced escape-hatch API
+    additions review high-level symbol contracts first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the
+    minimal API reference link and guardrail phrasing, preventing undocumented
+    advanced API-surface drift
+
 - ☑ [97] Link advanced onboarding docs to widget-spec defaults policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/widget-spec-defaults-audit.md` so advanced per-widget

@@ -1269,6 +1269,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
   CHECK(advancedEscape.find("Review widget-spec default/advanced field classifications in") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/minimal-api-reference.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review high-level symbol contracts in `docs/minimal-api-reference.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1718,6 +1721,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/widget-spec-defaults-audit.md") != std::string::npos);
   CHECK(advanced.find("Review widget-spec default/advanced field classifications in") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/minimal-api-reference.md") != std::string::npos);
+  CHECK(advanced.find("Review high-level symbol contracts in `docs/minimal-api-reference.md`") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);
