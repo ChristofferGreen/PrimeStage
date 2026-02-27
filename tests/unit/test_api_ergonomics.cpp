@@ -3424,10 +3424,13 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("UiNode UiNode::createTable(TableSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") == std::string::npos);
   CHECK(core.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") ==
         std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
+  CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
+        std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
 
@@ -3442,10 +3445,12 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(collections.find("ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput)") !=
         std::string::npos);
+  CHECK(collections.find("UiNode UiNode::createTreeView(TreeViewSpec const& spec)") != std::string::npos);
   CHECK(collections.find("UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size)") !=
         std::string::npos);
   CHECK(collections.find("Internal::normalizeListSpec(specInput)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeTableSpec(specInput)") != std::string::npos);
+  CHECK(collections.find("Internal::normalizeTreeViewSpec(spec)") != std::string::npos);
   CHECK(collections.find("Internal::normalizeScrollViewSpec(specInput)") != std::string::npos);
 
   std::ifstream internalsInput(internalsPath);
@@ -3456,6 +3461,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("ListSpec normalizeListSpec(ListSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("TableSpec normalizeTableSpec(TableSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);

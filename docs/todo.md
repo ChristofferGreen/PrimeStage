@@ -38,6 +38,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createTable(TableSpec)` runtime into
     `src/PrimeStageCollections.cpp` with shared table normalization, measurement, and
     focus/scrim helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createTreeView(TreeViewSpec)` runtime and tree-flatten/divider
+    helpers into `src/PrimeStageCollections.cpp`, with shared tree normalization and text-node
+    construction seams routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

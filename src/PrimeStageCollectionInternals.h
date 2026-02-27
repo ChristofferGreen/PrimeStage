@@ -18,6 +18,7 @@ struct InternalFocusStyle {
 
 ListSpec normalizeListSpec(ListSpec const& specInput);
 TableSpec normalizeTableSpec(TableSpec const& specInput);
+TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();
@@ -27,6 +28,7 @@ float defaultCollectionHeight();
 float estimateTextWidth(PrimeFrame::Frame& frame,
                         PrimeFrame::TextStyleToken token,
                         std::string_view text);
+float resolveLineHeight(PrimeFrame::Frame& frame, PrimeFrame::TextStyleToken token);
 InternalFocusStyle resolveFocusStyle(PrimeFrame::Frame& frame,
                                      PrimeFrame::RectStyleToken focusStyle,
                                      PrimeFrame::RectStyleOverride const& focusStyleOverride,
@@ -60,6 +62,16 @@ PrimeFrame::NodeId createRectNode(PrimeFrame::Frame& frame,
                                   PrimeFrame::RectStyleToken token,
                                   PrimeFrame::RectStyleOverride const& overrideStyle,
                                   bool clipChildren,
+                                  bool visible);
+PrimeFrame::NodeId createTextNode(PrimeFrame::Frame& frame,
+                                  PrimeFrame::NodeId parent,
+                                  InternalRect const& rect,
+                                  std::string_view text,
+                                  PrimeFrame::TextStyleToken textStyle,
+                                  PrimeFrame::TextStyleOverride const& overrideStyle,
+                                  PrimeFrame::TextAlign align,
+                                  PrimeFrame::WrapMode wrap,
+                                  float maxWidth,
                                   bool visible);
 
 } // namespace PrimeStage::Internal
