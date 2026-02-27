@@ -138,6 +138,18 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [82] Enforce advanced lifecycle exception tagging across all advanced examples.
+  - expanded `tests/unit/test_api_ergonomics.cpp` to scan
+    `examples/advanced/*.cpp` and enforce that any file calling
+    `app.ui.lifecycle().requestRebuild()` / `requestLayout()` / `requestFrame()`
+    includes the inline tag
+    `Advanced lifecycle orchestration (documented exception):`
+  - added deterministic traversal (`std::sort`) plus a positive guard that at
+    least one advanced example exercises lifecycle orchestration
+  - closes a policy-enforcement gap where only
+    `examples/advanced/primestage_widgets.cpp` was checked for lifecycle
+    exception tagging
+
 - ☑ [81] Stabilize collection callback regression harness under layered callbacks.
   - updated `createTable(...)` pointer selection wiring in `src/PrimeStage.cpp`
     to install row-level pointer callbacks so row selection callbacks fire

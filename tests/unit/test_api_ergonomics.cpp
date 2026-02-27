@@ -825,6 +825,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   std::filesystem::path widgetsExamplePath = repoRoot / "examples" / "advanced" / "primestage_widgets.cpp";
   std::filesystem::path basicExamplePath = repoRoot / "examples" / "canonical" / "primestage_example.cpp";
   std::filesystem::path sceneExamplePath = repoRoot / "examples" / "advanced" / "primestage_scene.cpp";
+  std::filesystem::path advancedExamplesPath = repoRoot / "examples" / "advanced";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path checklistPath =
       repoRoot / "docs" / "example-app-consumer-checklist.md";
@@ -832,6 +833,7 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   REQUIRE(std::filesystem::exists(widgetsExamplePath));
   REQUIRE(std::filesystem::exists(basicExamplePath));
   REQUIRE(std::filesystem::exists(sceneExamplePath));
+  REQUIRE(std::filesystem::exists(advancedExamplesPath));
   REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(checklistPath));
 
@@ -846,6 +848,40 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   std::string modernSource((std::istreambuf_iterator<char>(modernInput)),
                            std::istreambuf_iterator<char>());
   REQUIRE(!modernSource.empty());
+
+  std::vector<std::filesystem::path> advancedSources;
+  for (std::filesystem::directory_entry const& entry :
+       std::filesystem::directory_iterator(advancedExamplesPath)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".cpp") {
+      continue;
+    }
+    advancedSources.push_back(entry.path());
+  }
+  std::sort(advancedSources.begin(), advancedSources.end());
+  REQUIRE(!advancedSources.empty());
+
+  auto hasLifecycleOrchestrationCall = [](std::string const& source) {
+    return source.find("app.ui.lifecycle().requestRebuild()") != std::string::npos ||
+           source.find("app.ui.lifecycle().requestLayout()") != std::string::npos ||
+           source.find("app.ui.lifecycle().requestFrame()") != std::string::npos;
+  };
+
+  bool foundLifecycleOrchestrationExample = false;
+  for (std::filesystem::path const& advancedSourcePath : advancedSources) {
+    std::ifstream advancedInput(advancedSourcePath);
+    REQUIRE(advancedInput.good());
+    std::string advancedSource((std::istreambuf_iterator<char>(advancedInput)),
+                               std::istreambuf_iterator<char>());
+    REQUIRE(!advancedSource.empty());
+    if (!hasLifecycleOrchestrationCall(advancedSource)) {
+      continue;
+    }
+    foundLifecycleOrchestrationExample = true;
+    INFO("advanced lifecycle orchestration file: " << advancedSourcePath.string());
+    CHECK(advancedSource.find("Advanced lifecycle orchestration (documented exception):") !=
+          std::string::npos);
+  }
+  CHECK(foundLifecycleOrchestrationExample);
 
   auto countOccurrences = [&](std::string_view needle) {
     size_t count = 0u;
