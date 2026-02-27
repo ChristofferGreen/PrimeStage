@@ -119,6 +119,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageTabs.cpp
   src/PrimeStageTextSelectionOverlay.cpp
   src/PrimeStageTextLine.cpp
+  src/PrimeStageWindow.cpp
   src/PrimeStage.cpp
   src/Render.cpp
 )

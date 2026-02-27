@@ -33,6 +33,7 @@ LabelSpec normalizeLabelSpec(LabelSpec const& specInput);
 ParagraphSpec normalizeParagraphSpec(ParagraphSpec const& specInput);
 PanelSpec normalizePanelSpec(PanelSpec const& specInput);
 TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);
+WindowSpec normalizeWindowSpec(WindowSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();

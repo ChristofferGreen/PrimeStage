@@ -1491,11 +1491,13 @@ TEST_CASE("PrimeStage window builder API is stateless and callback-driven") {
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
   std::filesystem::path uiHeaderPath = repoRoot / "include" / "PrimeStage" / "Ui.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path windowCppPath = repoRoot / "src" / "PrimeStageWindow.cpp";
   std::filesystem::path designPath = repoRoot / "docs" / "prime-stage-design.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
   REQUIRE(std::filesystem::exists(uiHeaderPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(windowCppPath));
   REQUIRE(std::filesystem::exists(designPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(agentsPath));
@@ -1516,11 +1518,17 @@ TEST_CASE("PrimeStage window builder API is stateless and callback-driven") {
   std::string sourceCpp((std::istreambuf_iterator<char>(sourceCppInput)),
                         std::istreambuf_iterator<char>());
   REQUIRE(!sourceCpp.empty());
-  CHECK(sourceCpp.find("Window UiNode::createWindow(WindowSpec const& specInput)") !=
+  std::ifstream windowCppInput(windowCppPath);
+  REQUIRE(windowCppInput.good());
+  std::string windowCpp((std::istreambuf_iterator<char>(windowCppInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!windowCpp.empty());
+  std::string windowCombinedSource = sourceCpp + windowCpp;
+  CHECK(windowCombinedSource.find("Window UiNode::createWindow(WindowSpec const& specInput)") !=
         std::string::npos);
-  CHECK(sourceCpp.find("callbacks.onMoved") != std::string::npos);
-  CHECK(sourceCpp.find("callbacks.onResized") != std::string::npos);
-  CHECK(sourceCpp.find("callbacks.onFocusRequested") != std::string::npos);
+  CHECK(windowCombinedSource.find("callbacks.onMoved") != std::string::npos);
+  CHECK(windowCombinedSource.find("callbacks.onResized") != std::string::npos);
+  CHECK(windowCombinedSource.find("callbacks.onFocusRequested") != std::string::npos);
 
   std::ifstream designInput(designPath);
   REQUIRE(designInput.good());
@@ -3515,6 +3523,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path textLinePath = repoRoot / "src" / "PrimeStageTextLine.cpp";
   std::filesystem::path textSelectionOverlayPath = repoRoot / "src" / "PrimeStageTextSelectionOverlay.cpp";
+  std::filesystem::path windowPath = repoRoot / "src" / "PrimeStageWindow.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path cmakePath = repoRoot / "CMakeLists.txt";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
@@ -3532,6 +3541,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(textLinePath));
   REQUIRE(std::filesystem::exists(textSelectionOverlayPath));
+  REQUIRE(std::filesystem::exists(windowPath));
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(cmakePath));
   REQUIRE(std::filesystem::exists(todoPath));
@@ -3584,6 +3594,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createTextSelectionOverlay(TextSelectionOverlaySpec const& spec)") ==
         std::string::npos);
+  CHECK(core.find("Window UiNode::createWindow(WindowSpec const& specInput)") == std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3706,6 +3717,15 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(textSelectionOverlaySource.find("Internal::normalizeTextSelectionOverlaySpec(specInput)") !=
         std::string::npos);
 
+  std::ifstream windowInput(windowPath);
+  REQUIRE(windowInput.good());
+  std::string windowSource((std::istreambuf_iterator<char>(windowInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!windowSource.empty());
+  CHECK(windowSource.find("Window UiNode::createWindow(WindowSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(windowSource.find("Internal::normalizeWindowSpec(specInput)") != std::string::npos);
+
   std::ifstream booleanInput(booleanPath);
   REQUIRE(booleanInput.good());
   std::string booleanSource((std::istreambuf_iterator<char>(booleanInput)),
@@ -3820,6 +3840,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(internals.find("TextSelectionOverlaySpec normalizeTextSelectionOverlaySpec(TextSelectionOverlaySpec const& specInput);") !=
         std::string::npos);
+  CHECK(internals.find("WindowSpec normalizeWindowSpec(WindowSpec const& specInput);") !=
+        std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("float sliderValueFromEvent(PrimeFrame::Event const& event, bool vertical, float thumbSize);") !=
@@ -3835,6 +3857,7 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(cmake.find("src/PrimeStageParagraph.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageContainers.cpp") != std::string::npos);
   CHECK(cmake.find("src/PrimeStageTextSelectionOverlay.cpp") != std::string::npos);
+  CHECK(cmake.find("src/PrimeStageWindow.cpp") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
