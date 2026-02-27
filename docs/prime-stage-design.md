@@ -171,9 +171,16 @@ struct UiNode {
   UiNode createTabs(TabsSpec const& spec);
   UiNode createDropdown(DropdownSpec const& spec);
   UiNode createProgressBar(ProgressBarSpec const& spec);
+  UiNode createList(ListSpec const& spec);
   UiNode createTable(TableSpec const& spec);
+  UiNode createTable(std::vector<TableColumn> columns,
+                     std::vector<std::vector<std::string_view>> rows,
+                     int selectedRow,
+                     SizeSpec const& size);
   UiNode createTreeView(TreeViewSpec const& spec);
+  UiNode createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size);
   ScrollView createScrollView(ScrollViewSpec const& spec);
+  ScrollView createScrollView(SizeSpec const& size, bool showVertical, bool showHorizontal);
   template <typename Fn>
   ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn);
   Window createWindow(WindowSpec const& spec);
@@ -200,6 +207,7 @@ Interactive widgets:
 
 Collection widgets:
 - ScrollView
+- List (table-backed convenience API)
 - Table
 - TreeView
 

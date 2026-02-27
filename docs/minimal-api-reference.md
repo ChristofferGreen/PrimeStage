@@ -85,8 +85,12 @@ Interactive:
 
 Collection/windowing:
 - `createTable(...)`
+- `createTable(columns, rows, selectedRow, size)`
+- `createList(...)`
 - `createTreeView(...)`
+- `createTreeView(nodes, size)`
 - `createScrollView(...)`
+- `createScrollView(size, showVertical, showHorizontal)`
 - `createWindow(...)`
 
 ## Window Builder (Stateless)

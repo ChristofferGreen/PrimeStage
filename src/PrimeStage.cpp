@@ -5719,6 +5719,71 @@ UiNode UiNode::createTable(TableSpec const& specInput) {
   return UiNode(frame(), tableRoot.nodeId(), allowAbsolute_);
 }
 
+UiNode UiNode::createTable(std::vector<TableColumn> columns,
+                           std::vector<std::vector<std::string_view>> rows,
+                           int selectedRow,
+                           SizeSpec const& size) {
+  TableSpec spec;
+  spec.columns = std::move(columns);
+  spec.rows = std::move(rows);
+  spec.selectedRow = selectedRow;
+  spec.size = size;
+  return createTable(spec);
+}
+
+UiNode UiNode::createList(ListSpec const& specInput) {
+  ListSpec spec = specInput;
+  sanitize_size_spec(spec.size, "ListSpec.size");
+  spec.rowHeight = clamp_non_negative(spec.rowHeight, "ListSpec", "rowHeight");
+  spec.rowGap = clamp_non_negative(spec.rowGap, "ListSpec", "rowGap");
+  spec.rowPaddingX = clamp_non_negative(spec.rowPaddingX, "ListSpec", "rowPaddingX");
+  spec.selectedIndex = clamp_selected_row_or_none(spec.selectedIndex,
+                                                  static_cast<int>(spec.items.size()),
+                                                  "ListSpec",
+                                                  "selectedIndex");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "ListSpec", "tabIndex");
+
+  TableSpec table;
+  table.accessibility = spec.accessibility;
+  table.visible = spec.visible;
+  table.enabled = spec.enabled;
+  table.tabIndex = spec.tabIndex;
+  table.size = spec.size;
+  table.headerInset = 0.0f;
+  table.headerHeight = 0.0f;
+  table.rowHeight = spec.rowHeight;
+  table.rowGap = spec.rowGap;
+  table.headerPaddingX = spec.rowPaddingX;
+  table.cellPaddingX = spec.rowPaddingX;
+  table.rowStyle = spec.rowStyle;
+  table.rowAltStyle = spec.rowAltStyle;
+  table.selectionStyle = spec.selectionStyle;
+  table.dividerStyle = spec.dividerStyle;
+  table.focusStyle = spec.focusStyle;
+  table.focusStyleOverride = spec.focusStyleOverride;
+  table.selectedRow = spec.selectedIndex;
+  table.showHeaderDividers = false;
+  table.showColumnDividers = false;
+  table.clipChildren = spec.clipChildren;
+  table.columns.push_back(TableColumn{"", 0.0f, spec.textStyle, spec.textStyle});
+  table.rows.reserve(spec.items.size());
+  for (std::string_view item : spec.items) {
+    table.rows.push_back({item});
+  }
+  if (spec.callbacks.onSelected) {
+    table.callbacks.onRowClicked =
+        [callback = spec.callbacks.onSelected](TableRowInfo const& rowInfo) {
+          ListRowInfo listInfo;
+          listInfo.rowIndex = rowInfo.rowIndex;
+          if (!rowInfo.row.empty()) {
+            listInfo.item = rowInfo.row.front();
+          }
+          callback(listInfo);
+        };
+  }
+  return createTable(table);
+}
+
 
 
 
@@ -5833,6 +5898,16 @@ ScrollView UiNode::createScrollView(ScrollViewSpec const& specInput) {
 
   return ScrollView{UiNode(frame(), scrollId, allowAbsolute_),
                     UiNode(frame(), contentId, allowAbsolute_)};
+}
+
+ScrollView UiNode::createScrollView(SizeSpec const& size,
+                                    bool showVertical,
+                                    bool showHorizontal) {
+  ScrollViewSpec spec;
+  spec.size = size;
+  spec.showVertical = showVertical;
+  spec.showHorizontal = showHorizontal;
+  return createScrollView(spec);
 }
 
 Window UiNode::createWindow(WindowSpec const& specInput) {
@@ -7133,6 +7208,13 @@ UiNode UiNode::createTreeView(TreeViewSpec const& spec) {
   }
 
   return UiNode(frame(), treeNode.nodeId(), allowAbsolute_);
+}
+
+UiNode UiNode::createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size) {
+  TreeViewSpec spec;
+  spec.nodes = std::move(nodes);
+  spec.size = size;
+  return createTreeView(spec);
 }
 
 

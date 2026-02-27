@@ -298,6 +298,11 @@ TEST_CASE("PrimeStage fluent builder API remains documented") {
   CHECK(uiHeader.find("UiNode createToggle(bool on,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createCheckbox(std::string_view label,") != std::string::npos);
   CHECK(uiHeader.find("UiNode createSlider(float value,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createList(ListSpec const& spec);") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createTable(std::vector<TableColumn> columns,") != std::string::npos);
+  CHECK(uiHeader.find("UiNode createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size);") !=
+        std::string::npos);
+  CHECK(uiHeader.find("ScrollView createScrollView(SizeSpec const& size,") != std::string::npos);
   CHECK(uiHeader.find("ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn)") !=
         std::string::npos);
   CHECK(uiHeader.find("Window createWindow(WindowSpec const& spec, Fn&& fn)") !=
@@ -642,6 +647,10 @@ TEST_CASE("PrimeStage README and design docs match shipped workflow and API name
         std::string::npos);
   CHECK(apiRef.find("createSlider(value, vertical, trackStyle, fillStyle, thumbStyle, size)") !=
         std::string::npos);
+  CHECK(apiRef.find("createTable(columns, rows, selectedRow, size)") != std::string::npos);
+  CHECK(apiRef.find("createList(...)") != std::string::npos);
+  CHECK(apiRef.find("createTreeView(nodes, size)") != std::string::npos);
+  CHECK(apiRef.find("createScrollView(size, showVertical, showHorizontal)") != std::string::npos);
   CHECK(apiRef.find("renderFrameToTarget(...)") != std::string::npos);
 }
 

@@ -260,6 +260,13 @@ Release Exit Criteria (for API-quality milestone):
     `createCheckbox`, `createSlider`), overload behavior/clamp regression coverage in
     `tests/unit/test_spec_validation.cpp`, and API reference + guard updates in
     `docs/minimal-api-reference.md` and `tests/unit/test_api_ergonomics.cpp`
-- ☐ [6] Implement collection widgets (scroll view, list, table, tree).
+- ☑ [6] Implement collection widgets (scroll view, list, table, tree).
+  - delivered via collection helper overloads in `include/PrimeStage/Ui.h`/`src/PrimeStage.cpp`
+    (`createScrollView(size, ...)`, `createTable(columns, rows, ...)`,
+    `createTreeView(nodes, size)`), a new table-backed `ListSpec`/`createList(...)` API in
+    `include/PrimeStage/Ui.h` with implementation in `src/PrimeStage.cpp`, regression coverage in
+    `tests/unit/test_spec_validation.cpp`, and docs/guard updates in
+    `docs/minimal-api-reference.md`, `docs/prime-stage-design.md`, and
+    `tests/unit/test_api_ergonomics.cpp`
 - ☐ [8] Add minimal unit tests for builder API.
 - ☐ [9] Add example scene build demonstrating window + widgets.

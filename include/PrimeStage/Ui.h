@@ -626,6 +626,32 @@ struct TableCallbacks {
   std::function<void(TableRowInfo const&)> onRowClicked;
 };
 
+struct ListRowInfo {
+  int rowIndex = -1;
+  std::string_view item;
+};
+
+struct ListCallbacks {
+  std::function<void(ListRowInfo const&)> onSelected;
+};
+
+struct ListSpec : FocusableWidgetSpec {
+  PrimeFrame::TextStyleToken textStyle = 0;
+  float rowHeight = 28.0f;
+  float rowGap = 0.0f;
+  float rowPaddingX = 16.0f;
+  PrimeFrame::RectStyleToken rowStyle = 0;
+  PrimeFrame::RectStyleToken rowAltStyle = 0;
+  PrimeFrame::RectStyleToken selectionStyle = 0;
+  PrimeFrame::RectStyleToken dividerStyle = 0;
+  PrimeFrame::RectStyleToken focusStyle = 0;
+  PrimeFrame::RectStyleOverride focusStyleOverride{};
+  int selectedIndex = -1;
+  bool clipChildren = true;
+  ListCallbacks callbacks{};
+  std::vector<std::string_view> items;
+};
+
 struct TableSpec : FocusableWidgetSpec {
   float headerInset = 6.0f;
   float headerHeight = 20.0f;
@@ -1048,13 +1074,25 @@ public:
     return child;
   }
   UiNode createTable(TableSpec const& spec);
+  UiNode createTable(std::vector<TableColumn> columns,
+                     std::vector<std::vector<std::string_view>> rows,
+                     int selectedRow,
+                     SizeSpec const& size);
   template <typename Fn>
   UiNode createTable(TableSpec const& spec, Fn&& fn) {
     UiNode child = createTable(spec);
     std::forward<Fn>(fn)(child);
     return child;
   }
+  UiNode createList(ListSpec const& spec);
+  template <typename Fn>
+  UiNode createList(ListSpec const& spec, Fn&& fn) {
+    UiNode child = createList(spec);
+    std::forward<Fn>(fn)(child);
+    return child;
+  }
   UiNode createTreeView(TreeViewSpec const& spec);
+  UiNode createTreeView(std::vector<TreeNode> nodes, SizeSpec const& size);
   template <typename Fn>
   UiNode createTreeView(TreeViewSpec const& spec, Fn&& fn) {
     UiNode child = createTreeView(spec);
@@ -1062,6 +1100,9 @@ public:
     return child;
   }
   ScrollView createScrollView(ScrollViewSpec const& spec);
+  ScrollView createScrollView(SizeSpec const& size,
+                              bool showVertical = true,
+                              bool showHorizontal = true);
   template <typename Fn>
   ScrollView createScrollView(ScrollViewSpec const& spec, Fn&& fn);
   Window createWindow(WindowSpec const& spec);

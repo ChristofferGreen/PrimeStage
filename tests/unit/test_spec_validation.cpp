@@ -1,10 +1,12 @@
 #include "PrimeStage/Ui.h"
 
+#include "PrimeFrame/Events.h"
 #include "PrimeFrame/Frame.h"
 
 #include "third_party/doctest.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -110,6 +112,48 @@ size_t countRectToken(PrimeFrame::Frame const& frame,
     count += countRectToken(frame, childId, token);
   }
   return count;
+}
+
+size_t countTextValue(PrimeFrame::Frame const& frame,
+                      PrimeFrame::NodeId nodeId,
+                      std::string_view text) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return 0u;
+  }
+  size_t count = 0u;
+  for (PrimeFrame::PrimitiveId primId : node->primitives) {
+    PrimeFrame::Primitive const* prim = frame.getPrimitive(primId);
+    if (prim && prim->type == PrimeFrame::PrimitiveType::Text &&
+        prim->textBlock.text == text) {
+      ++count;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    count += countTextValue(frame, childId, text);
+  }
+  return count;
+}
+
+PrimeFrame::Callback const* findFirstNodeOnEventCallback(PrimeFrame::Frame const& frame,
+                                                         PrimeFrame::NodeId nodeId) {
+  PrimeFrame::Node const* node = frame.getNode(nodeId);
+  if (!node) {
+    return nullptr;
+  }
+  if (node->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+    if (callback && callback->onEvent) {
+      return callback;
+    }
+  }
+  for (PrimeFrame::NodeId childId : node->children) {
+    PrimeFrame::Callback const* callback = findFirstNodeOnEventCallback(frame, childId);
+    if (callback) {
+      return callback;
+    }
+  }
+  return nullptr;
 }
 
 } // namespace
@@ -262,6 +306,80 @@ TEST_CASE("PrimeStage interactive helper overloads build expected widgets") {
   REQUIRE(fill != nullptr);
   REQUIRE(thumb != nullptr);
   CHECK(fill->width == doctest::Approx(120.0f));
+}
+
+TEST_CASE("PrimeStage collection helpers and list adapter build expected widgets") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec scrollSize;
+  scrollSize.preferredWidth = 220.0f;
+  scrollSize.preferredHeight = 120.0f;
+  PrimeStage::ScrollView scrollView = root.createScrollView(scrollSize, true, false);
+  CHECK(frame.getNode(scrollView.root.nodeId()) != nullptr);
+  CHECK(frame.getNode(scrollView.content.nodeId()) != nullptr);
+
+  std::vector<PrimeStage::TableColumn> columns;
+  columns.push_back({"Name", 0.0f, 701u, 702u});
+  std::vector<std::vector<std::string_view>> rows;
+  rows.push_back({"Alpha"});
+  rows.push_back({"Beta"});
+  PrimeStage::SizeSpec tableSize;
+  tableSize.preferredWidth = 240.0f;
+  tableSize.preferredHeight = 120.0f;
+  PrimeStage::UiNode table = root.createTable(std::move(columns), std::move(rows), 0, tableSize);
+  PrimeFrame::Node const* tableNode = frame.getNode(table.nodeId());
+  REQUIRE(tableNode != nullptr);
+  CHECK(countTextValue(frame, table.nodeId(), "Alpha") == 1u);
+  CHECK(countTextValue(frame, table.nodeId(), "Beta") == 1u);
+
+  std::vector<PrimeStage::TreeNode> nodes;
+  nodes.push_back(PrimeStage::TreeNode{"Root", {}, true, false});
+  PrimeStage::SizeSpec treeSize;
+  treeSize.preferredWidth = 220.0f;
+  treeSize.preferredHeight = 140.0f;
+  PrimeStage::UiNode tree = root.createTreeView(std::move(nodes), treeSize);
+  CHECK(frame.getNode(tree.nodeId()) != nullptr);
+  CHECK(countTextValue(frame, tree.nodeId(), "Root") == 1u);
+
+  PrimeStage::ListSpec invalidList;
+  invalidList.items = {"One", "Two"};
+  invalidList.selectedIndex = 99;
+  invalidList.selectionStyle = 711u;
+  invalidList.focusStyle = 714u;
+  invalidList.rowStyle = 712u;
+  invalidList.rowAltStyle = 713u;
+  invalidList.size.preferredWidth = 220.0f;
+  invalidList.size.preferredHeight = 100.0f;
+  PrimeStage::UiNode invalidListNode = root.createList(invalidList);
+  CHECK(countRectToken(frame, invalidListNode.nodeId(), invalidList.selectionStyle) == 0u);
+
+  int clickedRow = -1;
+  std::string clickedItem;
+  PrimeStage::ListSpec listSpec;
+  listSpec.items = {"One", "Two"};
+  listSpec.selectedIndex = 1;
+  listSpec.selectionStyle = 721u;
+  listSpec.focusStyle = 724u;
+  listSpec.rowStyle = 722u;
+  listSpec.rowAltStyle = 723u;
+  listSpec.size.preferredWidth = 220.0f;
+  listSpec.size.preferredHeight = 100.0f;
+  listSpec.callbacks.onSelected = [&](PrimeStage::ListRowInfo const& info) {
+    clickedRow = info.rowIndex;
+    clickedItem = std::string(info.item);
+  };
+  PrimeStage::UiNode list = root.createList(listSpec);
+  CHECK(countRectToken(frame, list.nodeId(), listSpec.selectionStyle) == 1u);
+
+  PrimeFrame::Callback const* listCallback = findFirstNodeOnEventCallback(frame, list.nodeId());
+  REQUIRE(listCallback != nullptr);
+  PrimeFrame::Event clickEvent;
+  clickEvent.type = PrimeFrame::EventType::PointerDown;
+  clickEvent.localY = listSpec.rowHeight + listSpec.rowGap * 0.5f + 0.1f;
+  CHECK(listCallback->onEvent(clickEvent));
+  CHECK(clickedRow == 1);
+  CHECK(clickedItem == "Two");
 }
 
 TEST_CASE("PrimeStage tabs clamp invalid selected index") {
