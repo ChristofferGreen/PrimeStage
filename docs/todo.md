@@ -44,6 +44,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createProgressBar(ProgressBarSpec)` runtime into
     `src/PrimeStageProgress.cpp`, with shared progress-spec normalization, slider-event
     value mapping, and focus/scrim helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createDropdown(DropdownSpec)` runtime into
+    `src/PrimeStageDropdown.cpp`, with shared dropdown-spec normalization and
+    focus/scrim helper seams routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

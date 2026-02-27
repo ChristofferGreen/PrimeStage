@@ -20,6 +20,7 @@ ListSpec normalizeListSpec(ListSpec const& specInput);
 TableSpec normalizeTableSpec(TableSpec const& specInput);
 TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput);
 ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput);
+DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput);
 ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);
 InternalRect resolveRect(SizeSpec const& size);
 float defaultScrollViewWidth();

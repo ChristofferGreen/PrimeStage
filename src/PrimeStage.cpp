@@ -994,26 +994,6 @@ std::optional<FocusOverlay> add_focus_overlay_node(PrimeFrame::Frame& frame,
   return overlay;
 }
 
-std::optional<FocusOverlay> add_focus_overlay_primitives(PrimeFrame::Frame& frame,
-                                                         PrimeFrame::NodeId nodeId,
-                                                         Rect const& rect,
-                                                         PrimeFrame::RectStyleToken token,
-                                                         PrimeFrame::RectStyleOverride const& overrideStyle,
-                                                         bool visible) {
-  if (token == 0 || !visible) {
-    return std::nullopt;
-  }
-  FocusOverlay overlay;
-  overlay.focused = overrideStyle;
-  overlay.blurred = overrideStyle;
-  overlay.blurred.opacity = 0.0f;
-  overlay.primitives = add_focus_ring_primitives(frame, nodeId, token, overlay.blurred, &rect);
-  if (overlay.primitives.empty()) {
-    return std::nullopt;
-  }
-  return overlay;
-}
-
 void attach_focus_callbacks(PrimeFrame::Frame& frame,
                             PrimeFrame::NodeId nodeId,
                             FocusOverlay const& overlay) {
@@ -1254,6 +1234,42 @@ ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput) {
     spec.value = spec.state->value;
   }
   apply_default_range_semantics(spec.accessibility, AccessibilityRole::ProgressBar, enabled, spec.value);
+  return spec;
+}
+
+DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput) {
+  DropdownSpec spec = specInput;
+  sanitize_size_spec(spec.size, "DropdownSpec.size");
+  spec.paddingX = clamp_non_negative(spec.paddingX, "DropdownSpec", "paddingX");
+  spec.indicatorGap = clamp_non_negative(spec.indicatorGap, "DropdownSpec", "indicatorGap");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "DropdownSpec", "tabIndex");
+  bool enabled = spec.enabled;
+
+  int optionCount = static_cast<int>(spec.options.size());
+  int selectedIndex =
+      clamp_selected_index(spec.selectedIndex, optionCount, "DropdownSpec", "selectedIndex");
+  if (spec.binding.state) {
+    selectedIndex = clamp_selected_index(spec.binding.state->value,
+                                         optionCount,
+                                         "State<int>",
+                                         "value");
+    spec.binding.state->value = selectedIndex;
+  } else if (spec.state) {
+    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
+                                         optionCount,
+                                         "DropdownState",
+                                         "selectedIndex");
+    spec.state->selectedIndex = selectedIndex;
+  }
+  spec.selectedIndex = selectedIndex;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::ComboBox, enabled);
+  if (optionCount > 0) {
+    spec.accessibility.state.positionInSet = selectedIndex + 1;
+    spec.accessibility.state.setSize = optionCount;
+  } else {
+    spec.accessibility.state.positionInSet.reset();
+    spec.accessibility.state.setSize.reset();
+  }
   return spec;
 }
 
@@ -5530,239 +5546,6 @@ UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> bin
   spec.labels = std::move(labels);
   spec.binding = binding;
   return createTabs(spec);
-}
-
-UiNode UiNode::createDropdown(DropdownSpec const& specInput) {
-  DropdownSpec spec = specInput;
-  sanitize_size_spec(spec.size, "DropdownSpec.size");
-  spec.paddingX = clamp_non_negative(spec.paddingX, "DropdownSpec", "paddingX");
-  spec.indicatorGap = clamp_non_negative(spec.indicatorGap, "DropdownSpec", "indicatorGap");
-  spec.tabIndex = clamp_tab_index(spec.tabIndex, "DropdownSpec", "tabIndex");
-  bool enabled = spec.enabled;
-
-  int optionCount = static_cast<int>(spec.options.size());
-  int selectedIndex =
-      clamp_selected_index(spec.selectedIndex, optionCount, "DropdownSpec", "selectedIndex");
-  if (spec.binding.state) {
-    selectedIndex = clamp_selected_index(spec.binding.state->value,
-                                         optionCount,
-                                         "State<int>",
-                                         "value");
-    spec.binding.state->value = selectedIndex;
-  } else if (spec.state) {
-    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
-                                         optionCount,
-                                         "DropdownState",
-                                         "selectedIndex");
-    spec.state->selectedIndex = selectedIndex;
-  }
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::ComboBox, enabled);
-  if (optionCount > 0) {
-    spec.accessibility.state.positionInSet = selectedIndex + 1;
-    spec.accessibility.state.setSize = optionCount;
-  } else {
-    spec.accessibility.state.positionInSet.reset();
-    spec.accessibility.state.setSize.reset();
-  }
-  std::string_view selectedLabel = spec.label;
-  if (optionCount > 0) {
-    selectedLabel = spec.options[static_cast<size_t>(selectedIndex)];
-  }
-
-  Rect bounds = resolve_rect(spec.size);
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    bounds.height = lineHeight + spec.paddingX;
-  }
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f) {
-    float labelWidth = 0.0f;
-    if (optionCount > 0) {
-      for (std::string_view option : spec.options) {
-        labelWidth = std::max(labelWidth, estimate_text_width(frame(), spec.textStyle, option));
-      }
-    } else if (!selectedLabel.empty()) {
-      labelWidth = estimate_text_width(frame(), spec.textStyle, selectedLabel);
-    }
-    float indicatorWidth = estimate_text_width(frame(), spec.indicatorStyle, spec.indicator);
-    float gap = selectedLabel.empty() ? 0.0f : spec.indicatorGap;
-    bounds.width = spec.paddingX * 2.0f + labelWidth + gap + indicatorWidth;
-  }
-
-  PanelSpec panel;
-  panel.size = spec.size;
-  if (!panel.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    panel.size.preferredWidth = bounds.width;
-  }
-  if (!panel.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    panel.size.preferredHeight = bounds.height;
-  }
-  panel.rectStyle = spec.backgroundStyle;
-  panel.rectStyleOverride = spec.backgroundStyleOverride;
-  panel.layout = PrimeFrame::LayoutType::HorizontalStack;
-  panel.padding.left = spec.paddingX;
-  panel.padding.right = spec.paddingX;
-  panel.gap = spec.indicatorGap;
-  panel.visible = spec.visible;
-  UiNode dropdown = createPanel(panel);
-
-  if (!selectedLabel.empty()) {
-    TextLineSpec labelText;
-    labelText.text = selectedLabel;
-    labelText.textStyle = spec.textStyle;
-    labelText.textStyleOverride = spec.textStyleOverride;
-    labelText.align = PrimeFrame::TextAlign::Start;
-    labelText.size.stretchX = 1.0f;
-    labelText.size.preferredHeight = bounds.height;
-    labelText.visible = spec.visible;
-    dropdown.createTextLine(labelText);
-  } else {
-    SizeSpec spacer;
-    spacer.stretchX = 1.0f;
-    spacer.preferredHeight = bounds.height;
-    dropdown.createSpacer(spacer);
-  }
-
-  TextLineSpec indicatorText;
-  indicatorText.text = spec.indicator;
-  indicatorText.textStyle = spec.indicatorStyle;
-  indicatorText.textStyleOverride = spec.indicatorStyleOverride;
-  indicatorText.align = PrimeFrame::TextAlign::Center;
-  indicatorText.size.preferredHeight = bounds.height;
-  indicatorText.visible = spec.visible;
-  dropdown.createTextLine(indicatorText);
-
-  if (!spec.visible) {
-    return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
-  }
-
-  PrimeFrame::Node* dropdownNode = frame().getNode(dropdown.nodeId());
-  if (dropdownNode) {
-    dropdownNode->focusable = enabled;
-    dropdownNode->hitTestVisible = enabled;
-    dropdownNode->tabIndex = enabled ? spec.tabIndex : -1;
-  }
-  if (dropdownNode && enabled) {
-    struct DropdownInteractionState {
-      bool pressed = false;
-      int currentIndex = 0;
-    };
-    auto state = std::make_shared<DropdownInteractionState>();
-    state->currentIndex = selectedIndex;
-    PrimeFrame::Callback callback;
-    callback.onEvent = [callbacks = spec.callbacks,
-                        bindingState = spec.binding.state,
-                        dropdownState = spec.state,
-                        optionCount,
-                        state](PrimeFrame::Event const& event) mutable -> bool {
-      auto select_with_step = [&](int step) {
-        if (callbacks.onOpen) {
-          callbacks.onOpen();
-        } else if (callbacks.onOpened) {
-          callbacks.onOpened();
-        }
-        if (optionCount <= 0) {
-          return;
-        }
-        int span = optionCount;
-        int index = state->currentIndex + step;
-        index %= span;
-        if (index < 0) {
-          index += span;
-        }
-        state->currentIndex = index;
-        if (bindingState) {
-          bindingState->value = state->currentIndex;
-        }
-        if (dropdownState) {
-          dropdownState->selectedIndex = state->currentIndex;
-        }
-        if (callbacks.onSelect) {
-          callbacks.onSelect(state->currentIndex);
-        } else if (callbacks.onSelected) {
-          callbacks.onSelected(state->currentIndex);
-        }
-      };
-      switch (event.type) {
-        case PrimeFrame::EventType::PointerDown:
-          state->pressed = true;
-          return true;
-        case PrimeFrame::EventType::PointerDrag:
-        case PrimeFrame::EventType::PointerMove:
-          if (state->pressed) {
-            state->pressed = is_pointer_inside(event);
-            return true;
-          }
-          break;
-        case PrimeFrame::EventType::PointerUp: {
-          bool fire = state->pressed && is_pointer_inside(event);
-          state->pressed = false;
-          if (fire) {
-            select_with_step(1);
-          }
-          return true;
-        }
-        case PrimeFrame::EventType::PointerCancel:
-        case PrimeFrame::EventType::PointerLeave:
-          state->pressed = false;
-          return true;
-        case PrimeFrame::EventType::KeyDown:
-          if (is_activation_key(event.key) || event.key == KeyDown) {
-            select_with_step(1);
-            return true;
-          }
-          if (event.key == KeyUp) {
-            select_with_step(-1);
-            return true;
-          }
-          break;
-        default:
-          break;
-      }
-      return false;
-    };
-    dropdownNode->callbacks = frame().addCallback(std::move(callback));
-  }
-
-  ResolvedFocusStyle focusStyle = resolve_focus_style(
-      frame(),
-      spec.focusStyle,
-      spec.focusStyleOverride,
-      {spec.backgroundStyle},
-      spec.backgroundStyleOverride);
-  std::optional<FocusOverlay> focusOverlay;
-  if (spec.visible && enabled) {
-    Rect focusRect{0.0f, 0.0f, bounds.width, bounds.height};
-    focusOverlay = add_focus_overlay_primitives(frame(),
-                                                dropdown.nodeId(),
-                                                focusRect,
-                                                focusStyle.token,
-                                                focusStyle.overrideStyle,
-                                                spec.visible);
-  }
-  if (focusOverlay.has_value()) {
-    attach_focus_callbacks(frame(), dropdown.nodeId(), *focusOverlay);
-  }
-
-  if (!enabled) {
-    add_state_scrim_overlay(frame(),
-                            dropdown.nodeId(),
-                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
-                            DisabledScrimOpacity,
-                            spec.visible);
-  }
-
-  return UiNode(frame(), dropdown.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createDropdown(std::vector<std::string_view> options, Binding<int> binding) {
-  DropdownSpec spec;
-  spec.options = std::move(options);
-  spec.binding = binding;
-  return createDropdown(spec);
 }
 
 Window UiNode::createWindow(WindowSpec const& specInput) {
