@@ -138,6 +138,14 @@ Completed items moved here to keep active backlog focused.
 
 ### P0 (Do First)
 
+- ☑ [104] Link advanced onboarding docs to visual test harness policy.
+  - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
+    handoff to `docs/visual-test-harness.md` so advanced interaction/rendering
+    escape-hatch changes review visual snapshot/update workflow first
+  - expanded `tests/unit/test_api_ergonomics.cpp` to require both the visual
+    test harness link and guardrail phrasing, preventing undocumented advanced
+    visual-regression workflow drift
+
 - ☑ [103] Link advanced onboarding docs to dependency policy.
   - updated `docs/advanced-escape-hatches.md` guardrails with an explicit
     handoff to `docs/dependency-resolution-policy.md` so advanced integration

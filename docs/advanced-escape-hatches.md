@@ -85,6 +85,8 @@ Use only for explicit interop, not canonical app flow.
   advanced callback/interop escape hatches that capture borrowed data.
 - Review dependency pinning/reproducibility policy in `docs/dependency-resolution-policy.md`
   before adding advanced integration examples that introduce external dependencies.
+- Review visual snapshot/update workflow in `docs/visual-test-harness.md` before adding advanced
+  interaction or rendering escape hatches.
 - Review contributor policy guardrails in `AGENTS.md` before introducing new advanced integration
   paths.
 - When adding a new escape hatch, update:

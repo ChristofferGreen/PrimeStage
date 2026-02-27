@@ -1287,6 +1287,9 @@ TEST_CASE("PrimeStage examples stay split between canonical and advanced tiers")
   CHECK(advancedEscape.find("docs/dependency-resolution-policy.md") != std::string::npos);
   CHECK(advancedEscape.find("Review dependency pinning/reproducibility policy in `docs/dependency-resolution-policy.md`") !=
         std::string::npos);
+  CHECK(advancedEscape.find("docs/visual-test-harness.md") != std::string::npos);
+  CHECK(advancedEscape.find("Review visual snapshot/update workflow in `docs/visual-test-harness.md`") !=
+        std::string::npos);
   CHECK(advancedEscape.find("AGENTS.md") != std::string::npos);
   CHECK(advancedEscape.find("Review contributor policy guardrails in `AGENTS.md`") !=
         std::string::npos);
@@ -1754,6 +1757,9 @@ TEST_CASE("PrimeStage onboarding docs separate canonical and advanced usage") {
         std::string::npos);
   CHECK(advanced.find("docs/dependency-resolution-policy.md") != std::string::npos);
   CHECK(advanced.find("Review dependency pinning/reproducibility policy in `docs/dependency-resolution-policy.md`") !=
+        std::string::npos);
+  CHECK(advanced.find("docs/visual-test-harness.md") != std::string::npos);
+  CHECK(advanced.find("Review visual snapshot/update workflow in `docs/visual-test-harness.md`") !=
         std::string::npos);
 
   std::ifstream readmeInput(readmePath);
