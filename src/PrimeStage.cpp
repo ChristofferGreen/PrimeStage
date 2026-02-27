@@ -35,12 +35,6 @@ struct Rect {
 
 constexpr int KeyEnter = keyCodeInt(KeyCode::Enter);
 constexpr int KeySpace = keyCodeInt(KeyCode::Space);
-constexpr int KeyLeft = keyCodeInt(KeyCode::Left);
-constexpr int KeyRight = keyCodeInt(KeyCode::Right);
-constexpr int KeyDown = keyCodeInt(KeyCode::Down);
-constexpr int KeyUp = keyCodeInt(KeyCode::Up);
-constexpr int KeyHome = keyCodeInt(KeyCode::Home);
-constexpr int KeyEnd = keyCodeInt(KeyCode::End);
 constexpr float DisabledScrimOpacity = 0.38f;
 constexpr float ReadOnlyScrimOpacity = 0.16f;
 constexpr float DefaultParagraphWrapWidth = 360.0f;
@@ -1266,6 +1260,42 @@ DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput) {
   if (optionCount > 0) {
     spec.accessibility.state.positionInSet = selectedIndex + 1;
     spec.accessibility.state.setSize = optionCount;
+  } else {
+    spec.accessibility.state.positionInSet.reset();
+    spec.accessibility.state.setSize.reset();
+  }
+  return spec;
+}
+
+TabsSpec normalizeTabsSpec(TabsSpec const& specInput) {
+  TabsSpec spec = specInput;
+  sanitize_size_spec(spec.size, "TabsSpec.size");
+  spec.tabPaddingX = clamp_non_negative(spec.tabPaddingX, "TabsSpec", "tabPaddingX");
+  spec.tabPaddingY = clamp_non_negative(spec.tabPaddingY, "TabsSpec", "tabPaddingY");
+  spec.gap = clamp_non_negative(spec.gap, "TabsSpec", "gap");
+  spec.tabIndex = clamp_tab_index(spec.tabIndex, "TabsSpec", "tabIndex");
+  bool enabled = spec.enabled;
+
+  int tabCount = static_cast<int>(spec.labels.size());
+  int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
+  if (spec.binding.state) {
+    selectedIndex = clamp_selected_index(spec.binding.state->value,
+                                         tabCount,
+                                         "State<int>",
+                                         "value");
+    spec.binding.state->value = selectedIndex;
+  } else if (spec.state) {
+    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
+                                         tabCount,
+                                         "TabsState",
+                                         "selectedIndex");
+    spec.state->selectedIndex = selectedIndex;
+  }
+  spec.selectedIndex = selectedIndex;
+  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::TabList, enabled);
+  if (tabCount > 0) {
+    spec.accessibility.state.positionInSet = selectedIndex + 1;
+    spec.accessibility.state.setSize = tabCount;
   } else {
     spec.accessibility.state.positionInSet.reset();
     spec.accessibility.state.setSize.reset();
@@ -5314,238 +5344,6 @@ UiNode UiNode::createSlider(Binding<float> binding, bool vertical) {
   spec.binding = binding;
   spec.vertical = vertical;
   return createSlider(spec);
-}
-
-UiNode UiNode::createTabs(TabsSpec const& specInput) {
-  TabsSpec spec = specInput;
-  sanitize_size_spec(spec.size, "TabsSpec.size");
-  spec.tabPaddingX = clamp_non_negative(spec.tabPaddingX, "TabsSpec", "tabPaddingX");
-  spec.tabPaddingY = clamp_non_negative(spec.tabPaddingY, "TabsSpec", "tabPaddingY");
-  spec.gap = clamp_non_negative(spec.gap, "TabsSpec", "gap");
-  spec.tabIndex = clamp_tab_index(spec.tabIndex, "TabsSpec", "tabIndex");
-  bool enabled = spec.enabled;
-
-  int tabCount = static_cast<int>(spec.labels.size());
-  int selectedIndex = clamp_selected_index(spec.selectedIndex, tabCount, "TabsSpec", "selectedIndex");
-  if (spec.binding.state) {
-    selectedIndex = clamp_selected_index(spec.binding.state->value,
-                                         tabCount,
-                                         "State<int>",
-                                         "value");
-    spec.binding.state->value = selectedIndex;
-  } else if (spec.state) {
-    selectedIndex = clamp_selected_index(spec.state->selectedIndex,
-                                         tabCount,
-                                         "TabsState",
-                                         "selectedIndex");
-    spec.state->selectedIndex = selectedIndex;
-  }
-  apply_default_accessibility_semantics(spec.accessibility, AccessibilityRole::TabList, enabled);
-  if (tabCount > 0) {
-    spec.accessibility.state.positionInSet = selectedIndex + 1;
-    spec.accessibility.state.setSize = tabCount;
-  } else {
-    spec.accessibility.state.positionInSet.reset();
-    spec.accessibility.state.setSize.reset();
-  }
-
-  Rect bounds = resolve_rect(spec.size);
-  float lineHeight = resolve_line_height(frame(), spec.textStyle);
-  float activeLineHeight = resolve_line_height(frame(), spec.activeTextStyle);
-  float tabLine = std::max(lineHeight, activeLineHeight);
-  if (bounds.height <= 0.0f &&
-      !spec.size.preferredHeight.has_value() &&
-      spec.size.stretchY <= 0.0f) {
-    bounds.height = tabLine + spec.tabPaddingY * 2.0f;
-  }
-  if (bounds.width <= 0.0f &&
-      !spec.size.preferredWidth.has_value() &&
-      spec.size.stretchX <= 0.0f &&
-      !spec.labels.empty()) {
-    float total = 0.0f;
-    for (size_t i = 0; i < spec.labels.size(); ++i) {
-      PrimeFrame::TextStyleToken token =
-          (static_cast<int>(i) == selectedIndex) ? spec.activeTextStyle : spec.textStyle;
-      float textWidth = estimate_text_width(frame(), token, spec.labels[i]);
-      total += textWidth + spec.tabPaddingX * 2.0f;
-      if (i + 1 < spec.labels.size()) {
-        total += spec.gap;
-      }
-    }
-    bounds.width = total;
-  }
-
-  StackSpec rowSpec;
-  rowSpec.size = spec.size;
-  if (!rowSpec.size.preferredWidth.has_value() && bounds.width > 0.0f) {
-    rowSpec.size.preferredWidth = bounds.width;
-  }
-  if (!rowSpec.size.preferredHeight.has_value() && bounds.height > 0.0f) {
-    rowSpec.size.preferredHeight = bounds.height;
-  }
-  rowSpec.gap = spec.gap;
-  rowSpec.clipChildren = false;
-  rowSpec.visible = spec.visible;
-  UiNode row = createHorizontalStack(rowSpec);
-  if (PrimeFrame::Node* rowNode = frame().getNode(row.nodeId())) {
-    rowNode->hitTestVisible = enabled;
-  }
-  auto sharedSelected = std::make_shared<int>(selectedIndex);
-
-  for (size_t i = 0; i < spec.labels.size(); ++i) {
-    int tabIndex = static_cast<int>(i);
-    bool active = tabIndex == selectedIndex;
-    PrimeFrame::RectStyleToken rectStyle = active ? spec.activeTabStyle : spec.tabStyle;
-    PrimeFrame::RectStyleOverride rectOverride =
-        active ? spec.activeTabStyleOverride : spec.tabStyleOverride;
-    PrimeFrame::TextStyleToken textToken = active ? spec.activeTextStyle : spec.textStyle;
-    PrimeFrame::TextStyleOverride textOverride =
-        active ? spec.activeTextStyleOverride : spec.textStyleOverride;
-
-    float textWidth = estimate_text_width(frame(), textToken, spec.labels[i]);
-    PanelSpec tabPanel;
-    tabPanel.rectStyle = rectStyle;
-    tabPanel.rectStyleOverride = rectOverride;
-    tabPanel.size.preferredWidth = textWidth + spec.tabPaddingX * 2.0f;
-    tabPanel.size.preferredHeight = bounds.height;
-    tabPanel.visible = spec.visible;
-    UiNode tab = row.createPanel(tabPanel);
-
-    TextLineSpec textSpec;
-    textSpec.text = spec.labels[i];
-    textSpec.textStyle = textToken;
-    textSpec.textStyleOverride = textOverride;
-    textSpec.align = PrimeFrame::TextAlign::Center;
-    textSpec.size.stretchX = 1.0f;
-    textSpec.size.preferredHeight = bounds.height;
-    textSpec.visible = spec.visible;
-    tab.createTextLine(textSpec);
-
-    PrimeFrame::Node* tabNode = frame().getNode(tab.nodeId());
-    if (!tabNode) {
-      continue;
-    }
-    tabNode->focusable = spec.visible && enabled;
-    tabNode->hitTestVisible = enabled;
-    tabNode->tabIndex = (enabled && spec.tabIndex >= 0) ? (spec.tabIndex + tabIndex) : -1;
-    if (!spec.visible || !enabled) {
-      continue;
-    }
-    struct TabState {
-      bool pressed = false;
-    };
-    auto state = std::make_shared<TabState>();
-    PrimeFrame::Callback callback;
-    callback.onEvent = [callbacks = spec.callbacks,
-                        bindingState = spec.binding.state,
-                        tabsState = spec.state,
-                        tabIndex,
-                        tabCount,
-                        state,
-                        sharedSelected](PrimeFrame::Event const& event) mutable -> bool {
-      auto commitSelection = [&](int next) {
-        if (next < 0 || next >= tabCount) {
-          return;
-        }
-        if (*sharedSelected == next) {
-          return;
-        }
-        *sharedSelected = next;
-        if (bindingState) {
-          bindingState->value = next;
-        }
-        if (tabsState) {
-          tabsState->selectedIndex = next;
-        }
-        if (callbacks.onSelect) {
-          callbacks.onSelect(next);
-        } else if (callbacks.onTabChanged) {
-          callbacks.onTabChanged(next);
-        }
-      };
-      switch (event.type) {
-        case PrimeFrame::EventType::PointerDown:
-          state->pressed = true;
-          return true;
-        case PrimeFrame::EventType::PointerDrag:
-        case PrimeFrame::EventType::PointerMove:
-          if (state->pressed) {
-            state->pressed = is_pointer_inside(event);
-            return true;
-          }
-          break;
-        case PrimeFrame::EventType::PointerUp: {
-          bool fire = state->pressed && is_pointer_inside(event);
-          state->pressed = false;
-          if (fire) {
-            commitSelection(tabIndex);
-          }
-          return true;
-        }
-        case PrimeFrame::EventType::PointerCancel:
-        case PrimeFrame::EventType::PointerLeave:
-          state->pressed = false;
-          return true;
-        case PrimeFrame::EventType::KeyDown: {
-          if (is_activation_key(event.key)) {
-            commitSelection(tabIndex);
-            return true;
-          }
-          if (tabCount <= 0) {
-            return false;
-          }
-          int next = *sharedSelected;
-          if (event.key == KeyLeft || event.key == KeyUp) {
-            next = std::max(0, next - 1);
-          } else if (event.key == KeyRight || event.key == KeyDown) {
-            next = std::min(tabCount - 1, next + 1);
-          } else if (event.key == KeyHome) {
-            next = 0;
-          } else if (event.key == KeyEnd) {
-            next = tabCount - 1;
-          } else {
-            return false;
-          }
-          commitSelection(next);
-          return true;
-        }
-        default:
-          break;
-      }
-      return false;
-    };
-    tabNode->callbacks = frame().addCallback(std::move(callback));
-
-    ResolvedFocusStyle focusStyle = resolve_focus_style(frame(), 0, {}, {});
-    std::optional<FocusOverlay> focusOverlay;
-    Rect focusRect{0.0f, 0.0f, textWidth + spec.tabPaddingX * 2.0f, bounds.height};
-    focusOverlay = add_focus_overlay_node(frame(),
-                                          tab.nodeId(),
-                                          focusRect,
-                                          focusStyle.token,
-                                          focusStyle.overrideStyle,
-                                          spec.visible);
-    if (focusOverlay.has_value()) {
-      attach_focus_callbacks(frame(), tab.nodeId(), *focusOverlay);
-    }
-  }
-
-  if (!enabled) {
-    add_state_scrim_overlay(frame(),
-                            row.nodeId(),
-                            Rect{0.0f, 0.0f, bounds.width, bounds.height},
-                            DisabledScrimOpacity,
-                            spec.visible);
-  }
-
-  return UiNode(frame(), row.nodeId(), allowAbsolute_);
-}
-
-UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding) {
-  TabsSpec spec;
-  spec.labels = std::move(labels);
-  spec.binding = binding;
-  return createTabs(spec);
 }
 
 Window UiNode::createWindow(WindowSpec const& specInput) {

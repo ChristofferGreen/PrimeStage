@@ -47,6 +47,9 @@ Release Exit Criteria (for API-quality milestone):
   - vertical slice shipped: moved `createDropdown(DropdownSpec)` runtime into
     `src/PrimeStageDropdown.cpp`, with shared dropdown-spec normalization and
     focus/scrim helper seams routed via `PrimeStage::Internal`
+  - vertical slice shipped: moved `createTabs(TabsSpec)` runtime into
+    `src/PrimeStageTabs.cpp`, with shared tabs-spec normalization and
+    focus/scrim helper seams routed via `PrimeStage::Internal`
 
 - ☐ [119] Continue collection widget extraction from `src/PrimeStage.cpp`.
   - move `Table` build/interaction runtime into a dedicated collection translation unit

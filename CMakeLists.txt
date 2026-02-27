@@ -109,6 +109,7 @@ set(PRIMESTAGE_SOURCES
   src/PrimeStageCollections.cpp
   src/PrimeStageDropdown.cpp
   src/PrimeStageProgress.cpp
+  src/PrimeStageTabs.cpp
   src/PrimeStage.cpp
   src/Render.cpp
 )

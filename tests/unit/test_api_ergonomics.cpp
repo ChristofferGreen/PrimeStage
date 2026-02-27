@@ -3133,6 +3133,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::filesystem::path collectionsCppPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownCppPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressCppPath = repoRoot / "src" / "PrimeStageProgress.cpp";
+  std::filesystem::path tabsCppPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
   REQUIRE(std::filesystem::exists(matrixPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
@@ -3141,6 +3142,7 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   REQUIRE(std::filesystem::exists(collectionsCppPath));
   REQUIRE(std::filesystem::exists(dropdownCppPath));
   REQUIRE(std::filesystem::exists(progressCppPath));
+  REQUIRE(std::filesystem::exists(tabsCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
 
   std::ifstream matrixInput(matrixPath);
@@ -3199,7 +3201,12 @@ TEST_CASE("PrimeStage default behavior matrix is documented and enforced") {
   std::string dropdownCpp((std::istreambuf_iterator<char>(dropdownInput)),
                           std::istreambuf_iterator<char>());
   REQUIRE(!dropdownCpp.empty());
-  std::string combinedSource = sourceCpp + collectionsCpp + dropdownCpp + progressCpp;
+  std::ifstream tabsInput(tabsCppPath);
+  REQUIRE(tabsInput.good());
+  std::string tabsCpp((std::istreambuf_iterator<char>(tabsInput)),
+                      std::istreambuf_iterator<char>());
+  REQUIRE(!tabsCpp.empty());
+  std::string combinedSource = sourceCpp + collectionsCpp + dropdownCpp + progressCpp + tabsCpp;
   CHECK(sourceCpp.find("void apply_default_accessibility_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_checked_semantics(") != std::string::npos);
   CHECK(sourceCpp.find("void apply_default_range_semantics(") != std::string::npos);
@@ -3433,12 +3440,14 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   std::filesystem::path collectionsPath = repoRoot / "src" / "PrimeStageCollections.cpp";
   std::filesystem::path dropdownPath = repoRoot / "src" / "PrimeStageDropdown.cpp";
   std::filesystem::path progressPath = repoRoot / "src" / "PrimeStageProgress.cpp";
+  std::filesystem::path tabsPath = repoRoot / "src" / "PrimeStageTabs.cpp";
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
   REQUIRE(std::filesystem::exists(corePath));
   REQUIRE(std::filesystem::exists(collectionsPath));
   REQUIRE(std::filesystem::exists(dropdownPath));
   REQUIRE(std::filesystem::exists(progressPath));
+  REQUIRE(std::filesystem::exists(tabsPath));
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(todoPath));
 
@@ -3461,6 +3470,9 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
   CHECK(core.find("UiNode UiNode::createDropdown(std::vector<std::string_view> options, Binding<int> binding)") ==
         std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTabs(TabsSpec const& specInput)") == std::string::npos);
+  CHECK(core.find("UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding)") ==
+        std::string::npos);
   CHECK(core.find("ListSpec normalizeListSpec(ListSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TableSpec normalizeTableSpec(TableSpec const& specInput)") != std::string::npos);
   CHECK(core.find("TreeViewSpec normalizeTreeViewSpec(TreeViewSpec const& specInput)") !=
@@ -3468,6 +3480,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(core.find("ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput)") !=
+        std::string::npos);
+  CHECK(core.find("TabsSpec normalizeTabsSpec(TabsSpec const& specInput)") !=
         std::string::npos);
   CHECK(core.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput)") !=
         std::string::npos);
@@ -3514,6 +3528,16 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(progress.find("Internal::normalizeProgressBarSpec(specInput)") != std::string::npos);
   CHECK(progress.find("Internal::sliderValueFromEvent(event, false, 0.0f)") != std::string::npos);
 
+  std::ifstream tabsInput(tabsPath);
+  REQUIRE(tabsInput.good());
+  std::string tabs((std::istreambuf_iterator<char>(tabsInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!tabs.empty());
+  CHECK(tabs.find("UiNode UiNode::createTabs(TabsSpec const& specInput)") != std::string::npos);
+  CHECK(tabs.find("UiNode UiNode::createTabs(std::vector<std::string_view> labels, Binding<int> binding)") !=
+        std::string::npos);
+  CHECK(tabs.find("Internal::normalizeTabsSpec(specInput)") != std::string::npos);
+
   std::ifstream internalsInput(internalsPath);
   REQUIRE(internalsInput.good());
   std::string internals((std::istreambuf_iterator<char>(internalsInput)),
@@ -3528,6 +3552,8 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
   CHECK(internals.find("ProgressBarSpec normalizeProgressBarSpec(ProgressBarSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("DropdownSpec normalizeDropdownSpec(DropdownSpec const& specInput);") !=
+        std::string::npos);
+  CHECK(internals.find("TabsSpec normalizeTabsSpec(TabsSpec const& specInput);") !=
         std::string::npos);
   CHECK(internals.find("ScrollViewSpec normalizeScrollViewSpec(ScrollViewSpec const& specInput);") !=
         std::string::npos);
