@@ -268,5 +268,8 @@ Release Exit Criteria (for API-quality milestone):
     `tests/unit/test_spec_validation.cpp`, and docs/guard updates in
     `docs/minimal-api-reference.md`, `docs/prime-stage-design.md`, and
     `tests/unit/test_api_ergonomics.cpp`
-- ☐ [8] Add minimal unit tests for builder API.
+- ☑ [8] Add minimal unit tests for builder API.
+  - delivered via dedicated minimal builder coverage in
+    `tests/unit/test_builder_api.cpp` (nested fluent composition + non-materialized default
+    builder diagnostics), with test-target wiring in `CMakeLists.txt`
 - ☐ [9] Add example scene build demonstrating window + widgets.

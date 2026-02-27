@@ -218,6 +218,7 @@ if(PRIMESTAGE_BUILD_TESTS)
     tests/unit/test_interaction.cpp
     tests/unit/test_tabs_dropdown.cpp
     tests/unit/test_api_ergonomics.cpp
+    tests/unit/test_builder_api.cpp
     tests/unit/test_tree_view.cpp
     tests/unit/test_treeview_input.cpp
     tests/unit/test_focus_widgets.cpp
