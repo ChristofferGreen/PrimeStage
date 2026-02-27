@@ -234,9 +234,10 @@ Release Exit Criteria (for API-quality milestone):
   - support non-structural interaction updates (toggle/checkbox/slider/progress visual state) without full rebuilds
   - delivered via in-place toggle/checkbox visual patching and state-backed progress-bar patch callbacks in `src/PrimeStage.cpp`, regression coverage in `tests/unit/test_interaction.cpp`, and patch-first guidance updates in `docs/api-ergonomics-guidelines.md`, `docs/prime-stage-design.md`, `docs/minimal-api-reference.md`, `tests/unit/test_api_ergonomics.cpp`, and `AGENTS.md`
 
-- ☐ [34] Keep generated/build artifacts out of source control workflows.
+- ☑ [34] Keep generated/build artifacts out of source control workflows.
   - document expected ignored paths for build outputs and snapshots
   - add cleanup guidance/script for local dev loops
+  - delivered via `scripts/clean.sh`, artifact policy documentation in `docs/build-artifact-hygiene.md`, ignore-list updates in `.gitignore`, workflow guidance in `README.md` + `AGENTS.md`, and regression checks in `tests/unit/test_api_ergonomics.cpp`
 
 - ☐ [1] Establish core ids, enums, and shared widget specs.
 - ☐ [2] Define callback table + RAII callback handle.

@@ -27,6 +27,11 @@ Quality-gate options:
 - `./scripts/compile.sh --asan --ubsan --test` (sanitizer mode builds tests with examples disabled)
 - `./scripts/compile.sh --release --perf-budget` (runs benchmark suite and enforces p95 budgets)
 
+Clean local generated artifacts:
+- `./scripts/clean.sh --dry-run`
+- `./scripts/clean.sh`
+- `./scripts/clean.sh --all`
+
 ## Direct CMake (Optional)
 
 ```sh
@@ -96,5 +101,6 @@ diagnostics.
 - `docs/performance-benchmarks.md`
 - `docs/visual-test-harness.md`
 - `docs/cmake-packaging.md`
+- `docs/build-artifact-hygiene.md`
 - `docs/example-app-consumer-checklist.md`
 - `docs/minimal-api-reference.md`

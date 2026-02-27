@@ -14,6 +14,7 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 
 ## Build/test workflow
 - Preferred build: `scripts/compile.sh [--debug|--release|--relwithdebinfo|--minsizerel] [--test] [--warnings-as-errors] [--asan] [--ubsan] [--perf|--perf-budget]` (uses clang, builds examples by default, tests/benchmarks built by default; sanitizer mode disables examples and `--test` runs tests).
+- Local artifact cleanup: use `scripts/clean.sh` (`--dry-run` to preview, `--all` to also remove `.cache/` and `compile_commands.json`).
 - Debug: `cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug` then `cmake --build build-debug`.
 - Release: `cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release` then `cmake --build build-release`.
 - Install/package: `cmake --install <build-dir> --prefix <install-prefix>`; use `find_package(PrimeStage CONFIG REQUIRED)` from consumer builds.

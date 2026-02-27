@@ -1268,6 +1268,77 @@ TEST_CASE("PrimeStage toolchain quality gates wire sanitizer and warning checks"
   CHECK(workflow.find("./scripts/compile.sh --debug --asan --ubsan --test") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage build artifact hygiene workflow is documented and scripted") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path gitignorePath = repoRoot / ".gitignore";
+  std::filesystem::path scriptPath = repoRoot / "scripts" / "clean.sh";
+  std::filesystem::path docsPath = repoRoot / "docs" / "build-artifact-hygiene.md";
+  std::filesystem::path readmePath = repoRoot / "README.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(gitignorePath));
+  REQUIRE(std::filesystem::exists(scriptPath));
+  REQUIRE(std::filesystem::exists(docsPath));
+  REQUIRE(std::filesystem::exists(readmePath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream gitignoreInput(gitignorePath);
+  REQUIRE(gitignoreInput.good());
+  std::string gitignore((std::istreambuf_iterator<char>(gitignoreInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!gitignore.empty());
+  CHECK(gitignore.find("build-*/") != std::string::npos);
+  CHECK(gitignore.find("build_*/") != std::string::npos);
+  CHECK(gitignore.find(".cache/") != std::string::npos);
+  CHECK(gitignore.find("compile_commands.json") != std::string::npos);
+  CHECK(gitignore.find("*.profraw") != std::string::npos);
+  CHECK(gitignore.find("*.profdata") != std::string::npos);
+
+  std::ifstream scriptInput(scriptPath);
+  REQUIRE(scriptInput.good());
+  std::string script((std::istreambuf_iterator<char>(scriptInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!script.empty());
+  CHECK(script.find("--dry-run") != std::string::npos);
+  CHECK(script.find("--all") != std::string::npos);
+  CHECK(script.find("build-*") != std::string::npos);
+  CHECK(script.find("compile_commands.json") != std::string::npos);
+
+  std::ifstream docsInput(docsPath);
+  REQUIRE(docsInput.good());
+  std::string docs((std::istreambuf_iterator<char>(docsInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!docs.empty());
+  CHECK(docs.find("./scripts/clean.sh --dry-run") != std::string::npos);
+  CHECK(docs.find("tests/snapshots/*.snap") != std::string::npos);
+  CHECK(docs.find("screenshots/*.png") != std::string::npos);
+
+  std::ifstream readmeInput(readmePath);
+  REQUIRE(readmeInput.good());
+  std::string readme((std::istreambuf_iterator<char>(readmeInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!readme.empty());
+  CHECK(readme.find("./scripts/clean.sh --dry-run") != std::string::npos);
+  CHECK(readme.find("docs/build-artifact-hygiene.md") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("scripts/clean.sh") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("[34] Keep generated/build artifacts out of source control workflows.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage spec validation guards clamp invalid indices and ranges") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
