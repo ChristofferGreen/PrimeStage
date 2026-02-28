@@ -1148,6 +1148,91 @@ TEST_CASE("PrimeStage internal extension primitive seam supports non-focusable p
   REQUIRE(extensionRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam skips focus callback wiring for non-focusable specs") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 200.0f);
+
+  int pointerCount = 0;
+  int keyCount = 0;
+  int focusCount = 0;
+  int blurCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = false;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 994u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      pointerCount += 1;
+      return true;
+    }
+    if (event.type == PrimeFrame::EventType::KeyDown &&
+        event.key == PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter)) {
+      keyCount += 1;
+      return true;
+    }
+    return false;
+  };
+  spec.callbacks.onFocus = [&]() { focusCount += 1; };
+  spec.callbacks.onBlur = [&]() { blurCount += 1; };
+  PrimeStage::UiNode extension =
+      PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  PrimeFrame::Node const* node = frame.getNode(extension.nodeId());
+  REQUIRE(node != nullptr);
+  CHECK_FALSE(node->focusable);
+  CHECK(node->hitTestVisible);
+  CHECK(node->tabIndex == -1);
+  REQUIRE(node->callbacks != PrimeFrame::InvalidCallbackId);
+  PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+  CHECK_FALSE(callback->onFocus);
+  CHECK_FALSE(callback->onBlur);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 200.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(extension.nodeId());
+  REQUIRE(out != nullptr);
+  float x = out->absX + out->absW * 0.5f;
+  float y = out->absY + out->absH * 0.5f;
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(pointerCount == 1);
+  CHECK(focus.focusedNode() != extension.nodeId());
+  CHECK(focusCount == 0);
+  CHECK(blurCount == 0);
+
+  CHECK_FALSE(focus.setFocus(frame, layout, extension.nodeId()));
+  CHECK(focus.focusedNode() != extension.nodeId());
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(keyCount == 0);
+  CHECK(focusCount == 0);
+  CHECK(blurCount == 0);
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 994u);
+  REQUIRE(extensionRect != nullptr);
+}
+
 TEST_CASE("PrimeStage internal extension primitive seam routes pointer and focus callbacks through event router") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);

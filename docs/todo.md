@@ -395,6 +395,15 @@ Release Exit Criteria (for API-quality milestone):
   - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so non-focusable
     pointer interactivity coverage remains required when extension focus/hit-test semantics change
 
+- ☑ [135] Align extension-seam focus/blur callback wiring with focusability.
+  - updated `src/PrimeStage.cpp` so `createExtensionPrimitive(...)` appends
+    `onFocus`/`onBlur` callbacks only when the built node is actually focusable
+  - added `tests/unit/test_interaction.cpp` coverage verifying non-focusable extension specs keep
+    pointer callback routing while focus/blur callback slots remain unwired and keyboard callbacks
+    stay inactive without focus
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so focus/blur callback
+    wiring stays aligned with non-focusable extension semantics
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

@@ -1091,7 +1091,8 @@ UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
     return node;
   }
 
-  builtNode->focusable = interactive && spec.focusable;
+  bool focusable = interactive && spec.focusable;
+  builtNode->focusable = focusable;
   builtNode->hitTestVisible = interactive && spec.hitTestVisible;
   builtNode->tabIndex = builtNode->focusable ? runtime.tabIndex : -1;
 
@@ -1106,10 +1107,10 @@ UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
   if (interactive && spec.callbacks.onEvent) {
     (void)appendNodeOnEvent(runtime, nodeId, spec.callbacks.onEvent);
   }
-  if (interactive && spec.callbacks.onFocus) {
+  if (focusable && spec.callbacks.onFocus) {
     (void)LowLevel::appendNodeOnFocus(frame, nodeId, spec.callbacks.onFocus);
   }
-  if (interactive && spec.callbacks.onBlur) {
+  if (focusable && spec.callbacks.onBlur) {
     (void)LowLevel::appendNodeOnBlur(frame, nodeId, spec.callbacks.onBlur);
   }
 
