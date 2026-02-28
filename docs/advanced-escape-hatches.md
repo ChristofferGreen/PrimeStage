@@ -49,7 +49,17 @@ Use when high-level widget callbacks do not provide the behavior you need.
   - `LowLevel::appendNodeOnFocus(...)`
   - `LowLevel::appendNodeOnBlur(...)`
 
-### 4. Reach Raw Node IDs
+### 4. Use Internal Custom Primitive Extension Seams
+
+Use when extending PrimeStage internals with custom primitives without adding a new public widget
+API.
+
+- internal seam APIs (library-internal only):
+  - `PrimeStage::Internal::ExtensionPrimitiveSpec`
+  - `PrimeStage::Internal::ExtensionPrimitiveCallbacks`
+  - `PrimeStage::Internal::createExtensionPrimitive(...)`
+
+### 5. Reach Raw Node IDs
 
 Use only for explicit interop, not canonical app flow.
 
@@ -59,6 +69,8 @@ Use only for explicit interop, not canonical app flow.
 
 - Keep advanced usage isolated to `examples/advanced` or explicitly advanced app modules.
 - Do not leak low-level types into canonical examples or quick-start docs.
+- Keep internal custom primitive seams in PrimeStage internals/tests or explicitly advanced modules;
+  do not expose `PrimeStage::Internal::*` seams as canonical/public app APIs.
 - When directly touching PrimeFrame/PrimeHost internals in advanced sample code, tag the local
   integration site inline with:
   `Advanced PrimeFrame integration (documented exception):`

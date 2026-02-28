@@ -1576,6 +1576,92 @@ TEST_CASE("PrimeStage sanitization property-fuzz coverage stays deterministic an
         std::string::npos);
 }
 
+TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and constrained") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
+  std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
+  std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  std::filesystem::path advancedPath = repoRoot / "docs" / "advanced-escape-hatches.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(internalsPath));
+  REQUIRE(std::filesystem::exists(sourceCppPath));
+  REQUIRE(std::filesystem::exists(interactionPath));
+  REQUIRE(std::filesystem::exists(advancedPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream internalsInput(internalsPath);
+  REQUIRE(internalsInput.good());
+  std::string internals((std::istreambuf_iterator<char>(internalsInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!internals.empty());
+  CHECK(internals.find("struct ExtensionPrimitiveCallbacks {") != std::string::npos);
+  CHECK(internals.find("struct ExtensionPrimitiveSpec {") != std::string::npos);
+  CHECK(internals.find("UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,") !=
+        std::string::npos);
+
+  std::ifstream sourceInput(sourceCppPath);
+  REQUIRE(sourceInput.good());
+  std::string source((std::istreambuf_iterator<char>(sourceInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!source.empty());
+  CHECK(source.find("UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,") !=
+        std::string::npos);
+  CHECK(source.find("appendNodeOnEvent(runtime, nodeId, spec.callbacks.onEvent)") !=
+        std::string::npos);
+  CHECK(source.find("LowLevel::appendNodeOnFocus(frame, nodeId, spec.callbacks.onFocus)") !=
+        std::string::npos);
+  CHECK(source.find("LowLevel::appendNodeOnBlur(frame, nodeId, spec.callbacks.onBlur)") !=
+        std::string::npos);
+
+  std::ifstream interactionInput(interactionPath);
+  REQUIRE(interactionInput.good());
+  std::string interaction((std::istreambuf_iterator<char>(interactionInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!interaction.empty());
+  CHECK(interaction.find("internal extension primitive seam supports typed callbacks and runtime gating") !=
+        std::string::npos);
+
+  std::ifstream advancedInput(advancedPath);
+  REQUIRE(advancedInput.good());
+  std::string advanced((std::istreambuf_iterator<char>(advancedInput)),
+                       std::istreambuf_iterator<char>());
+  REQUIRE(!advanced.empty());
+  CHECK(advanced.find("Use Internal Custom Primitive Extension Seams") != std::string::npos);
+  CHECK(advanced.find("PrimeStage::Internal::ExtensionPrimitiveSpec") != std::string::npos);
+  CHECK(advanced.find("PrimeStage::Internal::createExtensionPrimitive(...)") !=
+        std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("PrimeStage::Internal::ExtensionPrimitiveSpec") != std::string::npos);
+  CHECK(guidelines.find("PrimeStage::Internal::createExtensionPrimitive(...)") !=
+        std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("PrimeStage::Internal::ExtensionPrimitiveSpec") != std::string::npos);
+  CHECK(agents.find("createExtensionPrimitive(...)") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("☑ [118] Add an internal extension seam for custom widget primitives.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();

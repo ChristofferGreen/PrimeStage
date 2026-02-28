@@ -142,6 +142,10 @@ void afterLayout(App& app) {
   duplicating command behavior in multiple callback sites.
 - `AppActionInvocation::actionId` is owned payload data; callbacks may safely store/copy the
   invocation for post-dispatch processing.
+- For internal custom-widget primitive extensions in PrimeStage internals, prefer
+  `PrimeStage::Internal::ExtensionPrimitiveSpec` +
+  `PrimeStage::Internal::createExtensionPrimitive(...)` instead of ad-hoc raw node/callback
+  wiring.
 - For advanced/internal extension points, use `PrimeStage::LowLevel` callback-composition helpers (`LowLevel::appendNodeOnEvent`, `LowLevel::appendNodeOnFocus`, `LowLevel::appendNodeOnBlur`) instead of mutating callback tables ad hoc.
 - When installing temporary/replaced low-level node callbacks, prefer `PrimeStage::LowLevel::NodeCallbackHandle` with `PrimeStage::LowLevel::NodeCallbackTable` so previous callback wiring restores automatically on scope exit.
 - For window composition via `createWindow(WindowSpec)`, treat move/resize callbacks as stateless

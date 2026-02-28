@@ -2,6 +2,7 @@
 #include "PrimeFrame/Events.h"
 #include "PrimeFrame/Frame.h"
 #include "PrimeFrame/Layout.h"
+#include "src/PrimeStageCollectionInternals.h"
 
 #include "third_party/doctest.h"
 
@@ -758,6 +759,120 @@ TEST_CASE("PrimeStage semantic callbacks take precedence over legacy aliases for
   CHECK(treeSelectionChanged == 0);
   CHECK(treeActivate == 1);
   CHECK(treeActivated == 0);
+}
+
+TEST_CASE("PrimeStage internal extension primitive seam supports typed callbacks and runtime gating") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 340.0f, 220.0f);
+
+  int enabledEventCount = 0;
+  int enabledFocusCount = 0;
+  int enabledBlurCount = 0;
+
+  PrimeStage::Internal::WidgetRuntimeContext enabledRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          4);
+
+  PrimeStage::Internal::ExtensionPrimitiveSpec enabledSpec;
+  enabledSpec.rect = {0.0f, 0.0f, 120.0f, 28.0f};
+  enabledSpec.size.preferredWidth = 120.0f;
+  enabledSpec.size.preferredHeight = 28.0f;
+  enabledSpec.focusable = true;
+  enabledSpec.hitTestVisible = true;
+  enabledSpec.rectStyle = 941u;
+  enabledSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown ||
+        event.type == PrimeFrame::EventType::KeyDown) {
+      enabledEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  enabledSpec.callbacks.onFocus = [&]() { enabledFocusCount += 1; };
+  enabledSpec.callbacks.onBlur = [&]() { enabledBlurCount += 1; };
+
+  PrimeStage::UiNode enabledExtension =
+      PrimeStage::Internal::createExtensionPrimitive(enabledRuntime, enabledSpec);
+
+  int disabledEventCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext disabledRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          false,
+          true,
+          9);
+  PrimeStage::Internal::ExtensionPrimitiveSpec disabledSpec;
+  disabledSpec.rect = {0.0f, 0.0f, 120.0f, 28.0f};
+  disabledSpec.size.preferredWidth = 120.0f;
+  disabledSpec.size.preferredHeight = 28.0f;
+  disabledSpec.focusable = true;
+  disabledSpec.hitTestVisible = true;
+  disabledSpec.rectStyle = 942u;
+  disabledSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      disabledEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode disabledExtension =
+      PrimeStage::Internal::createExtensionPrimitive(disabledRuntime, disabledSpec);
+
+  PrimeFrame::Node const* enabledNode = frame.getNode(enabledExtension.nodeId());
+  PrimeFrame::Node const* disabledNode = frame.getNode(disabledExtension.nodeId());
+  REQUIRE(enabledNode != nullptr);
+  REQUIRE(disabledNode != nullptr);
+  CHECK(enabledNode->focusable);
+  CHECK(enabledNode->hitTestVisible);
+  CHECK(enabledNode->tabIndex == 4);
+  CHECK_FALSE(disabledNode->focusable);
+  CHECK_FALSE(disabledNode->hitTestVisible);
+  CHECK(disabledNode->tabIndex == -1);
+
+  PrimeFrame::Primitive const* enabledRect =
+      findRectPrimitiveByTokenInSubtree(frame, enabledExtension.nodeId(), 941u);
+  PrimeFrame::Primitive const* disabledRect =
+      findRectPrimitiveByTokenInSubtree(frame, disabledExtension.nodeId(), 942u);
+  REQUIRE(enabledRect != nullptr);
+  REQUIRE(disabledRect != nullptr);
+
+  REQUIRE(enabledNode->callbacks != PrimeFrame::InvalidCallbackId);
+  PrimeFrame::Callback const* enabledCallback = frame.getCallback(enabledNode->callbacks);
+  REQUIRE(enabledCallback != nullptr);
+  REQUIRE(enabledCallback->onEvent);
+  REQUIRE(enabledCallback->onFocus);
+  REQUIRE(enabledCallback->onBlur);
+
+  PrimeFrame::Event pointerDown;
+  pointerDown.type = PrimeFrame::EventType::PointerDown;
+  pointerDown.pointerId = 1;
+  CHECK(enabledCallback->onEvent(pointerDown));
+  CHECK(enabledEventCount == 1);
+
+  PrimeFrame::Event keyDown = makeKeyDownEvent(PrimeStage::KeyCode::Enter);
+  CHECK(enabledCallback->onEvent(keyDown));
+  CHECK(enabledEventCount == 2);
+
+  enabledCallback->onFocus();
+  enabledCallback->onBlur();
+  CHECK(enabledFocusCount == 1);
+  CHECK(enabledBlurCount == 1);
+
+  if (disabledNode->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* disabledCallback = frame.getCallback(disabledNode->callbacks);
+    REQUIRE(disabledCallback != nullptr);
+    CHECK_FALSE(disabledCallback->onEvent);
+    CHECK_FALSE(disabledCallback->onFocus);
+    CHECK_FALSE(disabledCallback->onBlur);
+  }
+  CHECK(disabledEventCount == 0);
 }
 
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {

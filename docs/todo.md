@@ -241,10 +241,20 @@ Release Exit Criteria (for API-quality milestone):
     updated contributor guidance in `AGENTS.md` to keep sanitization fuzz seeds
     and corpus deterministic
 
-- ☐ [118] Add an internal extension seam for custom widget primitives.
-  - provide a typed internal extension path for advanced composition without requiring direct
-    `LowLevel` callback composition in standard integrations
-  - document constraints so canonical API usage remains high-level and stable
+- ☑ [118] Add an internal extension seam for custom widget primitives.
+  - added typed internal extension seam APIs in
+    `src/PrimeStageCollectionInternals.h`/`src/PrimeStage.cpp`:
+    `PrimeStage::Internal::ExtensionPrimitiveSpec`,
+    `PrimeStage::Internal::ExtensionPrimitiveCallbacks`, and
+    `PrimeStage::Internal::createExtensionPrimitive(...)`
+  - added interaction coverage in `tests/unit/test_interaction.cpp` validating extension-primitive
+    callback wiring/focus behavior for enabled runtime paths and runtime-gated disabled behavior
+    without direct consumer-side `LowLevel` callback composition
+  - documented internal-only constraints in
+    `docs/advanced-escape-hatches.md`, `docs/api-ergonomics-guidelines.md`, and
+    `AGENTS.md` to keep canonical/public app usage high-level and stable
+  - added guardrail checks in `tests/unit/test_api_ergonomics.cpp` to keep seam API/docs/TODO
+    completion aligned
 
 ## Archive (Completed)
 

@@ -27,6 +27,26 @@ struct WidgetRuntimeContext {
   int tabIndex = -1;
 };
 
+struct ExtensionPrimitiveCallbacks {
+  std::function<bool(PrimeFrame::Event const&)> onEvent;
+  std::function<void()> onFocus;
+  std::function<void()> onBlur;
+};
+
+struct ExtensionPrimitiveSpec {
+  InternalRect rect{};
+  SizeSpec size{};
+  PrimeFrame::LayoutType layout = PrimeFrame::LayoutType::None;
+  PrimeFrame::Insets padding{};
+  float gap = 0.0f;
+  bool clipChildren = true;
+  bool focusable = false;
+  bool hitTestVisible = true;
+  PrimeFrame::RectStyleToken rectStyle = 0;
+  PrimeFrame::RectStyleOverride rectStyleOverride{};
+  ExtensionPrimitiveCallbacks callbacks{};
+};
+
 WidgetRuntimeContext makeWidgetRuntimeContext(PrimeFrame::Frame& frame,
                                               PrimeFrame::NodeId parentId,
                                               bool allowAbsolute,
@@ -35,6 +55,8 @@ WidgetRuntimeContext makeWidgetRuntimeContext(PrimeFrame::Frame& frame,
                                               int tabIndex = -1);
 PrimeFrame::Frame& runtimeFrame(WidgetRuntimeContext const& runtime);
 UiNode makeParentNode(WidgetRuntimeContext const& runtime);
+UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
+                                ExtensionPrimitiveSpec const& spec);
 void configureInteractiveRoot(WidgetRuntimeContext const& runtime, PrimeFrame::NodeId nodeId);
 bool appendNodeOnEvent(WidgetRuntimeContext const& runtime,
                        PrimeFrame::NodeId nodeId,

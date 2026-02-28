@@ -1071,6 +1071,50 @@ UiNode makeParentNode(WidgetRuntimeContext const& runtime) {
   return UiNode(runtimeFrame(runtime), runtime.parentId, runtime.allowAbsolute);
 }
 
+UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
+                                ExtensionPrimitiveSpec const& spec) {
+  PrimeFrame::Frame& frame = runtimeFrame(runtime);
+  PrimeFrame::NodeId nodeId = createNode(frame,
+                                         runtime.parentId,
+                                         spec.rect,
+                                         &spec.size,
+                                         spec.layout,
+                                         spec.padding,
+                                         spec.gap,
+                                         spec.clipChildren,
+                                         runtime.visible,
+                                         "ExtensionPrimitiveSpec");
+  UiNode node(frame, nodeId, runtime.allowAbsolute);
+  PrimeFrame::Node* builtNode = frame.getNode(nodeId);
+  if (!builtNode) {
+    return node;
+  }
+
+  builtNode->focusable = runtime.enabled && spec.focusable;
+  builtNode->hitTestVisible = runtime.enabled && spec.hitTestVisible;
+  builtNode->tabIndex = builtNode->focusable ? runtime.tabIndex : -1;
+
+  (void)createRectNode(frame,
+                       nodeId,
+                       InternalRect{0.0f, 0.0f, 0.0f, 0.0f},
+                       spec.rectStyle,
+                       spec.rectStyleOverride,
+                       false,
+                       runtime.visible);
+
+  if (runtime.enabled && spec.callbacks.onEvent) {
+    (void)appendNodeOnEvent(runtime, nodeId, spec.callbacks.onEvent);
+  }
+  if (runtime.enabled && spec.callbacks.onFocus) {
+    (void)LowLevel::appendNodeOnFocus(frame, nodeId, spec.callbacks.onFocus);
+  }
+  if (runtime.enabled && spec.callbacks.onBlur) {
+    (void)LowLevel::appendNodeOnBlur(frame, nodeId, spec.callbacks.onBlur);
+  }
+
+  return node;
+}
+
 void configureInteractiveRoot(WidgetRuntimeContext const& runtime, PrimeFrame::NodeId nodeId) {
   if (!runtime.visible) {
     return;

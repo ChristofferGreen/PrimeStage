@@ -49,6 +49,10 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   in the same change.
 - For low-level node callback overrides, use `PrimeStage::LowLevel::NodeCallbackTable` + `PrimeStage::LowLevel::NodeCallbackHandle` so previous callback tables are restored automatically via RAII.
 - Keep low-level callback composition quarantined under `PrimeStage::LowLevel` (`LowLevel::appendNodeOnEvent`, `LowLevel::NodeCallbackHandle`, etc.); canonical/high-level app code should not use these APIs.
+- For internal custom primitive extensions, prefer
+  `PrimeStage::Internal::ExtensionPrimitiveSpec` +
+  `PrimeStage::Internal::createExtensionPrimitive(...)` over ad-hoc raw node/callback wiring,
+  and keep this seam out of canonical/public API examples.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.
 - For render-path failures, use `RenderStatus`/`RenderStatusCode` diagnostics (`docs/render-diagnostics.md`) instead of introducing new opaque `bool` failure paths.
 - For renderer corner rounding behavior, use explicit `RenderOptions::cornerStyle` metadata; do not reintroduce theme-color index heuristics.
