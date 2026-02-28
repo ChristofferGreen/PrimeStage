@@ -414,6 +414,81 @@ TEST_CASE("Input bridge maps pointer events and updates pointer state") {
   CHECK_FALSE(result.requestExit);
 }
 
+TEST_CASE("Input bridge textFromHostSpan enforces bounds and supports empty spans") {
+  std::array<char, 4> textBytes{'A', 'B', 'C', 'D'};
+  PrimeHost::EventBatch batch{
+      std::span<const PrimeHost::Event>{},
+      std::span<const char>(textBytes.data(), textBytes.size()),
+  };
+
+  PrimeHost::TextSpan exact;
+  exact.offset = 2u;
+  exact.length = 2u;
+  std::optional<std::string_view> exactView = PrimeStage::textFromHostSpan(batch, exact);
+  REQUIRE(exactView.has_value());
+  CHECK(*exactView == "CD");
+
+  PrimeHost::TextSpan outOfBounds;
+  outOfBounds.offset = 4u;
+  outOfBounds.length = 1u;
+  CHECK_FALSE(PrimeStage::textFromHostSpan(batch, outOfBounds).has_value());
+
+  PrimeHost::TextSpan empty;
+  empty.offset = 99u;
+  empty.length = 0u;
+  std::optional<std::string_view> emptyView = PrimeStage::textFromHostSpan(batch, empty);
+  REQUIRE(emptyView.has_value());
+  CHECK(emptyView->empty());
+}
+
+TEST_CASE("Input bridge isHostKeyPressed requires pressed state and matching key code") {
+  PrimeHost::KeyEvent event;
+  event.pressed = false;
+  event.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape);
+  CHECK_FALSE(PrimeStage::isHostKeyPressed(event, PrimeStage::HostKey::Escape));
+
+  event.pressed = true;
+  event.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Enter);
+  CHECK_FALSE(PrimeStage::isHostKeyPressed(event, PrimeStage::HostKey::Escape));
+
+  event.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape);
+  CHECK(PrimeStage::isHostKeyPressed(event, PrimeStage::HostKey::Escape));
+}
+
+TEST_CASE("Input bridge maps pointer cancel and keeps bypass flag even when unhandled") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::PointerEvent pointer;
+  pointer.pointerId = 4u;
+  pointer.x = 11;
+  pointer.y = 13;
+  pointer.phase = PrimeHost::PointerPhase::Cancel;
+  PrimeHost::InputEvent input = pointer;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return false;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::PointerCancel);
+  CHECK(captured.pointerId == 4);
+  CHECK(captured.x == doctest::Approx(11.0f));
+  CHECK(captured.y == doctest::Approx(13.0f));
+  CHECK(state.pointerX == doctest::Approx(11.0f));
+  CHECK(state.pointerY == doctest::Approx(13.0f));
+  CHECK_FALSE(result.requestFrame);
+  CHECK(result.bypassFrameCap);
+  CHECK_FALSE(result.requestExit);
+}
+
 TEST_CASE("Input bridge maps key events and uses symbolic escape key") {
   PrimeStage::InputBridgeState state;
   PrimeHost::EventBatch batch{};
@@ -457,6 +532,157 @@ TEST_CASE("Input bridge maps key events and uses symbolic escape key") {
   CHECK(captured.modifiers == keyDown.modifiers);
   CHECK_FALSE(result.requestExit);
   CHECK(result.requestFrame);
+}
+
+TEST_CASE("Input bridge uses configured exit key for key events") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::EventBatch batch{};
+
+  PrimeHost::KeyEvent enter;
+  enter.pressed = true;
+  enter.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Enter);
+  PrimeHost::InputEvent input = enter;
+
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const&) {
+        dispatched = true;
+        return true;
+      },
+      PrimeStage::HostKey::Enter);
+
+  CHECK_FALSE(dispatched);
+  CHECK(result.requestExit);
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge dispatches when key does not match configured exit key") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::EventBatch batch{};
+
+  PrimeHost::KeyEvent escape;
+  escape.pressed = true;
+  escape.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape);
+  escape.modifiers = static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Control);
+  PrimeHost::InputEvent input = escape;
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return true;
+      },
+      PrimeStage::HostKey::Enter);
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::KeyDown);
+  CHECK(captured.key == static_cast<int>(PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape)));
+  CHECK(captured.modifiers == escape.modifiers);
+  CHECK_FALSE(result.requestExit);
+  CHECK(result.requestFrame);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge key down keeps requestFrame false when dispatch is unhandled") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::EventBatch batch{};
+
+  PrimeHost::KeyEvent keyDown;
+  keyDown.pressed = true;
+  keyDown.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Space);
+  keyDown.modifiers = static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Alt);
+  PrimeHost::InputEvent input = keyDown;
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return false;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::KeyDown);
+  CHECK(captured.key == static_cast<int>(PrimeStage::hostKeyCode(PrimeStage::HostKey::Space)));
+  CHECK(captured.modifiers == keyDown.modifiers);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge maps escape release to key up without requesting exit") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::EventBatch batch{};
+
+  PrimeHost::KeyEvent escapeUp;
+  escapeUp.pressed = false;
+  escapeUp.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape);
+  escapeUp.modifiers = static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Control);
+  PrimeHost::InputEvent input = escapeUp;
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return false;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::KeyUp);
+  CHECK(captured.key == static_cast<int>(PrimeStage::hostKeyCode(PrimeStage::HostKey::Escape)));
+  CHECK(captured.modifiers == escapeUp.modifiers);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge key release requests frame when dispatch handles event") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::EventBatch batch{};
+
+  PrimeHost::KeyEvent keyUp;
+  keyUp.pressed = false;
+  keyUp.keyCode = PrimeStage::hostKeyCode(PrimeStage::HostKey::Left);
+  keyUp.modifiers = static_cast<PrimeHost::KeyModifierMask>(PrimeHost::KeyModifier::Shift);
+  PrimeHost::InputEvent input = keyUp;
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return true;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::KeyUp);
+  CHECK(captured.key == static_cast<int>(PrimeStage::hostKeyCode(PrimeStage::HostKey::Left)));
+  CHECK(captured.modifiers == keyUp.modifiers);
+  CHECK_FALSE(result.requestExit);
+  CHECK(result.requestFrame);
+  CHECK_FALSE(result.bypassFrameCap);
 }
 
 TEST_CASE("Input bridge maps text spans and ignores invalid spans") {
@@ -505,6 +731,122 @@ TEST_CASE("Input bridge maps text spans and ignores invalid spans") {
   CHECK_FALSE(result.requestFrame);
 }
 
+TEST_CASE("Input bridge text events propagate unhandled dispatch as no frame request") {
+  PrimeStage::InputBridgeState state;
+  std::array<char, 8> textBytes{'t', 'e', 'x', 't', '\0', '\0', '\0', '\0'};
+  PrimeHost::EventBatch batch{
+      std::span<const PrimeHost::Event>{},
+      std::span<const char>(textBytes.data(), 4u),
+  };
+
+  PrimeHost::TextEvent text;
+  text.text.offset = 0u;
+  text.text.length = 4u;
+  PrimeHost::InputEvent input = text;
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return false;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::TextInput);
+  CHECK(captured.text == "text");
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge dispatches empty text spans as empty text input") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::TextEvent text;
+  text.text.offset = 99u;
+  text.text.length = 0u;
+  PrimeHost::InputEvent input = text;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return true;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::TextInput);
+  CHECK(captured.text.empty());
+  CHECK(result.requestFrame);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge ignores unsupported input variants") {
+  PrimeStage::InputBridgeState state;
+  PrimeHost::GamepadButtonEvent gamepad;
+  gamepad.deviceId = 5u;
+  gamepad.controlId = static_cast<uint32_t>(PrimeHost::GamepadButtonId::South);
+  gamepad.pressed = true;
+  PrimeHost::InputEvent input = gamepad;
+  PrimeHost::EventBatch batch{};
+
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const&) {
+        dispatched = true;
+        return true;
+      });
+
+  CHECK_FALSE(dispatched);
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge unsupported variants preserve pointer state") {
+  PrimeStage::InputBridgeState state;
+  state.pointerX = 123.0f;
+  state.pointerY = -45.0f;
+
+  PrimeHost::DeviceEvent device;
+  device.deviceId = 9u;
+  device.deviceType = PrimeHost::DeviceType::Gamepad;
+  device.connected = false;
+  PrimeHost::InputEvent input = device;
+  PrimeHost::EventBatch batch{};
+
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const&) {
+        dispatched = true;
+        return true;
+      });
+
+  CHECK_FALSE(dispatched);
+  CHECK_FALSE(result.requestFrame);
+  CHECK_FALSE(result.requestExit);
+  CHECK_FALSE(result.bypassFrameCap);
+  CHECK(state.pointerX == doctest::Approx(123.0f));
+  CHECK(state.pointerY == doctest::Approx(-45.0f));
+}
+
 TEST_CASE("Input bridge maps scroll events using pointer position and line scale") {
   PrimeStage::InputBridgeState state;
   state.pointerX = 12.0f;
@@ -535,6 +877,41 @@ TEST_CASE("Input bridge maps scroll events using pointer position and line scale
   CHECK(captured.scrollY == doctest::Approx(-32.0f));
   CHECK(result.requestFrame);
   CHECK(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge scroll keeps bypass frame cap when dispatch is unhandled") {
+  PrimeStage::InputBridgeState state;
+  state.pointerX = 21.0f;
+  state.pointerY = 55.0f;
+
+  PrimeHost::ScrollEvent scroll;
+  scroll.deltaX = -2.0f;
+  scroll.deltaY = 3.0f;
+  scroll.isLines = false;
+  PrimeHost::InputEvent input = scroll;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  bool dispatched = false;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        dispatched = true;
+        return false;
+      });
+
+  CHECK(dispatched);
+  CHECK(captured.type == PrimeFrame::EventType::PointerScroll);
+  CHECK(captured.x == doctest::Approx(21.0f));
+  CHECK(captured.y == doctest::Approx(55.0f));
+  CHECK(captured.scrollX == doctest::Approx(-2.0f));
+  CHECK(captured.scrollY == doctest::Approx(3.0f));
+  CHECK_FALSE(result.requestFrame);
+  CHECK(result.bypassFrameCap);
+  CHECK_FALSE(result.requestExit);
 }
 
 TEST_CASE("Input bridge preserves pixel scroll units and normalizes direction sign") {
@@ -568,6 +945,40 @@ TEST_CASE("Input bridge preserves pixel scroll units and normalizes direction si
   CHECK(captured.scrollY == doctest::Approx(3.0f));
   CHECK(result.requestFrame);
   CHECK(result.bypassFrameCap);
+}
+
+TEST_CASE("Input bridge applies direction sign to line-based scroll deltas") {
+  PrimeStage::InputBridgeState state;
+  state.pointerX = 5.0f;
+  state.pointerY = 9.0f;
+  state.scrollLinePixels = 20.0f;
+  state.scrollDirectionSign = -1.0f;
+
+  PrimeHost::ScrollEvent scroll;
+  scroll.deltaX = 1.0f;
+  scroll.deltaY = -0.5f;
+  scroll.isLines = true;
+  PrimeHost::InputEvent input = scroll;
+  PrimeHost::EventBatch batch{};
+
+  PrimeFrame::Event captured;
+  PrimeStage::InputBridgeResult result = PrimeStage::bridgeHostInputEvent(
+      input,
+      batch,
+      state,
+      [&](PrimeFrame::Event const& event) {
+        captured = event;
+        return true;
+      });
+
+  CHECK(captured.type == PrimeFrame::EventType::PointerScroll);
+  CHECK(captured.x == doctest::Approx(5.0f));
+  CHECK(captured.y == doctest::Approx(9.0f));
+  CHECK(captured.scrollX == doctest::Approx(-20.0f));
+  CHECK(captured.scrollY == doctest::Approx(10.0f));
+  CHECK(result.requestFrame);
+  CHECK(result.bypassFrameCap);
+  CHECK_FALSE(result.requestExit);
 }
 
 TEST_CASE("Input bridge treats non-negative direction sign as default orientation") {
