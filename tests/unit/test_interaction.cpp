@@ -1672,6 +1672,100 @@ TEST_CASE("PrimeStage internal extension primitive seam respects hit-test toggle
   REQUIRE(extensionRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam preserves focus callback lifecycle across visibility toggles") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 340.0f, 220.0f);
+
+  int firstFocusCount = 0;
+  int firstBlurCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext firstRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          3);
+  PrimeStage::Internal::ExtensionPrimitiveSpec firstSpec;
+  firstSpec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  firstSpec.size.preferredWidth = 120.0f;
+  firstSpec.size.preferredHeight = 30.0f;
+  firstSpec.focusable = true;
+  firstSpec.hitTestVisible = true;
+  firstSpec.rectStyle = 985u;
+  firstSpec.callbacks.onFocus = [&]() { firstFocusCount += 1; };
+  firstSpec.callbacks.onBlur = [&]() { firstBlurCount += 1; };
+  PrimeStage::UiNode first = PrimeStage::Internal::createExtensionPrimitive(firstRuntime, firstSpec);
+
+  int secondFocusCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext secondRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          4);
+  PrimeStage::Internal::ExtensionPrimitiveSpec secondSpec;
+  secondSpec.rect = {16.0f, 68.0f, 120.0f, 30.0f};
+  secondSpec.size.preferredWidth = 120.0f;
+  secondSpec.size.preferredHeight = 30.0f;
+  secondSpec.focusable = true;
+  secondSpec.hitTestVisible = true;
+  secondSpec.rectStyle = 986u;
+  secondSpec.callbacks.onFocus = [&]() { secondFocusCount += 1; };
+  PrimeStage::UiNode second =
+      PrimeStage::Internal::createExtensionPrimitive(secondRuntime, secondSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 340.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(first.nodeId(), 1);
+  CHECK(focus.focusedNode() == first.nodeId());
+  CHECK(firstFocusCount == 1);
+  CHECK(firstBlurCount == 0);
+
+  first.setVisible(false);
+  PrimeFrame::Node const* firstNode = frame.getNode(first.nodeId());
+  REQUIRE(firstNode != nullptr);
+  CHECK_FALSE(firstNode->visible);
+
+  layout = layoutFrame(frame, 340.0f, 220.0f);
+  clickCenter(second.nodeId(), 2);
+  CHECK(focus.focusedNode() == second.nodeId());
+  CHECK(secondFocusCount == 1);
+  CHECK(firstBlurCount == 1);
+
+  first.setVisible(true);
+  CHECK(firstNode->visible);
+  layout = layoutFrame(frame, 340.0f, 220.0f);
+  clickCenter(first.nodeId(), 3);
+  CHECK(focus.focusedNode() == first.nodeId());
+  CHECK(firstFocusCount == 2);
+
+  PrimeFrame::Primitive const* firstRect =
+      findRectPrimitiveByTokenInSubtree(frame, first.nodeId(), 985u);
+  PrimeFrame::Primitive const* secondRect =
+      findRectPrimitiveByTokenInSubtree(frame, second.nodeId(), 986u);
+  REQUIRE(firstRect != nullptr);
+  REQUIRE(secondRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);

@@ -346,6 +346,16 @@ Release Exit Criteria (for API-quality milestone):
     hit-test-toggle callback lifecycle coverage remains required when post-build hit-testing
     behavior evolves
 
+- ☑ [130] Add extension-seam visibility-toggle focus callback lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that focuses an extension node, toggles
+    visibility while focused, moves focus to a sibling extension node, and verifies blur/focus
+    callbacks continue to fire with expected lifecycle ordering across hide/show transitions
+  - verified the same test re-shows the first extension node and re-establishes focus to validate
+    post-toggle focus callback continuity
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    focus-callback lifecycle coverage remains required when visibility transitions can occur after
+    callback wiring
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
