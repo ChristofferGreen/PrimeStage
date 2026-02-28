@@ -513,6 +513,25 @@ TEST_CASE("PrimeStage helper widgets clamp invalid helper spec inputs") {
   CHECK_FALSE(spacerFrameNode->hitTestVisible);
 }
 
+TEST_CASE("PrimeStage divider overload maps style token and size to a divider node") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 96.0f;
+  size.preferredHeight = 3.0f;
+  PrimeStage::UiNode divider = root.createDivider(777u, size);
+
+  PrimeFrame::Node const* dividerNode = frame.getNode(divider.nodeId());
+  REQUIRE(dividerNode != nullptr);
+  REQUIRE(dividerNode->sizeHint.width.preferred.has_value());
+  REQUIRE(dividerNode->sizeHint.height.preferred.has_value());
+  CHECK(dividerNode->sizeHint.width.preferred.value() == doctest::Approx(96.0f));
+  CHECK(dividerNode->sizeHint.height.preferred.value() == doctest::Approx(3.0f));
+  CHECK_FALSE(dividerNode->hitTestVisible);
+  CHECK(findRectPrimitiveByToken(frame, divider.nodeId(), 777u) != nullptr);
+}
+
 TEST_CASE("PrimeStage interactive helper overloads build expected widgets") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
