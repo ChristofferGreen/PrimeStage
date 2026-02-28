@@ -275,6 +275,17 @@ Release Exit Criteria (for API-quality milestone):
   - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
     sanitization coverage remains required when internal extension spec/runtime wiring evolves
 
+- ☑ [123] Add routed extension-seam callback regression coverage.
+  - added `tests/unit/test_interaction.cpp` routed interaction coverage for
+    `PrimeStage::Internal::createExtensionPrimitive(...)` using `EventRouter` +
+    `FocusManager` to verify pointer/keyboard callback dispatch and focus/blur transitions across
+    multiple extension nodes
+  - added a negative runtime-gating case in the same test to verify disabled extension primitives
+    do not receive routed pointer callbacks and do not steal focus
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    routed callback/focus regression coverage remains required when extension callback semantics
+    evolve
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

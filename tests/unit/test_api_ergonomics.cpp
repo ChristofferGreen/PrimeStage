@@ -1633,6 +1633,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   REQUIRE(!interaction.empty());
   CHECK(interaction.find("internal extension primitive seam supports typed callbacks and runtime gating") !=
         std::string::npos);
+  CHECK(interaction.find("internal extension primitive seam routes pointer and focus callbacks through event router") !=
+        std::string::npos);
 
   std::ifstream specValidationInput(specValidationPath);
   REQUIRE(specValidationInput.good());
@@ -1671,6 +1673,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(agents.find("runtime visibility + enablement") != std::string::npos);
   CHECK(agents.find("extension-seam invalid-input sanitization regression coverage") !=
         std::string::npos);
+  CHECK(agents.find("extension-seam routed callback regression coverage") !=
+        std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1682,6 +1686,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [121] Align extension-primitive interactivity with widget visibility gating.") !=
         std::string::npos);
   CHECK(todo.find("☑ [122] Add extension-seam sanitization regression coverage for invalid inputs.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [123] Add routed extension-seam callback regression coverage.") !=
         std::string::npos);
 }
 

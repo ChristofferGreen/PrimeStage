@@ -917,6 +917,167 @@ TEST_CASE("PrimeStage internal extension primitive seam supports typed callbacks
   CHECK(hiddenEventCount == 0);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam routes pointer and focus callbacks through event router") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
+
+  int firstPointerCount = 0;
+  int firstKeyCount = 0;
+  int firstFocusCount = 0;
+  int firstBlurCount = 0;
+
+  PrimeStage::Internal::WidgetRuntimeContext firstRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          5);
+  PrimeStage::Internal::ExtensionPrimitiveSpec firstSpec;
+  firstSpec.rect = {16.0f, 16.0f, 120.0f, 28.0f};
+  firstSpec.size.preferredWidth = 120.0f;
+  firstSpec.size.preferredHeight = 28.0f;
+  firstSpec.focusable = true;
+  firstSpec.hitTestVisible = true;
+  firstSpec.rectStyle = 951u;
+  firstSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      firstPointerCount += 1;
+      return true;
+    }
+    if (event.type == PrimeFrame::EventType::KeyDown &&
+        event.key == PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter)) {
+      firstKeyCount += 1;
+      return true;
+    }
+    return false;
+  };
+  firstSpec.callbacks.onFocus = [&]() { firstFocusCount += 1; };
+  firstSpec.callbacks.onBlur = [&]() { firstBlurCount += 1; };
+  PrimeStage::UiNode first = PrimeStage::Internal::createExtensionPrimitive(firstRuntime, firstSpec);
+
+  int secondPointerCount = 0;
+  int secondKeyCount = 0;
+  int secondFocusCount = 0;
+  int secondBlurCount = 0;
+
+  PrimeStage::Internal::WidgetRuntimeContext secondRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          6);
+  PrimeStage::Internal::ExtensionPrimitiveSpec secondSpec;
+  secondSpec.rect = {16.0f, 64.0f, 120.0f, 28.0f};
+  secondSpec.size.preferredWidth = 120.0f;
+  secondSpec.size.preferredHeight = 28.0f;
+  secondSpec.focusable = true;
+  secondSpec.hitTestVisible = true;
+  secondSpec.rectStyle = 952u;
+  secondSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      secondPointerCount += 1;
+      return true;
+    }
+    if (event.type == PrimeFrame::EventType::KeyDown &&
+        event.key == PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter)) {
+      secondKeyCount += 1;
+      return true;
+    }
+    return false;
+  };
+  secondSpec.callbacks.onFocus = [&]() { secondFocusCount += 1; };
+  secondSpec.callbacks.onBlur = [&]() { secondBlurCount += 1; };
+  PrimeStage::UiNode second =
+      PrimeStage::Internal::createExtensionPrimitive(secondRuntime, secondSpec);
+
+  int disabledPointerCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext disabledRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          false,
+          true,
+          7);
+  PrimeStage::Internal::ExtensionPrimitiveSpec disabledSpec;
+  disabledSpec.rect = {16.0f, 112.0f, 120.0f, 28.0f};
+  disabledSpec.size.preferredWidth = 120.0f;
+  disabledSpec.size.preferredHeight = 28.0f;
+  disabledSpec.focusable = true;
+  disabledSpec.hitTestVisible = true;
+  disabledSpec.rectStyle = 953u;
+  disabledSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      disabledPointerCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode disabled =
+      PrimeStage::Internal::createExtensionPrimitive(disabledRuntime, disabledSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 360.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(first.nodeId(), 1);
+  CHECK(focus.focusedNode() == first.nodeId());
+  CHECK(firstPointerCount == 1);
+  CHECK(firstFocusCount == 1);
+  CHECK(firstBlurCount == 0);
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(firstKeyCount == 1);
+
+  clickCenter(second.nodeId(), 2);
+  CHECK(focus.focusedNode() == second.nodeId());
+  CHECK(secondPointerCount == 1);
+  CHECK(secondFocusCount == 1);
+  CHECK(firstBlurCount == 1);
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(secondKeyCount == 1);
+
+  clickCenter(disabled.nodeId(), 3);
+  CHECK(disabledPointerCount == 0);
+  CHECK(focus.focusedNode() != disabled.nodeId());
+
+  clickCenter(first.nodeId(), 4);
+  CHECK(focus.focusedNode() == first.nodeId());
+  CHECK(firstPointerCount == 2);
+  CHECK(firstFocusCount == 2);
+  CHECK(secondBlurCount == 1);
+
+  PrimeFrame::Primitive const* firstRect =
+      findRectPrimitiveByTokenInSubtree(frame, first.nodeId(), 951u);
+  PrimeFrame::Primitive const* secondRect =
+      findRectPrimitiveByTokenInSubtree(frame, second.nodeId(), 952u);
+  PrimeFrame::Primitive const* disabledRect =
+      findRectPrimitiveByTokenInSubtree(frame, disabled.nodeId(), 953u);
+  REQUIRE(firstRect != nullptr);
+  REQUIRE(secondRect != nullptr);
+  REQUIRE(disabledRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);
