@@ -132,6 +132,8 @@ void afterLayout(App& app) {
 ## Interaction Wiring Rules
 - Prefer semantic widget spec callbacks (`onActivate`, `onChange`, `onOpen`, `onSelect`) over node event hooks.
 - Legacy callback names are still accepted as compatibility aliases, but new code should use semantic names.
+- For callback alias migration mapping and before/after examples, see
+  `docs/semantic-callback-migration.md`.
 - Keep callbacks side-effect-light: update state and mark the app for rebuild/layout.
 - Use widget-provided callback payloads (`TableRowInfo`, `TreeViewRowInfo`) instead of hit-test math in app code.
 - Prefer app-level action routing for cross-widget commands and shortcuts:

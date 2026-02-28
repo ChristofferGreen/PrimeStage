@@ -198,10 +198,18 @@ Release Exit Criteria (for API-quality milestone):
     `docs/accessibility-semantics-roadmap.md` and aligned contributor guidance
     in `AGENTS.md`
 
-- ☐ [115] Add migration notes/tests for semantic callback naming adoption.
-  - document migration from legacy aliases (`onClick`, `onChanged`, etc.) to semantic callbacks
-    (`onActivate`, `onChange`, etc.) with before/after examples
-  - add regression tests ensuring both compatibility aliases and preferred callback paths remain correct
+- ☑ [115] Add migration notes/tests for semantic callback naming adoption.
+  - added `docs/semantic-callback-migration.md` with legacy-to-semantic callback mapping,
+    compatibility contract, and before/after migration examples for activation, value-change,
+    and selection widgets
+  - linked callback migration guidance from `docs/minimal-api-reference.md` and
+    `docs/api-ergonomics-guidelines.md` so alias adoption expectations are visible from canonical
+    API docs
+  - added/expanded regression tests in `tests/unit/test_interaction.cpp` and
+    `tests/unit/test_tabs_dropdown.cpp` covering legacy alias compatibility and semantic-callback
+    precedence when both callback names are configured
+  - added guardrail checks in `tests/unit/test_api_ergonomics.cpp` to keep migration docs,
+    callback regression test coverage, and TODO completion status in sync
 
 
 ## P2 (Foundational Cleanup / Backlog)

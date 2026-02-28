@@ -250,6 +250,7 @@ Preferred widget callback names:
 - `onSelect` for selection changes (for example `Tabs`, `Dropdown`, `List`, `Table`, `TreeView`).
 
 Legacy callback names remain accepted as compatibility aliases.
+See `docs/semantic-callback-migration.md` for legacy-to-semantic mapping and before/after migration examples.
 
 ## Window Builder (Stateless)
 

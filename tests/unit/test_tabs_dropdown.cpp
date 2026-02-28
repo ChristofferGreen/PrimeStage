@@ -671,3 +671,81 @@ TEST_CASE("PrimeStage tabs and dropdown legacy callback aliases remain supported
   CHECK(dropdownOpened == 1);
   CHECK(dropdownSelected == 1);
 }
+
+TEST_CASE("PrimeStage tabs and dropdown semantic callbacks take precedence over legacy aliases") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 140.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::TabsSpec tabsSpec;
+  tabsSpec.labels = {"One", "Two", "Three"};
+  tabsSpec.selectedIndex = 0;
+  tabsSpec.size.preferredWidth = 240.0f;
+  tabsSpec.size.preferredHeight = 28.0f;
+  int tabSelect = 0;
+  int tabChanged = 0;
+  tabsSpec.callbacks.onSelect = [&](int) { tabSelect += 1; };
+  tabsSpec.callbacks.onTabChanged = [&](int) { tabChanged += 1; };
+  PrimeStage::UiNode tabs = stack.createTabs(tabsSpec);
+
+  PrimeStage::DropdownSpec dropdownSpec;
+  dropdownSpec.options = {"Preview", "Edit", "Export"};
+  dropdownSpec.selectedIndex = 0;
+  dropdownSpec.size.preferredWidth = 180.0f;
+  dropdownSpec.size.preferredHeight = 24.0f;
+  int dropdownOpen = 0;
+  int dropdownOpened = 0;
+  int dropdownSelect = 0;
+  int dropdownSelected = 0;
+  dropdownSpec.callbacks.onOpen = [&]() { dropdownOpen += 1; };
+  dropdownSpec.callbacks.onOpened = [&]() { dropdownOpened += 1; };
+  dropdownSpec.callbacks.onSelect = [&](int) { dropdownSelect += 1; };
+  dropdownSpec.callbacks.onSelected = [&](int) { dropdownSelected += 1; };
+  PrimeStage::UiNode dropdown = stack.createDropdown(dropdownSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 140.0f);
+  PrimeFrame::Node const* tabRow = frame.getNode(tabs.nodeId());
+  REQUIRE(tabRow != nullptr);
+  REQUIRE(tabRow->children.size() == 3);
+  PrimeFrame::LayoutOut const* tabOut = layout.get(tabRow->children[1]);
+  PrimeFrame::LayoutOut const* dropdownOut = layout.get(dropdown.nodeId());
+  REQUIRE(tabOut != nullptr);
+  REQUIRE(dropdownOut != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  float tabX = tabOut->absX + tabOut->absW * 0.5f;
+  float tabY = tabOut->absY + tabOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, tabX, tabY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, tabX, tabY),
+                  frame,
+                  layout,
+                  &focus);
+
+  float dropdownX = dropdownOut->absX + dropdownOut->absW * 0.5f;
+  float dropdownY = dropdownOut->absY + dropdownOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, dropdownX, dropdownY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, dropdownX, dropdownY),
+                  frame,
+                  layout,
+                  &focus);
+
+  CHECK(tabSelect == 1);
+  CHECK(tabChanged == 0);
+  CHECK(dropdownOpen == 1);
+  CHECK(dropdownOpened == 0);
+  CHECK(dropdownSelect == 1);
+  CHECK(dropdownSelected == 0);
+}

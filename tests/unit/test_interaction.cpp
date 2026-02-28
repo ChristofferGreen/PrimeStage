@@ -404,6 +404,362 @@ TEST_CASE("PrimeStage button legacy onClick callback remains supported") {
   CHECK(clicks == 2);
 }
 
+TEST_CASE("PrimeStage text field legacy onTextChanged callback remains supported") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 220.0f, 120.0f);
+
+  PrimeStage::TextFieldState state;
+  PrimeStage::TextFieldSpec spec;
+  spec.state = &state;
+  spec.size.preferredWidth = 160.0f;
+  spec.size.preferredHeight = 28.0f;
+  int legacyChanges = 0;
+  std::string lastText;
+  spec.callbacks.onTextChanged = [&](std::string_view text) {
+    legacyChanges += 1;
+    lastText = std::string(text);
+  };
+
+  PrimeStage::UiNode field = root.createTextField(spec);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 220.0f, 120.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(field.nodeId());
+  REQUIRE(out != nullptr);
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  float centerX = out->absX + out->absW * 0.5f;
+  float centerY = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, centerX, centerY),
+                  frame,
+                  layout,
+                  &focus);
+
+  PrimeFrame::Event textInput;
+  textInput.type = PrimeFrame::EventType::TextInput;
+  textInput.text = "A";
+  router.dispatch(textInput, frame, layout, &focus);
+
+  CHECK(state.text == "A");
+  CHECK(legacyChanges == 1);
+  CHECK(lastText == "A");
+}
+
+TEST_CASE("PrimeStage toggle checkbox slider and progress legacy aliases remain supported") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 220.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 24.0f;
+  toggleSpec.trackStyle = 701u;
+  toggleSpec.knobStyle = 702u;
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.label = "Enabled";
+  checkboxSpec.boxStyle = 711u;
+  checkboxSpec.checkStyle = 712u;
+
+  PrimeStage::SliderSpec sliderSpec;
+  sliderSpec.size.preferredWidth = 180.0f;
+  sliderSpec.size.preferredHeight = 12.0f;
+  sliderSpec.trackStyle = 721u;
+  sliderSpec.fillStyle = 722u;
+  sliderSpec.thumbStyle = 723u;
+
+  PrimeStage::ProgressBarSpec progressSpec;
+  progressSpec.size.preferredWidth = 180.0f;
+  progressSpec.size.preferredHeight = 12.0f;
+  progressSpec.trackStyle = 731u;
+  progressSpec.fillStyle = 732u;
+
+  std::vector<bool> toggleValues;
+  std::vector<bool> checkboxValues;
+  std::vector<float> sliderValues;
+  std::vector<float> progressValues;
+  toggleSpec.callbacks.onChanged = [&](bool value) { toggleValues.push_back(value); };
+  checkboxSpec.callbacks.onChanged = [&](bool value) { checkboxValues.push_back(value); };
+  sliderSpec.callbacks.onValueChanged = [&](float value) { sliderValues.push_back(value); };
+  progressSpec.callbacks.onValueChanged = [&](float value) { progressValues.push_back(value); };
+
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+  PrimeStage::UiNode slider = stack.createSlider(sliderSpec);
+  PrimeStage::UiNode progress = stack.createProgressBar(progressSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.8f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(toggle.nodeId(), 1);
+  clickCenter(checkbox.nodeId(), 2);
+  clickCenter(slider.nodeId(), 3);
+  clickCenter(progress.nodeId(), 4);
+
+  CHECK(toggleValues.size() == 1);
+  CHECK(checkboxValues.size() == 1);
+  CHECK(sliderValues.size() >= 1);
+  CHECK(progressValues.size() >= 1);
+}
+
+TEST_CASE("PrimeStage semantic callbacks take precedence over legacy aliases for core widgets") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 260.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::ButtonSpec buttonSpec;
+  buttonSpec.label = "Apply";
+  buttonSpec.size.preferredWidth = 120.0f;
+  buttonSpec.size.preferredHeight = 28.0f;
+  int buttonActivate = 0;
+  int buttonClick = 0;
+  buttonSpec.callbacks.onActivate = [&]() { buttonActivate += 1; };
+  buttonSpec.callbacks.onClick = [&]() { buttonClick += 1; };
+
+  PrimeStage::TextFieldState textState;
+  PrimeStage::TextFieldSpec fieldSpec;
+  fieldSpec.state = &textState;
+  fieldSpec.size.preferredWidth = 180.0f;
+  fieldSpec.size.preferredHeight = 28.0f;
+  int fieldChange = 0;
+  int fieldTextChanged = 0;
+  fieldSpec.callbacks.onChange = [&](std::string_view) { fieldChange += 1; };
+  fieldSpec.callbacks.onTextChanged = [&](std::string_view) { fieldTextChanged += 1; };
+
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.size.preferredWidth = 60.0f;
+  toggleSpec.size.preferredHeight = 24.0f;
+  toggleSpec.trackStyle = 801u;
+  toggleSpec.knobStyle = 802u;
+  int toggleChange = 0;
+  int toggleChanged = 0;
+  toggleSpec.callbacks.onChange = [&](bool) { toggleChange += 1; };
+  toggleSpec.callbacks.onChanged = [&](bool) { toggleChanged += 1; };
+
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.label = "Check";
+  checkboxSpec.boxStyle = 811u;
+  checkboxSpec.checkStyle = 812u;
+  int checkboxChange = 0;
+  int checkboxChanged = 0;
+  checkboxSpec.callbacks.onChange = [&](bool) { checkboxChange += 1; };
+  checkboxSpec.callbacks.onChanged = [&](bool) { checkboxChanged += 1; };
+
+  PrimeStage::SliderSpec sliderSpec;
+  sliderSpec.size.preferredWidth = 180.0f;
+  sliderSpec.size.preferredHeight = 12.0f;
+  sliderSpec.trackStyle = 821u;
+  sliderSpec.fillStyle = 822u;
+  sliderSpec.thumbStyle = 823u;
+  int sliderChange = 0;
+  int sliderValueChanged = 0;
+  sliderSpec.callbacks.onChange = [&](float) { sliderChange += 1; };
+  sliderSpec.callbacks.onValueChanged = [&](float) { sliderValueChanged += 1; };
+
+  PrimeStage::ProgressBarSpec progressSpec;
+  progressSpec.size.preferredWidth = 180.0f;
+  progressSpec.size.preferredHeight = 12.0f;
+  progressSpec.trackStyle = 831u;
+  progressSpec.fillStyle = 832u;
+  int progressChange = 0;
+  int progressValueChanged = 0;
+  progressSpec.callbacks.onChange = [&](float) { progressChange += 1; };
+  progressSpec.callbacks.onValueChanged = [&](float) { progressValueChanged += 1; };
+
+  PrimeStage::UiNode button = stack.createButton(buttonSpec);
+  PrimeStage::UiNode field = stack.createTextField(fieldSpec);
+  PrimeStage::UiNode toggle = stack.createToggle(toggleSpec);
+  PrimeStage::UiNode checkbox = stack.createCheckbox(checkboxSpec);
+  PrimeStage::UiNode slider = stack.createSlider(sliderSpec);
+  PrimeStage::UiNode progress = stack.createProgressBar(progressSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 260.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId, float xFactor = 0.5f) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * xFactor;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(button.nodeId(), 1);
+  clickCenter(field.nodeId(), 2);
+  PrimeFrame::Event textInput;
+  textInput.type = PrimeFrame::EventType::TextInput;
+  textInput.text = "A";
+  router.dispatch(textInput, frame, layout, &focus);
+  clickCenter(toggle.nodeId(), 3);
+  clickCenter(checkbox.nodeId(), 4);
+  clickCenter(slider.nodeId(), 5, 0.8f);
+  clickCenter(progress.nodeId(), 6, 0.8f);
+
+  CHECK(buttonActivate == 1);
+  CHECK(buttonClick == 0);
+  CHECK(fieldChange == 1);
+  CHECK(fieldTextChanged == 0);
+  CHECK(toggleChange == 1);
+  CHECK(toggleChanged == 0);
+  CHECK(checkboxChange == 1);
+  CHECK(checkboxChanged == 0);
+  CHECK(sliderChange >= 1);
+  CHECK(sliderValueChanged == 0);
+  CHECK(progressChange >= 1);
+  CHECK(progressValueChanged == 0);
+}
+
+TEST_CASE("PrimeStage semantic callbacks take precedence over legacy aliases for selection widgets") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 440.0f, 300.0f);
+
+  PrimeStage::StackSpec stackSpec;
+  stackSpec.gap = 10.0f;
+  stackSpec.size.stretchX = 1.0f;
+  stackSpec.size.stretchY = 1.0f;
+  PrimeStage::UiNode stack = root.createVerticalStack(stackSpec);
+
+  PrimeStage::TableSpec tableSpec;
+  tableSpec.columns = {{"Name", 180.0f, 0u, 0u}};
+  tableSpec.rows = {{"Alpha"}, {"Beta"}};
+  tableSpec.headerInset = 0.0f;
+  tableSpec.headerHeight = 0.0f;
+  tableSpec.rowHeight = 24.0f;
+  tableSpec.rowGap = 0.0f;
+  tableSpec.size.preferredWidth = 220.0f;
+  tableSpec.size.preferredHeight = 80.0f;
+  int tableSelect = 0;
+  int tableRowClicked = 0;
+  tableSpec.callbacks.onSelect = [&](PrimeStage::TableRowInfo const&) { tableSelect += 1; };
+  tableSpec.callbacks.onRowClicked = [&](PrimeStage::TableRowInfo const&) { tableRowClicked += 1; };
+
+  PrimeStage::ListSpec listSpec;
+  listSpec.items = {"One", "Two"};
+  listSpec.rowHeight = 24.0f;
+  listSpec.rowGap = 0.0f;
+  listSpec.size.preferredWidth = 220.0f;
+  listSpec.size.preferredHeight = 72.0f;
+  int listSelect = 0;
+  int listSelected = 0;
+  listSpec.callbacks.onSelect = [&](PrimeStage::ListRowInfo const&) { listSelect += 1; };
+  listSpec.callbacks.onSelected = [&](PrimeStage::ListRowInfo const&) { listSelected += 1; };
+
+  PrimeStage::TreeViewSpec treeSpec;
+  treeSpec.size.preferredWidth = 220.0f;
+  treeSpec.size.preferredHeight = 72.0f;
+  treeSpec.rowStartY = 0.0f;
+  treeSpec.rowHeight = 20.0f;
+  treeSpec.rowGap = 0.0f;
+  treeSpec.rowStartX = 8.0f;
+  treeSpec.rowWidthInset = 0.0f;
+  treeSpec.rowStyle = 901u;
+  treeSpec.rowAltStyle = 902u;
+  treeSpec.selectionStyle = 903u;
+  treeSpec.selectionAccentStyle = 904u;
+  treeSpec.textStyle = 905u;
+  treeSpec.selectedTextStyle = 906u;
+  treeSpec.nodes = {PrimeStage::TreeNode{"Leaf"}};
+  int treeSelect = 0;
+  int treeSelectionChanged = 0;
+  int treeActivate = 0;
+  int treeActivated = 0;
+  treeSpec.callbacks.onSelect = [&](PrimeStage::TreeViewRowInfo const&) { treeSelect += 1; };
+  treeSpec.callbacks.onSelectionChanged = [&](PrimeStage::TreeViewRowInfo const&) { treeSelectionChanged += 1; };
+  treeSpec.callbacks.onActivate = [&](PrimeStage::TreeViewRowInfo const&) { treeActivate += 1; };
+  treeSpec.callbacks.onActivated = [&](PrimeStage::TreeViewRowInfo const&) { treeActivated += 1; };
+
+  PrimeStage::UiNode table = stack.createTable(tableSpec);
+  PrimeStage::UiNode list = stack.createList(listSpec);
+  PrimeStage::UiNode tree = stack.createTreeView(treeSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 440.0f, 300.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  PrimeFrame::NodeId tableCallbackNode = findFirstNodeWithOnEventInSubtree(frame, table.nodeId());
+  PrimeFrame::NodeId listCallbackNode = findFirstNodeWithOnEventInSubtree(frame, list.nodeId());
+  REQUIRE(tableCallbackNode.isValid());
+  REQUIRE(listCallbackNode.isValid());
+
+  PrimeFrame::LayoutOut const* tableOut = layout.get(tableCallbackNode);
+  PrimeFrame::LayoutOut const* listOut = layout.get(listCallbackNode);
+  PrimeFrame::LayoutOut const* treeOut = layout.get(tree.nodeId());
+  REQUIRE(tableOut != nullptr);
+  REQUIRE(listOut != nullptr);
+  REQUIRE(treeOut != nullptr);
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown,
+                                   1,
+                                   tableOut->absX + tableOut->absW * 0.5f,
+                                   tableOut->absY + tableSpec.rowHeight * 0.5f),
+                  frame,
+                  layout,
+                  &focus);
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown,
+                                   2,
+                                   listOut->absX + listOut->absW * 0.5f,
+                                   listOut->absY + listSpec.rowHeight * 0.5f),
+                  frame,
+                  layout,
+                  &focus);
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown,
+                                   3,
+                                   treeOut->absX + treeSpec.rowStartX + 12.0f,
+                                   treeOut->absY + treeSpec.rowHeight * 0.5f),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+
+  CHECK(tableSelect == 1);
+  CHECK(tableRowClicked == 0);
+  CHECK(listSelect == 1);
+  CHECK(listSelected == 0);
+  CHECK(treeSelect == 1);
+  CHECK(treeSelectionChanged == 0);
+  CHECK(treeActivate == 1);
+  CHECK(treeActivated == 0);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);

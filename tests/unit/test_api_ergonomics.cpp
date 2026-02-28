@@ -4221,6 +4221,81 @@ TEST_CASE("PrimeStage collection entrypoints are split into dedicated translatio
         std::string::npos);
 }
 
+TEST_CASE("PrimeStage callback naming migration docs and regressions stay aligned") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path migrationPath = repoRoot / "docs" / "semantic-callback-migration.md";
+  std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
+  std::filesystem::path apiRefPath = repoRoot / "docs" / "minimal-api-reference.md";
+  std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  std::filesystem::path tabsPath = repoRoot / "tests" / "unit" / "test_tabs_dropdown.cpp";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(migrationPath));
+  REQUIRE(std::filesystem::exists(guidelinesPath));
+  REQUIRE(std::filesystem::exists(apiRefPath));
+  REQUIRE(std::filesystem::exists(interactionPath));
+  REQUIRE(std::filesystem::exists(tabsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream migrationInput(migrationPath);
+  REQUIRE(migrationInput.good());
+  std::string migration((std::istreambuf_iterator<char>(migrationInput)),
+                        std::istreambuf_iterator<char>());
+  REQUIRE(!migration.empty());
+  CHECK(migration.find("Semantic Callback Migration") != std::string::npos);
+  CHECK(migration.find("onClick") != std::string::npos);
+  CHECK(migration.find("onActivate") != std::string::npos);
+  CHECK(migration.find("onSelectionChanged") != std::string::npos);
+  CHECK(migration.find("onSelect") != std::string::npos);
+  CHECK(migration.find("Compatibility Contract") != std::string::npos);
+  CHECK(migration.find("preferred callback") != std::string::npos);
+
+  std::ifstream guidelinesInput(guidelinesPath);
+  REQUIRE(guidelinesInput.good());
+  std::string guidelines((std::istreambuf_iterator<char>(guidelinesInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!guidelines.empty());
+  CHECK(guidelines.find("docs/semantic-callback-migration.md") != std::string::npos);
+
+  std::ifstream apiRefInput(apiRefPath);
+  REQUIRE(apiRefInput.good());
+  std::string apiRef((std::istreambuf_iterator<char>(apiRefInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!apiRef.empty());
+  CHECK(apiRef.find("docs/semantic-callback-migration.md") != std::string::npos);
+
+  std::ifstream interactionInput(interactionPath);
+  REQUIRE(interactionInput.good());
+  std::string interaction((std::istreambuf_iterator<char>(interactionInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!interaction.empty());
+  CHECK(interaction.find("text field legacy onTextChanged callback remains supported") !=
+        std::string::npos);
+  CHECK(interaction.find("toggle checkbox slider and progress legacy aliases remain supported") !=
+        std::string::npos);
+  CHECK(interaction.find("semantic callbacks take precedence over legacy aliases for core widgets") !=
+        std::string::npos);
+  CHECK(interaction.find("semantic callbacks take precedence over legacy aliases for selection widgets") !=
+        std::string::npos);
+
+  std::ifstream tabsInput(tabsPath);
+  REQUIRE(tabsInput.good());
+  std::string tabs((std::istreambuf_iterator<char>(tabsInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!tabs.empty());
+  CHECK(tabs.find("tabs and dropdown legacy callback aliases remain supported") != std::string::npos);
+  CHECK(tabs.find("tabs and dropdown semantic callbacks take precedence over legacy aliases") !=
+        std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("☑ [115] Add migration notes/tests for semantic callback naming adoption.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage LowLevel appendNodeOnEvent composes without clobbering existing callback") {
   PrimeFrame::Frame frame;
   PrimeFrame::NodeId nodeId = frame.createNode();
