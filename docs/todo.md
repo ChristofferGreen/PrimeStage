@@ -226,9 +226,20 @@ Release Exit Criteria (for API-quality milestone):
   - updated guardrails in `tests/unit/test_api_ergonomics.cpp` and contributor guidance in
     `AGENTS.md` so replay fixtures remain versioned and aligned with tests
 
-- ☐ [117] Expand property/fuzz coverage for widget-spec sanitization paths.
-  - add randomized invalid-size/range/index inputs across widget specs and assert clamp invariants
-  - keep seeds/corpus deterministic and include focused regression corpus for known failures
+- ☑ [117] Expand property/fuzz coverage for widget-spec sanitization paths.
+  - added deterministic property/fuzz sanitization coverage in
+    `tests/unit/test_spec_validation.cpp` using fixed RNG seed
+    (`SanitizationFuzzSeed`) across randomized invalid size/range/index inputs for
+    `SliderSpec`, `ProgressBarSpec`, `TabsSpec`, `DropdownSpec`, `ListSpec`,
+    `TableSpec`, `ButtonSpec`, `TextFieldSpec`, `PanelSpec`, `WindowSpec`, and
+    `ScrollViewSpec`
+  - added focused regression corpus coverage in `tests/unit/test_spec_validation.cpp`
+    for known clamp failures (binding/state range clamping, selected-index/row
+    fallbacks, negative cursor blink/width, size min/max/preferred conflict, and
+    window min-dimension enforcement)
+  - added API ergonomics guardrails in `tests/unit/test_api_ergonomics.cpp` and
+    updated contributor guidance in `AGENTS.md` to keep sanitization fuzz seeds
+    and corpus deterministic
 
 - ☐ [118] Add an internal extension seam for custom widget primitives.
   - provide a typed internal extension path for advanced composition without requiring direct

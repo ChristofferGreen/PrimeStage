@@ -8,7 +8,11 @@
 
 #include "third_party/doctest.h"
 
+#include <algorithm>
+#include <array>
+#include <functional>
 #include <iomanip>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -248,6 +252,105 @@ std::string exportFocusRow(std::string_view name,
   out << " focused=" << boolString(focused);
   out << " disabled=" << boolString(semantics.state.disabled);
   return out.str();
+}
+
+constexpr uint64_t SanitizationFuzzSeed = 0x51A715A11C0FFEEu;
+constexpr int SanitizationFuzzIterations = 192;
+
+float fuzzFloat(std::mt19937_64& rng, float minValue, float maxValue) {
+  std::uniform_real_distribution<float> dist(minValue, maxValue);
+  return dist(rng);
+}
+
+int fuzzInt(std::mt19937_64& rng, int minValue, int maxValue) {
+  std::uniform_int_distribution<int> dist(minValue, maxValue);
+  return dist(rng);
+}
+
+std::optional<float> fuzzOptionalFloat(std::mt19937_64& rng, float minValue, float maxValue) {
+  if ((rng() % 3u) == 0u) {
+    return std::nullopt;
+  }
+  return fuzzFloat(rng, minValue, maxValue);
+}
+
+void fuzzSizeSpec(PrimeStage::SizeSpec& size, std::mt19937_64& rng) {
+  size.minWidth = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.maxWidth = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.preferredWidth = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.stretchX = fuzzFloat(rng, -4.0f, 4.0f);
+  size.minHeight = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.maxHeight = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.preferredHeight = fuzzOptionalFloat(rng, -240.0f, 240.0f);
+  size.stretchY = fuzzFloat(rng, -4.0f, 4.0f);
+}
+
+void checkSanitizedSizeSpec(PrimeStage::SizeSpec const& size) {
+  if (size.minWidth.has_value()) {
+    CHECK(size.minWidth.value() >= 0.0f);
+  }
+  if (size.maxWidth.has_value()) {
+    CHECK(size.maxWidth.value() >= 0.0f);
+  }
+  if (size.preferredWidth.has_value()) {
+    CHECK(size.preferredWidth.value() >= 0.0f);
+  }
+  CHECK(size.stretchX >= 0.0f);
+
+  if (size.minHeight.has_value()) {
+    CHECK(size.minHeight.value() >= 0.0f);
+  }
+  if (size.maxHeight.has_value()) {
+    CHECK(size.maxHeight.value() >= 0.0f);
+  }
+  if (size.preferredHeight.has_value()) {
+    CHECK(size.preferredHeight.value() >= 0.0f);
+  }
+  CHECK(size.stretchY >= 0.0f);
+
+  if (size.minWidth.has_value() && size.maxWidth.has_value()) {
+    CHECK(size.minWidth.value() <= size.maxWidth.value());
+  }
+  if (size.minHeight.has_value() && size.maxHeight.has_value()) {
+    CHECK(size.minHeight.value() <= size.maxHeight.value());
+  }
+  if (size.preferredWidth.has_value() && size.minWidth.has_value()) {
+    CHECK(size.preferredWidth.value() >= size.minWidth.value());
+  }
+  if (size.preferredWidth.has_value() && size.maxWidth.has_value()) {
+    CHECK(size.preferredWidth.value() <= size.maxWidth.value());
+  }
+  if (size.preferredHeight.has_value() && size.minHeight.has_value()) {
+    CHECK(size.preferredHeight.value() >= size.minHeight.value());
+  }
+  if (size.preferredHeight.has_value() && size.maxHeight.has_value()) {
+    CHECK(size.preferredHeight.value() <= size.maxHeight.value());
+  }
+}
+
+int expectedSelectedIndex(int value, int count) {
+  if (count <= 0) {
+    return 0;
+  }
+  return std::clamp(value, 0, count - 1);
+}
+
+int expectedSelectedRowOrNone(int value, int count) {
+  if (count <= 0) {
+    return -1;
+  }
+  if (value < 0 || value >= count) {
+    return -1;
+  }
+  return value;
+}
+
+int expectedTabIndex(int value) {
+  return std::max(value, -1);
+}
+
+bool inUnitInterval(float value) {
+  return value >= 0.0f && value <= 1.0f;
 }
 
 } // namespace
@@ -576,6 +679,415 @@ TEST_CASE("PrimeStage table clamps invalid selected row to none") {
 
   PrimeStage::UiNode table = root.createTable(spec);
   CHECK(countRectToken(frame, table.nodeId(), spec.selectionStyle) == 0u);
+}
+
+TEST_CASE("PrimeStage widget-spec sanitization keeps invariants under deterministic fuzz") {
+  std::mt19937_64 rng(SanitizationFuzzSeed);
+  std::array<std::string_view, 5> itemPool = {"A", "B", "C", "D", "E"};
+
+  for (int iteration = 0; iteration < SanitizationFuzzIterations; ++iteration) {
+    PrimeStage::State<float> sliderBindingState;
+    sliderBindingState.value = fuzzFloat(rng, -4.0f, 4.0f);
+    PrimeStage::SliderState sliderState;
+    sliderState.value = fuzzFloat(rng, -4.0f, 4.0f);
+    PrimeStage::SliderSpec slider;
+    fuzzSizeSpec(slider.size, rng);
+    slider.value = fuzzFloat(rng, -4.0f, 4.0f);
+    slider.trackThickness = fuzzFloat(rng, -12.0f, 12.0f);
+    slider.thumbSize = fuzzFloat(rng, -12.0f, 12.0f);
+    slider.fillHoverOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.fillPressedOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.trackHoverOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.trackPressedOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.thumbHoverOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.thumbPressedOpacity = fuzzOptionalFloat(rng, -2.0f, 2.0f);
+    slider.tabIndex = fuzzInt(rng, -12, 12);
+    int sliderMode = fuzzInt(rng, 0, 2);
+    if (sliderMode == 1) {
+      slider.binding = PrimeStage::bind(sliderBindingState);
+    } else if (sliderMode == 2) {
+      slider.state = &sliderState;
+    }
+    PrimeStage::SliderSpec normalizedSlider = PrimeStage::Internal::normalizeSliderSpec(slider);
+    checkSanitizedSizeSpec(normalizedSlider.size);
+    CHECK(inUnitInterval(normalizedSlider.value));
+    CHECK(normalizedSlider.trackThickness >= 0.0f);
+    CHECK(normalizedSlider.thumbSize >= 0.0f);
+    CHECK(normalizedSlider.tabIndex == expectedTabIndex(slider.tabIndex));
+    if (normalizedSlider.fillHoverOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.fillHoverOpacity));
+    }
+    if (normalizedSlider.fillPressedOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.fillPressedOpacity));
+    }
+    if (normalizedSlider.trackHoverOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.trackHoverOpacity));
+    }
+    if (normalizedSlider.trackPressedOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.trackPressedOpacity));
+    }
+    if (normalizedSlider.thumbHoverOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.thumbHoverOpacity));
+    }
+    if (normalizedSlider.thumbPressedOpacity.has_value()) {
+      CHECK(inUnitInterval(*normalizedSlider.thumbPressedOpacity));
+    }
+    if (sliderMode == 1) {
+      CHECK(sliderBindingState.value == doctest::Approx(normalizedSlider.value));
+    } else if (sliderMode == 2) {
+      CHECK(sliderState.value == doctest::Approx(normalizedSlider.value));
+    }
+
+    PrimeStage::State<float> progressBindingState;
+    progressBindingState.value = fuzzFloat(rng, -4.0f, 4.0f);
+    PrimeStage::ProgressBarState progressState;
+    progressState.value = fuzzFloat(rng, -4.0f, 4.0f);
+    PrimeStage::ProgressBarSpec progress;
+    fuzzSizeSpec(progress.size, rng);
+    progress.value = fuzzFloat(rng, -4.0f, 4.0f);
+    progress.minFillWidth = fuzzFloat(rng, -16.0f, 16.0f);
+    progress.tabIndex = fuzzInt(rng, -12, 12);
+    int progressMode = fuzzInt(rng, 0, 2);
+    if (progressMode == 1) {
+      progress.binding = PrimeStage::bind(progressBindingState);
+    } else if (progressMode == 2) {
+      progress.state = &progressState;
+    }
+    PrimeStage::ProgressBarSpec normalizedProgress =
+        PrimeStage::Internal::normalizeProgressBarSpec(progress);
+    checkSanitizedSizeSpec(normalizedProgress.size);
+    CHECK(inUnitInterval(normalizedProgress.value));
+    CHECK(normalizedProgress.minFillWidth >= 0.0f);
+    CHECK(normalizedProgress.tabIndex == expectedTabIndex(progress.tabIndex));
+    if (progressMode == 1) {
+      CHECK(progressBindingState.value == doctest::Approx(normalizedProgress.value));
+    } else if (progressMode == 2) {
+      CHECK(progressState.value == doctest::Approx(normalizedProgress.value));
+    }
+
+    int tabCount = fuzzInt(rng, 0, static_cast<int>(itemPool.size()));
+    std::vector<std::string_view> labels(itemPool.begin(), itemPool.begin() + tabCount);
+    PrimeStage::State<int> tabsBindingState;
+    tabsBindingState.value = fuzzInt(rng, -20, 20);
+    PrimeStage::TabsState tabsState;
+    tabsState.selectedIndex = fuzzInt(rng, -20, 20);
+    PrimeStage::TabsSpec tabs;
+    tabs.labels = labels;
+    fuzzSizeSpec(tabs.size, rng);
+    tabs.selectedIndex = fuzzInt(rng, -20, 20);
+    tabs.tabPaddingX = fuzzFloat(rng, -20.0f, 20.0f);
+    tabs.tabPaddingY = fuzzFloat(rng, -20.0f, 20.0f);
+    tabs.gap = fuzzFloat(rng, -20.0f, 20.0f);
+    tabs.tabIndex = fuzzInt(rng, -12, 12);
+    int tabsMode = fuzzInt(rng, 0, 2);
+    if (tabsMode == 1) {
+      tabs.binding = PrimeStage::bind(tabsBindingState);
+    } else if (tabsMode == 2) {
+      tabs.state = &tabsState;
+    }
+    int tabsInputSelected = tabs.selectedIndex;
+    int tabsBindingInput = tabsBindingState.value;
+    int tabsStateInput = tabsState.selectedIndex;
+    PrimeStage::TabsSpec normalizedTabs = PrimeStage::Internal::normalizeTabsSpec(tabs);
+    checkSanitizedSizeSpec(normalizedTabs.size);
+    CHECK(normalizedTabs.tabPaddingX >= 0.0f);
+    CHECK(normalizedTabs.tabPaddingY >= 0.0f);
+    CHECK(normalizedTabs.gap >= 0.0f);
+    CHECK(normalizedTabs.tabIndex == expectedTabIndex(tabs.tabIndex));
+    CHECK(normalizedTabs.selectedIndex == expectedSelectedIndex(
+                                          tabsMode == 1 ? tabsBindingInput
+                                                        : (tabsMode == 2 ? tabsStateInput
+                                                                         : tabsInputSelected),
+                                          tabCount));
+    if (tabsMode == 1) {
+      CHECK(tabsBindingState.value == normalizedTabs.selectedIndex);
+    } else if (tabsMode == 2) {
+      CHECK(tabsState.selectedIndex == normalizedTabs.selectedIndex);
+    }
+
+    int optionCount = fuzzInt(rng, 0, static_cast<int>(itemPool.size()));
+    std::vector<std::string_view> options(itemPool.begin(), itemPool.begin() + optionCount);
+    PrimeStage::State<int> dropdownBindingState;
+    dropdownBindingState.value = fuzzInt(rng, -20, 20);
+    PrimeStage::DropdownState dropdownState;
+    dropdownState.selectedIndex = fuzzInt(rng, -20, 20);
+    PrimeStage::DropdownSpec dropdown;
+    dropdown.options = options;
+    fuzzSizeSpec(dropdown.size, rng);
+    dropdown.selectedIndex = fuzzInt(rng, -20, 20);
+    dropdown.paddingX = fuzzFloat(rng, -20.0f, 20.0f);
+    dropdown.indicatorGap = fuzzFloat(rng, -20.0f, 20.0f);
+    dropdown.tabIndex = fuzzInt(rng, -12, 12);
+    int dropdownMode = fuzzInt(rng, 0, 2);
+    if (dropdownMode == 1) {
+      dropdown.binding = PrimeStage::bind(dropdownBindingState);
+    } else if (dropdownMode == 2) {
+      dropdown.state = &dropdownState;
+    }
+    int dropdownInputSelected = dropdown.selectedIndex;
+    int dropdownBindingInput = dropdownBindingState.value;
+    int dropdownStateInput = dropdownState.selectedIndex;
+    PrimeStage::DropdownSpec normalizedDropdown = PrimeStage::Internal::normalizeDropdownSpec(dropdown);
+    checkSanitizedSizeSpec(normalizedDropdown.size);
+    CHECK(normalizedDropdown.paddingX >= 0.0f);
+    CHECK(normalizedDropdown.indicatorGap >= 0.0f);
+    CHECK(normalizedDropdown.tabIndex == expectedTabIndex(dropdown.tabIndex));
+    CHECK(normalizedDropdown.selectedIndex == expectedSelectedIndex(
+                                               dropdownMode == 1 ? dropdownBindingInput
+                                                                 : (dropdownMode == 2
+                                                                        ? dropdownStateInput
+                                                                        : dropdownInputSelected),
+                                               optionCount));
+    if (dropdownMode == 1) {
+      CHECK(dropdownBindingState.value == normalizedDropdown.selectedIndex);
+    } else if (dropdownMode == 2) {
+      CHECK(dropdownState.selectedIndex == normalizedDropdown.selectedIndex);
+    }
+
+    int itemCount = fuzzInt(rng, 0, static_cast<int>(itemPool.size()));
+    PrimeStage::ListSpec list;
+    list.items.assign(itemPool.begin(), itemPool.begin() + itemCount);
+    fuzzSizeSpec(list.size, rng);
+    list.rowHeight = fuzzFloat(rng, -32.0f, 32.0f);
+    list.rowGap = fuzzFloat(rng, -32.0f, 32.0f);
+    list.rowPaddingX = fuzzFloat(rng, -32.0f, 32.0f);
+    list.selectedIndex = fuzzInt(rng, -20, 20);
+    list.tabIndex = fuzzInt(rng, -12, 12);
+    PrimeStage::ListSpec normalizedList = PrimeStage::Internal::normalizeListSpec(list);
+    checkSanitizedSizeSpec(normalizedList.size);
+    CHECK(normalizedList.rowHeight >= 0.0f);
+    CHECK(normalizedList.rowGap >= 0.0f);
+    CHECK(normalizedList.rowPaddingX >= 0.0f);
+    CHECK(normalizedList.tabIndex == expectedTabIndex(list.tabIndex));
+    CHECK(normalizedList.selectedIndex == expectedSelectedRowOrNone(list.selectedIndex, itemCount));
+
+    int rowCount = fuzzInt(rng, 0, static_cast<int>(itemPool.size()));
+    PrimeStage::TableSpec table;
+    table.columns = {{"Name", 0.0f, 0u, 0u}};
+    table.rows.clear();
+    for (int row = 0; row < rowCount; ++row) {
+      table.rows.push_back({itemPool[static_cast<size_t>(row)]});
+    }
+    fuzzSizeSpec(table.size, rng);
+    table.headerInset = fuzzFloat(rng, -32.0f, 32.0f);
+    table.headerHeight = fuzzFloat(rng, -32.0f, 32.0f);
+    table.rowHeight = fuzzFloat(rng, -32.0f, 32.0f);
+    table.rowGap = fuzzFloat(rng, -32.0f, 32.0f);
+    table.headerPaddingX = fuzzFloat(rng, -32.0f, 32.0f);
+    table.cellPaddingX = fuzzFloat(rng, -32.0f, 32.0f);
+    table.selectedRow = fuzzInt(rng, -20, 20);
+    table.tabIndex = fuzzInt(rng, -12, 12);
+    PrimeStage::TableSpec normalizedTable = PrimeStage::Internal::normalizeTableSpec(table);
+    checkSanitizedSizeSpec(normalizedTable.size);
+    CHECK(normalizedTable.headerInset >= 0.0f);
+    CHECK(normalizedTable.headerHeight >= 0.0f);
+    CHECK(normalizedTable.rowHeight >= 0.0f);
+    CHECK(normalizedTable.rowGap >= 0.0f);
+    CHECK(normalizedTable.headerPaddingX >= 0.0f);
+    CHECK(normalizedTable.cellPaddingX >= 0.0f);
+    CHECK(normalizedTable.tabIndex == expectedTabIndex(table.tabIndex));
+    CHECK(normalizedTable.selectedRow == expectedSelectedRowOrNone(table.selectedRow, rowCount));
+
+    PrimeStage::ButtonSpec button;
+    fuzzSizeSpec(button.size, rng);
+    button.textInsetX = fuzzFloat(rng, -32.0f, 32.0f);
+    button.baseOpacity = fuzzFloat(rng, -2.0f, 2.0f);
+    button.hoverOpacity = fuzzFloat(rng, -2.0f, 2.0f);
+    button.pressedOpacity = fuzzFloat(rng, -2.0f, 2.0f);
+    button.tabIndex = fuzzInt(rng, -12, 12);
+    PrimeStage::ButtonSpec normalizedButton = PrimeStage::Internal::normalizeButtonSpec(button);
+    checkSanitizedSizeSpec(normalizedButton.size);
+    CHECK(normalizedButton.textInsetX >= 0.0f);
+    CHECK(inUnitInterval(normalizedButton.baseOpacity));
+    CHECK(inUnitInterval(normalizedButton.hoverOpacity));
+    CHECK(inUnitInterval(normalizedButton.pressedOpacity));
+    CHECK(normalizedButton.tabIndex == expectedTabIndex(button.tabIndex));
+
+    PrimeStage::TextFieldSpec field;
+    fuzzSizeSpec(field.size, rng);
+    field.paddingX = fuzzFloat(rng, -32.0f, 32.0f);
+    field.cursorWidth = fuzzFloat(rng, -8.0f, 8.0f);
+    field.cursorBlinkInterval = std::chrono::milliseconds(fuzzInt(rng, -2000, 2000));
+    field.tabIndex = fuzzInt(rng, -12, 12);
+    PrimeStage::TextFieldSpec normalizedField = PrimeStage::Internal::normalizeTextFieldSpec(field);
+    checkSanitizedSizeSpec(normalizedField.size);
+    CHECK(normalizedField.paddingX >= 0.0f);
+    CHECK(normalizedField.cursorWidth >= 0.0f);
+    CHECK(normalizedField.cursorBlinkInterval.count() >= 0);
+    CHECK(normalizedField.tabIndex == expectedTabIndex(field.tabIndex));
+
+    PrimeStage::PanelSpec panel;
+    fuzzSizeSpec(panel.size, rng);
+    panel.padding.left = fuzzFloat(rng, -32.0f, 32.0f);
+    panel.padding.top = fuzzFloat(rng, -32.0f, 32.0f);
+    panel.padding.right = fuzzFloat(rng, -32.0f, 32.0f);
+    panel.padding.bottom = fuzzFloat(rng, -32.0f, 32.0f);
+    panel.gap = fuzzFloat(rng, -32.0f, 32.0f);
+    PrimeStage::PanelSpec normalizedPanel = PrimeStage::Internal::normalizePanelSpec(panel);
+    checkSanitizedSizeSpec(normalizedPanel.size);
+    CHECK(normalizedPanel.padding.left >= 0.0f);
+    CHECK(normalizedPanel.padding.top >= 0.0f);
+    CHECK(normalizedPanel.padding.right >= 0.0f);
+    CHECK(normalizedPanel.padding.bottom >= 0.0f);
+    CHECK(normalizedPanel.gap >= 0.0f);
+
+    PrimeStage::WindowSpec window;
+    window.width = fuzzFloat(rng, -320.0f, 320.0f);
+    window.height = fuzzFloat(rng, -320.0f, 320.0f);
+    window.minWidth = fuzzFloat(rng, -320.0f, 320.0f);
+    window.minHeight = fuzzFloat(rng, -320.0f, 320.0f);
+    window.titleBarHeight = fuzzFloat(rng, -64.0f, 64.0f);
+    window.contentPadding = fuzzFloat(rng, -64.0f, 64.0f);
+    window.resizeHandleSize = fuzzFloat(rng, -64.0f, 64.0f);
+    window.tabIndex = fuzzInt(rng, -12, 12);
+    PrimeStage::WindowSpec normalizedWindow = PrimeStage::Internal::normalizeWindowSpec(window);
+    CHECK(normalizedWindow.width >= 0.0f);
+    CHECK(normalizedWindow.height >= 0.0f);
+    CHECK(normalizedWindow.minWidth >= 0.0f);
+    CHECK(normalizedWindow.minHeight >= 0.0f);
+    CHECK(normalizedWindow.width >= normalizedWindow.minWidth);
+    CHECK(normalizedWindow.height >= normalizedWindow.minHeight);
+    CHECK(normalizedWindow.titleBarHeight >= 0.0f);
+    CHECK(normalizedWindow.contentPadding >= 0.0f);
+    CHECK(normalizedWindow.resizeHandleSize >= 0.0f);
+    CHECK(normalizedWindow.tabIndex == expectedTabIndex(window.tabIndex));
+
+    PrimeStage::ScrollViewSpec scroll;
+    fuzzSizeSpec(scroll.size, rng);
+    scroll.vertical.thickness = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.vertical.inset = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.vertical.startPadding = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.vertical.endPadding = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.vertical.thumbLength = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.vertical.thumbOffset = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.thickness = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.inset = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.startPadding = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.endPadding = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.thumbLength = fuzzFloat(rng, -32.0f, 32.0f);
+    scroll.horizontal.thumbOffset = fuzzFloat(rng, -32.0f, 32.0f);
+    PrimeStage::ScrollViewSpec normalizedScroll = PrimeStage::Internal::normalizeScrollViewSpec(scroll);
+    checkSanitizedSizeSpec(normalizedScroll.size);
+    CHECK(normalizedScroll.vertical.thickness >= 0.0f);
+    CHECK(normalizedScroll.vertical.inset >= 0.0f);
+    CHECK(normalizedScroll.vertical.startPadding >= 0.0f);
+    CHECK(normalizedScroll.vertical.endPadding >= 0.0f);
+    CHECK(normalizedScroll.vertical.thumbLength >= 0.0f);
+    CHECK(normalizedScroll.vertical.thumbOffset >= 0.0f);
+    CHECK(normalizedScroll.horizontal.thickness >= 0.0f);
+    CHECK(normalizedScroll.horizontal.inset >= 0.0f);
+    CHECK(normalizedScroll.horizontal.startPadding >= 0.0f);
+    CHECK(normalizedScroll.horizontal.endPadding >= 0.0f);
+    CHECK(normalizedScroll.horizontal.thumbLength >= 0.0f);
+    CHECK(normalizedScroll.horizontal.thumbOffset >= 0.0f);
+  }
+}
+
+TEST_CASE("PrimeStage widget-spec sanitization regression corpus preserves invariants") {
+  std::vector<std::function<void()>> corpus;
+
+  corpus.push_back([]() {
+    PrimeStage::State<float> bindingState;
+    bindingState.value = -0.25f;
+    PrimeStage::SliderSpec spec;
+    spec.value = 2.5f;
+    spec.binding = PrimeStage::bind(bindingState);
+    PrimeStage::SliderSpec normalized = PrimeStage::Internal::normalizeSliderSpec(spec);
+    CHECK(normalized.value == doctest::Approx(0.0f));
+    CHECK(bindingState.value == doctest::Approx(0.0f));
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::ProgressBarState state;
+    state.value = 1.75f;
+    PrimeStage::ProgressBarSpec spec;
+    spec.state = &state;
+    spec.minFillWidth = -4.0f;
+    PrimeStage::ProgressBarSpec normalized = PrimeStage::Internal::normalizeProgressBarSpec(spec);
+    CHECK(normalized.value == doctest::Approx(1.0f));
+    CHECK(state.value == doctest::Approx(1.0f));
+    CHECK(normalized.minFillWidth == doctest::Approx(0.0f));
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::TabsState state;
+    state.selectedIndex = -9;
+    PrimeStage::TabsSpec spec;
+    spec.labels = {};
+    spec.state = &state;
+    PrimeStage::TabsSpec normalized = PrimeStage::Internal::normalizeTabsSpec(spec);
+    CHECK(normalized.selectedIndex == 0);
+    CHECK(state.selectedIndex == 0);
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::State<int> bindingState;
+    bindingState.value = 99;
+    PrimeStage::DropdownSpec spec;
+    spec.options = {"One", "Two"};
+    spec.binding = PrimeStage::bind(bindingState);
+    PrimeStage::DropdownSpec normalized = PrimeStage::Internal::normalizeDropdownSpec(spec);
+    CHECK(normalized.selectedIndex == 1);
+    CHECK(bindingState.value == 1);
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::ListSpec spec;
+    spec.items = {"Alpha", "Beta"};
+    spec.selectedIndex = 99;
+    PrimeStage::ListSpec normalized = PrimeStage::Internal::normalizeListSpec(spec);
+    CHECK(normalized.selectedIndex == -1);
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::TableSpec spec;
+    spec.columns = {{"Name", 0.0f, 0u, 0u}};
+    spec.rows = {{"A"}, {"B"}};
+    spec.selectedRow = -4;
+    PrimeStage::TableSpec normalized = PrimeStage::Internal::normalizeTableSpec(spec);
+    CHECK(normalized.selectedRow == -1);
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::TextFieldSpec spec;
+    spec.cursorBlinkInterval = std::chrono::milliseconds(-300);
+    spec.cursorWidth = -2.0f;
+    PrimeStage::TextFieldSpec normalized = PrimeStage::Internal::normalizeTextFieldSpec(spec);
+    CHECK(normalized.cursorBlinkInterval.count() == 0);
+    CHECK(normalized.cursorWidth == doctest::Approx(0.0f));
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::PanelSpec spec;
+    spec.size.minWidth = 120.0f;
+    spec.size.maxWidth = 40.0f;
+    spec.size.preferredWidth = 10.0f;
+    spec.gap = -8.0f;
+    PrimeStage::PanelSpec normalized = PrimeStage::Internal::normalizePanelSpec(spec);
+    REQUIRE(normalized.size.minWidth.has_value());
+    REQUIRE(normalized.size.maxWidth.has_value());
+    REQUIRE(normalized.size.preferredWidth.has_value());
+    CHECK(normalized.size.maxWidth.value() == doctest::Approx(normalized.size.minWidth.value()));
+    CHECK(normalized.size.preferredWidth.value() == doctest::Approx(normalized.size.minWidth.value()));
+    CHECK(normalized.gap == doctest::Approx(0.0f));
+  });
+
+  corpus.push_back([]() {
+    PrimeStage::WindowSpec spec;
+    spec.width = 120.0f;
+    spec.height = 80.0f;
+    spec.minWidth = 220.0f;
+    spec.minHeight = 140.0f;
+    spec.resizeHandleSize = -3.0f;
+    PrimeStage::WindowSpec normalized = PrimeStage::Internal::normalizeWindowSpec(spec);
+    CHECK(normalized.width == doctest::Approx(220.0f));
+    CHECK(normalized.height == doctest::Approx(140.0f));
+    CHECK(normalized.resizeHandleSize == doctest::Approx(0.0f));
+  });
+
+  for (auto const& run : corpus) {
+    run();
+  }
 }
 
 TEST_CASE("PrimeStage accessibility semantics export snapshot covers default disabled and selected contracts") {

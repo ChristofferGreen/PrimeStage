@@ -1529,6 +1529,53 @@ TEST_CASE("PrimeStage host-input replay fixtures stay deterministic and versione
         std::string::npos);
 }
 
+TEST_CASE("PrimeStage sanitization property-fuzz coverage stays deterministic and versioned") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path specValidationPath = repoRoot / "tests" / "unit" / "test_spec_validation.cpp";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(specValidationPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream specValidationInput(specValidationPath);
+  REQUIRE(specValidationInput.good());
+  std::string specValidation((std::istreambuf_iterator<char>(specValidationInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!specValidation.empty());
+  CHECK(specValidation.find("SanitizationFuzzSeed") != std::string::npos);
+  CHECK(specValidation.find("SanitizationFuzzIterations") != std::string::npos);
+  CHECK(specValidation.find("widget-spec sanitization keeps invariants under deterministic fuzz") !=
+        std::string::npos);
+  CHECK(specValidation.find("widget-spec sanitization regression corpus preserves invariants") !=
+        std::string::npos);
+  CHECK(specValidation.find("std::vector<std::function<void()>> corpus;") != std::string::npos);
+  CHECK(specValidation.find("normalizeSliderSpec") != std::string::npos);
+  CHECK(specValidation.find("normalizeProgressBarSpec") != std::string::npos);
+  CHECK(specValidation.find("normalizeTabsSpec") != std::string::npos);
+  CHECK(specValidation.find("normalizeDropdownSpec") != std::string::npos);
+  CHECK(specValidation.find("normalizeWindowSpec") != std::string::npos);
+  CHECK(specValidation.find("normalizeScrollViewSpec") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("widget-spec sanitization fuzz/property tests deterministic") !=
+        std::string::npos);
+  CHECK(agents.find("tests/unit/test_spec_validation.cpp") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("☑ [117] Expand property/fuzz coverage for widget-spec sanitization paths.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
