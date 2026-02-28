@@ -1078,6 +1078,130 @@ TEST_CASE("PrimeStage internal extension primitive seam routes pointer and focus
   REQUIRE(disabledRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam composes appended callbacks predictably") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
+
+  int extensionPointerCount = 0;
+  int extensionKeyCount = 0;
+  int appendedPointerCount = 0;
+  int appendedKeyCount = 0;
+  std::vector<std::string> focusTrace;
+
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          3);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {20.0f, 20.0f, 140.0f, 30.0f};
+  spec.size.preferredWidth = 140.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 961u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      extensionPointerCount += 1;
+      return false;
+    }
+    if (event.type == PrimeFrame::EventType::KeyDown &&
+        event.key == PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter)) {
+      extensionKeyCount += 1;
+      return false;
+    }
+    return false;
+  };
+  spec.callbacks.onFocus = [&]() { focusTrace.push_back("extensionFocus"); };
+  spec.callbacks.onBlur = [&]() { focusTrace.push_back("extensionBlur"); };
+  PrimeStage::UiNode extension = PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  CHECK(PrimeStage::LowLevel::appendNodeOnEvent(
+      frame,
+      extension.nodeId(),
+      [&](PrimeFrame::Event const& event) {
+        if (event.type == PrimeFrame::EventType::PointerDown) {
+          appendedPointerCount += 1;
+          return false;
+        }
+        if (event.type == PrimeFrame::EventType::KeyDown &&
+            event.key == PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter)) {
+          appendedKeyCount += 1;
+          return true;
+        }
+        return false;
+      }));
+  CHECK(PrimeStage::LowLevel::appendNodeOnFocus(
+      frame, extension.nodeId(), [&]() { focusTrace.push_back("appendedFocus"); }));
+  CHECK(PrimeStage::LowLevel::appendNodeOnBlur(
+      frame, extension.nodeId(), [&]() { focusTrace.push_back("appendedBlur"); }));
+
+  PrimeStage::Internal::WidgetRuntimeContext blurRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          4);
+  PrimeStage::Internal::ExtensionPrimitiveSpec blurSpec;
+  blurSpec.rect = {20.0f, 70.0f, 140.0f, 30.0f};
+  blurSpec.size.preferredWidth = 140.0f;
+  blurSpec.size.preferredHeight = 30.0f;
+  blurSpec.focusable = true;
+  blurSpec.hitTestVisible = true;
+  blurSpec.rectStyle = 962u;
+  PrimeStage::UiNode blurTarget =
+      PrimeStage::Internal::createExtensionPrimitive(blurRuntime, blurSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 360.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(extension.nodeId(), 1);
+  CHECK(focus.focusedNode() == extension.nodeId());
+  CHECK(appendedPointerCount == 1);
+  CHECK(extensionPointerCount == 1);
+  REQUIRE(focusTrace.size() >= 2u);
+  CHECK(focusTrace[0] == "extensionFocus");
+  CHECK(focusTrace[1] == "appendedFocus");
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(appendedKeyCount == 1);
+  CHECK(extensionKeyCount == 0);
+
+  clickCenter(blurTarget.nodeId(), 2);
+  CHECK(focus.focusedNode() == blurTarget.nodeId());
+  REQUIRE(focusTrace.size() >= 4u);
+  CHECK(focusTrace[2] == "extensionBlur");
+  CHECK(focusTrace[3] == "appendedBlur");
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 961u);
+  PrimeFrame::Primitive const* blurRect =
+      findRectPrimitiveByTokenInSubtree(frame, blurTarget.nodeId(), 962u);
+  REQUIRE(extensionRect != nullptr);
+  REQUIRE(blurRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);

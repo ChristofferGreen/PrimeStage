@@ -286,6 +286,16 @@ Release Exit Criteria (for API-quality milestone):
     routed callback/focus regression coverage remains required when extension callback semantics
     evolve
 
+- ☑ [124] Add extension-seam callback composition ordering coverage.
+  - added `tests/unit/test_interaction.cpp` coverage for
+    `PrimeStage::Internal::createExtensionPrimitive(...)` plus subsequent
+    `PrimeStage::LowLevel::appendNodeOnEvent/onFocus/onBlur` layering to validate callback
+    composition ordering through routed pointer/keyboard and focus/blur transitions
+  - included a short-circuit negative case verifying appended `onEvent` handlers that return
+    `true` prevent downstream extension handlers from firing for that event
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    callback composition-ordering regression coverage remains required as callback layering evolves
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
