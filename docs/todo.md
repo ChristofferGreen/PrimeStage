@@ -214,9 +214,17 @@ Release Exit Criteria (for API-quality milestone):
 
 ## P2 (Foundational Cleanup / Backlog)
 
-- ☐ [116] Add deterministic host-input replay tests from recorded traces.
-  - support replay fixtures for triaging interaction regressions with reproducible event streams
-  - keep replay harness deterministic and versioned with repository test inputs
+- ☑ [116] Add deterministic host-input replay tests from recorded traces.
+  - added versioned replay fixtures under `tests/unit/input_replay/`
+    (`mixed_input.trace`, `scroll_direction.trace`, `invalid_trace.trace`) so host-input triage
+    can replay deterministic recorded streams
+  - added deterministic replay parser/harness coverage in
+    `tests/unit/test_input_bridge.cpp` that replays pointer/key/text/scroll traces through
+    `bridgeHostInputEvent(...)` and verifies emitted `PrimeFrame::Event` + `InputBridgeResult`
+    contracts
+  - added diagnostic coverage for malformed replay traces with stable line-numbered parse errors
+  - updated guardrails in `tests/unit/test_api_ergonomics.cpp` and contributor guidance in
+    `AGENTS.md` so replay fixtures remain versioned and aligned with tests
 
 - ☐ [117] Expand property/fuzz coverage for widget-spec sanitization paths.
   - add randomized invalid-size/range/index inputs across widget specs and assert clamp invariants

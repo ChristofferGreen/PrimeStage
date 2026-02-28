@@ -25,6 +25,9 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
 ## Tests
 - Unit tests live in `tests/unit` and use doctest.
 - Visual snapshot updates use `PRIMESTAGE_UPDATE_SNAPSHOTS=1 ./scripts/compile.sh --test`; follow `docs/visual-test-harness.md` for deterministic harness inputs and triage workflow.
+- Keep host-input replay fixtures deterministic and versioned in
+  `tests/unit/input_replay`; when replay coverage changes, update
+  `tests/unit/test_input_bridge.cpp` in the same change.
 - End-to-end high-level API ergonomics coverage lives in `tests/unit/test_end_to_end_ergonomics.cpp`; keep this suite high-level-only (no `PrimeStage::LowLevel` usage) and ensure it stays wired in CI smoke gates.
 - When writing collection-interaction regression helpers, prefer descendant row callbacks over
   container callbacks because `createTable`/`createList` may compose keyboard handlers at parent

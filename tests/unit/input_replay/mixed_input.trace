@@ -1,0 +1,7 @@
+# Mixed pointer/key/text/scroll stream captured from host input.
+pointer down 1 25 40
+pointer up 1 25 40
+key down Enter 1
+text Prime
+scroll 1.5 -2.0 lines
+key down Escape

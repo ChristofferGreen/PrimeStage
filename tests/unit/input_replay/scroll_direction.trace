@@ -1,0 +1,4 @@
+# Pointer move seeds scroll origin, then pixel + line scroll steps.
+pointer move 1 48 96
+scroll 6.0 -3.0 pixels
+scroll 1.0 2.0 lines

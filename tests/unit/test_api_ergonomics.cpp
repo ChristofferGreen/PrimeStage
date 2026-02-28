@@ -1458,6 +1458,77 @@ TEST_CASE("PrimeStage input bridge exposes normalized key and scroll semantics")
   CHECK(apiRef.find("AppActionInvocation::actionId") != std::string::npos);
 }
 
+TEST_CASE("PrimeStage host-input replay fixtures stay deterministic and versioned") {
+  std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
+  std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
+  std::filesystem::path replayDir = repoRoot / "tests" / "unit" / "input_replay";
+  std::filesystem::path mixedTracePath = replayDir / "mixed_input.trace";
+  std::filesystem::path scrollTracePath = replayDir / "scroll_direction.trace";
+  std::filesystem::path invalidTracePath = replayDir / "invalid_trace.trace";
+  std::filesystem::path inputBridgeTestPath = repoRoot / "tests" / "unit" / "test_input_bridge.cpp";
+  std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
+  std::filesystem::path todoPath = repoRoot / "docs" / "todo.md";
+  REQUIRE(std::filesystem::exists(replayDir));
+  REQUIRE(std::filesystem::exists(mixedTracePath));
+  REQUIRE(std::filesystem::exists(scrollTracePath));
+  REQUIRE(std::filesystem::exists(invalidTracePath));
+  REQUIRE(std::filesystem::exists(inputBridgeTestPath));
+  REQUIRE(std::filesystem::exists(agentsPath));
+  REQUIRE(std::filesystem::exists(todoPath));
+
+  std::ifstream mixedInput(mixedTracePath);
+  REQUIRE(mixedInput.good());
+  std::string mixedTrace((std::istreambuf_iterator<char>(mixedInput)),
+                         std::istreambuf_iterator<char>());
+  REQUIRE(!mixedTrace.empty());
+  CHECK(mixedTrace.find("pointer down 1 25 40") != std::string::npos);
+  CHECK(mixedTrace.find("key down Enter 1") != std::string::npos);
+  CHECK(mixedTrace.find("text Prime") != std::string::npos);
+  CHECK(mixedTrace.find("scroll 1.5 -2.0 lines") != std::string::npos);
+
+  std::ifstream scrollInput(scrollTracePath);
+  REQUIRE(scrollInput.good());
+  std::string scrollTrace((std::istreambuf_iterator<char>(scrollInput)),
+                          std::istreambuf_iterator<char>());
+  REQUIRE(!scrollTrace.empty());
+  CHECK(scrollTrace.find("pointer move 1 48 96") != std::string::npos);
+  CHECK(scrollTrace.find("scroll 6.0 -3.0 pixels") != std::string::npos);
+  CHECK(scrollTrace.find("scroll 1.0 2.0 lines") != std::string::npos);
+
+  std::ifstream invalidInput(invalidTracePath);
+  REQUIRE(invalidInput.good());
+  std::string invalidTrace((std::istreambuf_iterator<char>(invalidInput)),
+                           std::istreambuf_iterator<char>());
+  REQUIRE(!invalidTrace.empty());
+  CHECK(invalidTrace.find("pointer drag 1 10 20") != std::string::npos);
+
+  std::ifstream suiteInput(inputBridgeTestPath);
+  REQUIRE(suiteInput.good());
+  std::string suite((std::istreambuf_iterator<char>(suiteInput)),
+                    std::istreambuf_iterator<char>());
+  REQUIRE(!suite.empty());
+  CHECK(suite.find("replays mixed host-input trace fixture deterministically") != std::string::npos);
+  CHECK(suite.find("replays scroll-orientation trace fixture deterministically") != std::string::npos);
+  CHECK(suite.find("replay parser reports deterministic diagnostics for invalid traces") !=
+        std::string::npos);
+  CHECK(suite.find("loadReplayTrace(") != std::string::npos);
+
+  std::ifstream agentsInput(agentsPath);
+  REQUIRE(agentsInput.good());
+  std::string agents((std::istreambuf_iterator<char>(agentsInput)),
+                     std::istreambuf_iterator<char>());
+  REQUIRE(!agents.empty());
+  CHECK(agents.find("tests/unit/input_replay") != std::string::npos);
+
+  std::ifstream todoInput(todoPath);
+  REQUIRE(todoInput.good());
+  std::string todo((std::istreambuf_iterator<char>(todoInput)),
+                   std::istreambuf_iterator<char>());
+  REQUIRE(!todo.empty());
+  CHECK(todo.find("☑ [116] Add deterministic host-input replay tests from recorded traces.") !=
+        std::string::npos);
+}
+
 TEST_CASE("PrimeStage design docs record resolved architecture decisions") {
   std::filesystem::path sourcePath = std::filesystem::path(__FILE__);
   std::filesystem::path repoRoot = sourcePath.parent_path().parent_path().parent_path();
