@@ -74,6 +74,9 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   keep extension-seam focus-callback lifecycle coverage across hit-test toggles in
   `tests/unit/test_interaction.cpp` when focus routing is expected to survive hit-test
   interactivity transitions,
+  keep extension-seam disabled/hidden runtime-gating lifecycle coverage under post-build toggles
+  in `tests/unit/test_interaction.cpp` when extension nodes are created non-interactive and later
+  receive visibility/hit-test updates,
   keep extension-seam keyboard callback lifecycle coverage across visibility/hit-test toggles in
   `tests/unit/test_interaction.cpp` when interactivity states can change after callback wiring,
   and keep this seam out of canonical/public API examples.

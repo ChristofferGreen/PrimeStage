@@ -376,6 +376,16 @@ Release Exit Criteria (for API-quality milestone):
     focus-callback lifecycle coverage across hit-test toggles remains required when extension
     interactivity toggles are modified
 
+- ☑ [133] Add extension-seam post-build runtime-gating lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage for extension nodes built non-interactive via
+    runtime disabled/hidden gating, then toggled visible/hit-test-visible post-build
+  - verified callback-table wiring remains unchanged and callback handlers stay inert after
+    post-build toggles, while pointer/key routing does not trigger extension callbacks or focus
+    on those nodes
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so disabled/hidden
+    runtime-gating lifecycle coverage remains required when extension interactivity lifecycle paths
+    change
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

@@ -917,6 +917,151 @@ TEST_CASE("PrimeStage internal extension primitive seam supports typed callbacks
   CHECK(hiddenEventCount == 0);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam keeps disabled and hidden runtime gating under post-build toggles") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
+
+  int disabledEventCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext disabledRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          false,
+          true,
+          9);
+  PrimeStage::Internal::ExtensionPrimitiveSpec disabledSpec;
+  disabledSpec.rect = {16.0f, 16.0f, 120.0f, 28.0f};
+  disabledSpec.size.preferredWidth = 120.0f;
+  disabledSpec.size.preferredHeight = 28.0f;
+  disabledSpec.focusable = true;
+  disabledSpec.hitTestVisible = true;
+  disabledSpec.rectStyle = 991u;
+  disabledSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown ||
+        event.type == PrimeFrame::EventType::KeyDown) {
+      disabledEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  disabledSpec.callbacks.onFocus = [&]() { disabledEventCount += 10; };
+  disabledSpec.callbacks.onBlur = [&]() { disabledEventCount += 100; };
+  PrimeStage::UiNode disabled =
+      PrimeStage::Internal::createExtensionPrimitive(disabledRuntime, disabledSpec);
+
+  int hiddenEventCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext hiddenRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          false,
+          10);
+  PrimeStage::Internal::ExtensionPrimitiveSpec hiddenSpec;
+  hiddenSpec.rect = {16.0f, 68.0f, 120.0f, 28.0f};
+  hiddenSpec.size.preferredWidth = 120.0f;
+  hiddenSpec.size.preferredHeight = 28.0f;
+  hiddenSpec.focusable = true;
+  hiddenSpec.hitTestVisible = true;
+  hiddenSpec.rectStyle = 992u;
+  hiddenSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown ||
+        event.type == PrimeFrame::EventType::KeyDown) {
+      hiddenEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  hiddenSpec.callbacks.onFocus = [&]() { hiddenEventCount += 10; };
+  hiddenSpec.callbacks.onBlur = [&]() { hiddenEventCount += 100; };
+  PrimeStage::UiNode hidden =
+      PrimeStage::Internal::createExtensionPrimitive(hiddenRuntime, hiddenSpec);
+
+  PrimeFrame::Node const* disabledNode = frame.getNode(disabled.nodeId());
+  PrimeFrame::Node const* hiddenNode = frame.getNode(hidden.nodeId());
+  REQUIRE(disabledNode != nullptr);
+  REQUIRE(hiddenNode != nullptr);
+  CHECK_FALSE(disabledNode->focusable);
+  CHECK_FALSE(disabledNode->hitTestVisible);
+  CHECK(disabledNode->tabIndex == -1);
+  CHECK_FALSE(hiddenNode->visible);
+  CHECK_FALSE(hiddenNode->focusable);
+  CHECK_FALSE(hiddenNode->hitTestVisible);
+  CHECK(hiddenNode->tabIndex == -1);
+
+  PrimeFrame::CallbackId disabledCallbacksBefore = disabledNode->callbacks;
+  PrimeFrame::CallbackId hiddenCallbacksBefore = hiddenNode->callbacks;
+
+  disabled.setVisible(true);
+  disabled.setHitTestVisible(true);
+  hidden.setVisible(true);
+  hidden.setHitTestVisible(true);
+
+  CHECK(disabledNode->visible);
+  CHECK(disabledNode->hitTestVisible);
+  CHECK_FALSE(disabledNode->focusable);
+  CHECK(disabledNode->tabIndex == -1);
+  CHECK(hiddenNode->visible);
+  CHECK(hiddenNode->hitTestVisible);
+  CHECK_FALSE(hiddenNode->focusable);
+  CHECK(hiddenNode->tabIndex == -1);
+  CHECK(disabledNode->callbacks == disabledCallbacksBefore);
+  CHECK(hiddenNode->callbacks == hiddenCallbacksBefore);
+
+  if (disabledCallbacksBefore != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* callback = frame.getCallback(disabledCallbacksBefore);
+    REQUIRE(callback != nullptr);
+    CHECK_FALSE(callback->onEvent);
+    CHECK_FALSE(callback->onFocus);
+    CHECK_FALSE(callback->onBlur);
+  }
+  if (hiddenCallbacksBefore != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* callback = frame.getCallback(hiddenCallbacksBefore);
+    REQUIRE(callback != nullptr);
+    CHECK_FALSE(callback->onEvent);
+    CHECK_FALSE(callback->onFocus);
+    CHECK_FALSE(callback->onBlur);
+  }
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 360.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(disabled.nodeId(), 1);
+  CHECK(disabledEventCount == 0);
+  CHECK(focus.focusedNode() != disabled.nodeId());
+  clickCenter(hidden.nodeId(), 2);
+  CHECK(hiddenEventCount == 0);
+  CHECK(focus.focusedNode() != hidden.nodeId());
+
+  router.dispatch(makeKeyDownEvent(PrimeStage::KeyCode::Enter), frame, layout, &focus);
+  CHECK(disabledEventCount == 0);
+  CHECK(hiddenEventCount == 0);
+
+  PrimeFrame::Primitive const* disabledRect =
+      findRectPrimitiveByTokenInSubtree(frame, disabled.nodeId(), 991u);
+  PrimeFrame::Primitive const* hiddenRect =
+      findRectPrimitiveByTokenInSubtree(frame, hidden.nodeId(), 992u);
+  REQUIRE(disabledRect != nullptr);
+  REQUIRE(hiddenRect != nullptr);
+}
+
 TEST_CASE("PrimeStage internal extension primitive seam routes pointer and focus callbacks through event router") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
