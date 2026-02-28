@@ -126,6 +126,181 @@ TEST_CASE("PrimeStage render target diagnostics expose actionable status") {
 #endif
 }
 
+TEST_CASE("PrimeStage render target diagnostics include invalid-size payload details") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 64.0f, 32.0f);
+
+  PrimeStage::RenderTarget invalidSize;
+  invalidSize.width = 0u;
+  invalidSize.height = 32u;
+  invalidSize.stride = 0u;
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, layout, invalidSize, PrimeStage::RenderOptions{});
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetDimensions);
+  CHECK(status.targetWidth == 0u);
+  CHECK(status.targetHeight == 32u);
+  CHECK(status.targetStride == 0u);
+  CHECK(status.requiredStride == 0u);
+  CHECK(status.detail == "target width/height must be greater than zero");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render target diagnostics include height-zero payload details") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 64.0f, 32.0f);
+
+  PrimeStage::RenderTarget invalidSize;
+  invalidSize.width = 64u;
+  invalidSize.height = 0u;
+  invalidSize.stride = 256u;
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, layout, invalidSize, PrimeStage::RenderOptions{});
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetDimensions);
+  CHECK(status.targetWidth == 64u);
+  CHECK(status.targetHeight == 0u);
+  CHECK(status.targetStride == 256u);
+  CHECK(status.requiredStride == 256u);
+  CHECK(status.detail == "target width/height must be greater than zero");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render target diagnostics include stride/buffer payload details") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 64.0f, 32.0f);
+
+  PrimeStage::RenderTarget invalidStride;
+  std::vector<uint8_t> stridePixels(64u * 32u * 4u, 0u);
+  invalidStride.pixels = std::span<uint8_t>(stridePixels);
+  invalidStride.width = 64u;
+  invalidStride.height = 32u;
+  invalidStride.stride = 64u;
+  PrimeStage::RenderStatus invalidStrideStatus =
+      PrimeStage::renderFrameToTarget(frame, layout, invalidStride, PrimeStage::RenderOptions{});
+
+  PrimeStage::RenderTarget invalidBuffer;
+  std::vector<uint8_t> shortPixels(8u, 0u);
+  invalidBuffer.pixels = std::span<uint8_t>(shortPixels);
+  invalidBuffer.width = 64u;
+  invalidBuffer.height = 32u;
+  invalidBuffer.stride = 256u;
+  PrimeStage::RenderStatus invalidBufferStatus =
+      PrimeStage::renderFrameToTarget(frame, layout, invalidBuffer, PrimeStage::RenderOptions{});
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK(invalidStrideStatus.code == PrimeStage::RenderStatusCode::InvalidTargetStride);
+  CHECK(invalidStrideStatus.targetWidth == 64u);
+  CHECK(invalidStrideStatus.targetHeight == 32u);
+  CHECK(invalidStrideStatus.targetStride == 64u);
+  CHECK(invalidStrideStatus.requiredStride == 256u);
+  CHECK(invalidStrideStatus.detail == "target stride must be at least width * 4 bytes");
+
+  CHECK(invalidBufferStatus.code == PrimeStage::RenderStatusCode::InvalidTargetBuffer);
+  CHECK(invalidBufferStatus.targetWidth == 64u);
+  CHECK(invalidBufferStatus.targetHeight == 32u);
+  CHECK(invalidBufferStatus.targetStride == 256u);
+  CHECK(invalidBufferStatus.requiredStride == 256u);
+  CHECK(invalidBufferStatus.detail ==
+        "target pixel span is smaller than required stride * height bytes");
+#else
+  CHECK(invalidStrideStatus.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+  CHECK(invalidBufferStatus.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render target diagnostics flag empty pixel spans") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 64.0f, 32.0f);
+
+  PrimeStage::RenderTarget emptyBuffer;
+  emptyBuffer.width = 64u;
+  emptyBuffer.height = 32u;
+  emptyBuffer.stride = 256u;
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, layout, emptyBuffer, PrimeStage::RenderOptions{});
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetBuffer);
+  CHECK(status.targetWidth == 64u);
+  CHECK(status.targetHeight == 32u);
+  CHECK(status.targetStride == 256u);
+  CHECK(status.requiredStride == 256u);
+  CHECK(status.detail == "target pixel span is smaller than required stride * height bytes");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render status messages include zero-extent and unknown fallbacks") {
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::LayoutZeroExtent) ==
+        "Layout produced zero-sized render bounds");
+  CHECK(PrimeStage::renderStatusMessage(static_cast<PrimeStage::RenderStatusCode>(255u)) ==
+        "Unknown render status");
+
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 0.0f, 0.0f);
+  PrimeStage::PanelSpec panel;
+  panel.rectStyle = 1u;
+  panel.size.stretchX = 1.0f;
+  panel.size.stretchY = 1.0f;
+  root.createPanel(panel);
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 0.0f, 0.0f);
+
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToPng(frame, layout, "unused.png", PrimeStage::RenderOptions{});
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK(status.code == PrimeStage::RenderStatusCode::LayoutZeroExtent);
+  CHECK(status.targetWidth == 0u);
+  CHECK(status.targetHeight == 0u);
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render status messages cover all documented status codes") {
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::Success) == "Success");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::BackendUnavailable) ==
+        "Render backend unavailable (PrimeManifest disabled)");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::InvalidTargetDimensions) ==
+        "Invalid render target dimensions");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::InvalidTargetStride) ==
+        "Render target stride is smaller than width * 4");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::InvalidTargetBuffer) ==
+        "Render target pixel buffer is empty or undersized");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::LayoutHasNoRoots) ==
+        "Frame has no root nodes");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::LayoutMissingRootMetrics) ==
+        "Layout output missing metrics for frame roots");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::LayoutZeroExtent) ==
+        "Layout produced zero-sized render bounds");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::PngPathEmpty) ==
+        "PNG output path is empty");
+  CHECK(PrimeStage::renderStatusMessage(PrimeStage::RenderStatusCode::PngWriteFailed) ==
+        "PNG write failed");
+}
+
+TEST_CASE("PrimeStage render status bool conversion mirrors success state") {
+  PrimeStage::RenderStatus successStatus;
+  successStatus.code = PrimeStage::RenderStatusCode::Success;
+  CHECK(successStatus.ok());
+  CHECK(static_cast<bool>(successStatus));
+
+  PrimeStage::RenderStatus failureStatus;
+  failureStatus.code = PrimeStage::RenderStatusCode::BackendUnavailable;
+  CHECK_FALSE(failureStatus.ok());
+  CHECK_FALSE(static_cast<bool>(failureStatus));
+}
+
 TEST_CASE("PrimeStage PNG diagnostics report layout and path failures") {
 #if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
   {
@@ -188,6 +363,158 @@ TEST_CASE("PrimeStage render status is successful for valid render targets") {
   CHECK(PrimeStage::renderStatusMessage(status.code) == "Success");
 #else
   CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render overload treats non-positive scale as 1x fallback") {
+  PrimeFrame::Frame frame = makeRenderableFrame(96.0f, 64.0f);
+  PrimeStage::RenderOptions options;
+
+  std::vector<uint8_t> referencePixels(96u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget referenceTarget;
+  referenceTarget.pixels = std::span<uint8_t>(referencePixels);
+  referenceTarget.width = 96u;
+  referenceTarget.height = 64u;
+  referenceTarget.stride = 96u * 4u;
+  referenceTarget.scale = 1.0f;
+
+  std::vector<uint8_t> fallbackPixels(96u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget fallbackTarget;
+  fallbackTarget.pixels = std::span<uint8_t>(fallbackPixels);
+  fallbackTarget.width = 96u;
+  fallbackTarget.height = 64u;
+  fallbackTarget.stride = 96u * 4u;
+  fallbackTarget.scale = 0.0f;
+
+  PrimeStage::RenderStatus referenceStatus =
+      PrimeStage::renderFrameToTarget(frame, referenceTarget, options);
+  PrimeStage::RenderStatus fallbackStatus =
+      PrimeStage::renderFrameToTarget(frame, fallbackTarget, options);
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  REQUIRE(referenceStatus.ok());
+  REQUIRE(fallbackStatus.ok());
+  CHECK(referenceStatus.targetWidth == 96u);
+  CHECK(referenceStatus.targetHeight == 64u);
+  CHECK(fallbackStatus.targetWidth == 96u);
+  CHECK(fallbackStatus.targetHeight == 64u);
+  CHECK(referencePixels == fallbackPixels);
+#else
+  CHECK(referenceStatus.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+  CHECK(fallbackStatus.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render overload keeps invalid-dimension diagnostics when width is zero") {
+  PrimeFrame::Frame frame = makeRenderableFrame(96.0f, 64.0f);
+  PrimeStage::RenderOptions options;
+
+  std::vector<uint8_t> pixels(64u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 0u;
+  target.height = 64u;
+  target.stride = 256u;
+  target.scale = 2.0f;
+
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, target, options);
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetDimensions);
+  CHECK(status.targetWidth == 0u);
+  CHECK(status.targetHeight == 64u);
+  CHECK(status.targetStride == 256u);
+  CHECK(status.requiredStride == 0u);
+  CHECK(status.detail == "target width/height must be greater than zero");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render overload keeps invalid-dimension diagnostics when height is zero") {
+  PrimeFrame::Frame frame = makeRenderableFrame(128.0f, 64.0f);
+  PrimeStage::RenderOptions options;
+
+  std::vector<uint8_t> pixels(128u * 64u * 4u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 128u;
+  target.height = 0u;
+  target.stride = 512u;
+  target.scale = 2.0f;
+
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, target, options);
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetDimensions);
+  CHECK(status.targetWidth == 128u);
+  CHECK(status.targetHeight == 0u);
+  CHECK(status.targetStride == 512u);
+  CHECK(status.requiredStride == 512u);
+  CHECK(status.detail == "target width/height must be greater than zero");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render overload preserves invalid-stride diagnostics") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeStage::RenderOptions options;
+
+  std::vector<uint8_t> pixels(64u * 32u * 4u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 64u;
+  target.height = 32u;
+  target.stride = 64u;
+  target.scale = 1.0f;
+
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, target, options);
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetStride);
+  CHECK(status.targetWidth == 64u);
+  CHECK(status.targetHeight == 32u);
+  CHECK(status.targetStride == 64u);
+  CHECK(status.requiredStride == 256u);
+  CHECK(status.detail == "target stride must be at least width * 4 bytes");
+#else
+  CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
+#endif
+}
+
+TEST_CASE("PrimeStage render overload preserves invalid-buffer diagnostics") {
+  PrimeFrame::Frame frame = makeRenderableFrame(64.0f, 32.0f);
+  PrimeStage::RenderOptions options;
+
+  std::vector<uint8_t> shortPixels(8u, 0u);
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(shortPixels);
+  target.width = 64u;
+  target.height = 32u;
+  target.stride = 256u;
+  target.scale = 1.0f;
+
+  PrimeStage::RenderStatus status =
+      PrimeStage::renderFrameToTarget(frame, target, options);
+
+#if defined(PRIMESTAGE_HAS_PRIMEMANIFEST)
+  CHECK_FALSE(status.ok());
+  CHECK(status.code == PrimeStage::RenderStatusCode::InvalidTargetBuffer);
+  CHECK(status.targetWidth == 64u);
+  CHECK(status.targetHeight == 32u);
+  CHECK(status.targetStride == 256u);
+  CHECK(status.requiredStride == 256u);
+  CHECK(status.detail ==
+        "target pixel span is smaller than required stride * height bytes");
+#else
   CHECK(status.code == PrimeStage::RenderStatusCode::BackendUnavailable);
 #endif
 }
