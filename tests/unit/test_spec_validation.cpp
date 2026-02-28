@@ -532,6 +532,530 @@ TEST_CASE("PrimeStage divider overload maps style token and size to a divider no
   CHECK(findRectPrimitiveByToken(frame, divider.nodeId(), 777u) != nullptr);
 }
 
+TEST_CASE("PrimeStage panel overload maps style token and size to a panel node") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 140.0f;
+  size.preferredHeight = 44.0f;
+  PrimeStage::UiNode panel = root.createPanel(888u, size);
+
+  PrimeFrame::Node const* panelNode = frame.getNode(panel.nodeId());
+  REQUIRE(panelNode != nullptr);
+  REQUIRE(panelNode->sizeHint.width.preferred.has_value());
+  REQUIRE(panelNode->sizeHint.height.preferred.has_value());
+  CHECK(panelNode->sizeHint.width.preferred.value() == doctest::Approx(140.0f));
+  CHECK(panelNode->sizeHint.height.preferred.value() == doctest::Approx(44.0f));
+  CHECK(findRectPrimitiveByToken(frame, panel.nodeId(), 888u) != nullptr);
+}
+
+TEST_CASE("PrimeStage panel overload clamps invalid size inputs") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = -32.0f;
+  size.preferredHeight = -12.0f;
+  PrimeStage::UiNode panel = root.createPanel(889u, size);
+
+  PrimeFrame::Node const* panelNode = frame.getNode(panel.nodeId());
+  REQUIRE(panelNode != nullptr);
+  REQUIRE(panelNode->sizeHint.width.preferred.has_value());
+  REQUIRE(panelNode->sizeHint.height.preferred.has_value());
+  CHECK(panelNode->sizeHint.width.preferred.value() == doctest::Approx(0.0f));
+  CHECK(panelNode->sizeHint.height.preferred.value() == doctest::Approx(0.0f));
+  CHECK(findRectPrimitiveByToken(frame, panel.nodeId(), 889u) != nullptr);
+}
+
+TEST_CASE("PrimeStage label overload maps text style and explicit size") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 120.0f;
+  size.preferredHeight = 22.0f;
+  PrimeStage::UiNode label = root.createLabel("Overload label", 901u, size);
+
+  PrimeFrame::Node const* labelNode = frame.getNode(label.nodeId());
+  REQUIRE(labelNode != nullptr);
+  REQUIRE(labelNode->sizeHint.width.preferred.has_value());
+  REQUIRE(labelNode->sizeHint.height.preferred.has_value());
+  CHECK(labelNode->sizeHint.width.preferred.value() == doctest::Approx(120.0f));
+  CHECK(labelNode->sizeHint.height.preferred.value() == doctest::Approx(22.0f));
+  CHECK_FALSE(labelNode->hitTestVisible);
+
+  PrimeFrame::Primitive const* text = firstTextPrimitive(frame, label.nodeId());
+  REQUIRE(text != nullptr);
+  CHECK(text->textBlock.text == "Overload label");
+  CHECK(text->textStyle.token == 901u);
+  CHECK(text->width == doctest::Approx(120.0f));
+  CHECK(text->height == doctest::Approx(22.0f));
+}
+
+TEST_CASE("PrimeStage paragraph overload maps text style and explicit size") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 180.0f;
+  size.preferredHeight = 60.0f;
+  PrimeStage::UiNode paragraph = root.createParagraph("Paragraph overload", 902u, size);
+
+  PrimeFrame::Node const* paragraphNode = frame.getNode(paragraph.nodeId());
+  REQUIRE(paragraphNode != nullptr);
+  REQUIRE(paragraphNode->sizeHint.width.preferred.has_value());
+  REQUIRE(paragraphNode->sizeHint.height.preferred.has_value());
+  CHECK(paragraphNode->sizeHint.width.preferred.value() == doctest::Approx(180.0f));
+  CHECK(paragraphNode->sizeHint.height.preferred.value() == doctest::Approx(60.0f));
+  CHECK_FALSE(paragraphNode->hitTestVisible);
+  REQUIRE(!paragraphNode->children.empty());
+
+  PrimeFrame::NodeId lineNodeId = paragraphNode->children.front();
+  PrimeFrame::Primitive const* text = firstTextPrimitive(frame, lineNodeId);
+  REQUIRE(text != nullptr);
+  CHECK(text->textBlock.text == "Paragraph overload");
+  CHECK(text->textStyle.token == 902u);
+  CHECK(text->textBlock.maxWidth == doctest::Approx(180.0f));
+}
+
+TEST_CASE("PrimeStage text line overload maps text style size and manual alignment") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::SizeSpec size;
+  size.preferredWidth = 160.0f;
+  size.preferredHeight = 28.0f;
+  PrimeStage::UiNode line =
+      root.createTextLine("Hi", 903u, size, PrimeFrame::TextAlign::End);
+
+  PrimeFrame::Node const* lineNode = frame.getNode(line.nodeId());
+  REQUIRE(lineNode != nullptr);
+  CHECK(lineNode->localX >= 0.0f);
+
+  PrimeFrame::Primitive const* text = firstTextPrimitive(frame, line.nodeId());
+  REQUIRE(text != nullptr);
+  CHECK(text->textBlock.text == "Hi");
+  CHECK(text->textStyle.token == 903u);
+  CHECK(text->textBlock.align == PrimeFrame::TextAlign::Start);
+  CHECK(text->height > 0.0f);
+}
+
+TEST_CASE("PrimeStage progress bar binding overload clamps state and applies defaults") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<float> state;
+  state.value = 1.75f;
+  PrimeStage::UiNode progress = root.createProgressBar(PrimeStage::bind(state));
+
+  CHECK(state.value == doctest::Approx(1.0f));
+
+  PrimeFrame::Node const* progressNode = frame.getNode(progress.nodeId());
+  REQUIRE(progressNode != nullptr);
+  REQUIRE(progressNode->sizeHint.width.preferred.has_value());
+  REQUIRE(progressNode->sizeHint.height.preferred.has_value());
+  CHECK(progressNode->sizeHint.width.preferred.value() == doctest::Approx(140.0f));
+  CHECK(progressNode->sizeHint.height.preferred.value() == doctest::Approx(12.0f));
+  CHECK(progressNode->callbacks != PrimeFrame::InvalidCallbackId);
+  CHECK(countRectToken(frame, progress.nodeId(), 0u) >= 2u);
+}
+
+TEST_CASE("PrimeStage toggle binding overload uses bound state with default sizing") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = true;
+  PrimeStage::UiNode toggle = root.createToggle(PrimeStage::bind(state));
+
+  PrimeFrame::Node const* toggleNode = frame.getNode(toggle.nodeId());
+  REQUIRE(toggleNode != nullptr);
+  REQUIRE(toggleNode->sizeHint.width.preferred.has_value());
+  REQUIRE(toggleNode->sizeHint.height.preferred.has_value());
+  CHECK(toggleNode->sizeHint.width.preferred.value() == doctest::Approx(40.0f));
+  CHECK(toggleNode->sizeHint.height.preferred.value() == doctest::Approx(20.0f));
+  CHECK(toggleNode->callbacks != PrimeFrame::InvalidCallbackId);
+  CHECK(state.value);
+}
+
+TEST_CASE("PrimeStage toggle binding overload key activation updates bound state and knob position") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode toggle = root.createToggle(PrimeStage::bind(state));
+
+  PrimeFrame::Node const* toggleNode = frame.getNode(toggle.nodeId());
+  REQUIRE(toggleNode != nullptr);
+  REQUIRE(toggleNode->callbacks != PrimeFrame::InvalidCallbackId);
+
+  auto findKnobNode = [&]() -> PrimeFrame::Node const* {
+    PrimeFrame::Node const* rootNode = frame.getNode(toggle.nodeId());
+    if (!rootNode) {
+      return nullptr;
+    }
+    for (PrimeFrame::NodeId childId : rootNode->children) {
+      PrimeFrame::Node const* child = frame.getNode(childId);
+      if (!child || !child->sizeHint.width.preferred.has_value() ||
+          !child->sizeHint.height.preferred.has_value()) {
+        continue;
+      }
+      float width = child->sizeHint.width.preferred.value();
+      float height = child->sizeHint.height.preferred.value();
+      if (width > 0.0f && width <= 20.0f && height > 0.0f && height <= 20.0f) {
+        return child;
+      }
+    }
+    return nullptr;
+  };
+
+  PrimeFrame::Node const* knobBefore = findKnobNode();
+  REQUIRE(knobBefore != nullptr);
+  CHECK(knobBefore->localX == doctest::Approx(2.0f));
+  CHECK(knobBefore->localY == doctest::Approx(2.0f));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(toggleNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Space);
+  CHECK(callback->onEvent(keyDown));
+  CHECK(state.value);
+
+  PrimeFrame::Node const* knobAfter = findKnobNode();
+  REQUIRE(knobAfter != nullptr);
+  CHECK(knobAfter->localX == doctest::Approx(22.0f));
+  CHECK(knobAfter->localY == doctest::Approx(2.0f));
+}
+
+TEST_CASE("PrimeStage toggle binding overload ignores non-activation key events") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode toggle = root.createToggle(PrimeStage::bind(state));
+
+  PrimeFrame::Node const* toggleNode = frame.getNode(toggle.nodeId());
+  REQUIRE(toggleNode != nullptr);
+  REQUIRE(toggleNode->callbacks != PrimeFrame::InvalidCallbackId);
+
+  auto findKnobNode = [&]() -> PrimeFrame::Node const* {
+    PrimeFrame::Node const* rootNode = frame.getNode(toggle.nodeId());
+    if (!rootNode) {
+      return nullptr;
+    }
+    for (PrimeFrame::NodeId childId : rootNode->children) {
+      PrimeFrame::Node const* child = frame.getNode(childId);
+      if (!child || !child->sizeHint.width.preferred.has_value() ||
+          !child->sizeHint.height.preferred.has_value()) {
+        continue;
+      }
+      float width = child->sizeHint.width.preferred.value();
+      float height = child->sizeHint.height.preferred.value();
+      if (width > 0.0f && width <= 20.0f && height > 0.0f && height <= 20.0f) {
+        return child;
+      }
+    }
+    return nullptr;
+  };
+
+  PrimeFrame::Node const* knobBefore = findKnobNode();
+  REQUIRE(knobBefore != nullptr);
+  CHECK(knobBefore->localX == doctest::Approx(2.0f));
+  CHECK(knobBefore->localY == doctest::Approx(2.0f));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(toggleNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Left);
+  CHECK_FALSE(callback->onEvent(keyDown));
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Node const* knobAfter = findKnobNode();
+  REQUIRE(knobAfter != nullptr);
+  CHECK(knobAfter->localX == doctest::Approx(2.0f));
+  CHECK(knobAfter->localY == doctest::Approx(2.0f));
+}
+
+TEST_CASE("PrimeStage toggle binding overload pointer cancel suppresses activation") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode toggle = root.createToggle(PrimeStage::bind(state));
+
+  PrimeFrame::Node const* toggleNode = frame.getNode(toggle.nodeId());
+  REQUIRE(toggleNode != nullptr);
+  REQUIRE(toggleNode->callbacks != PrimeFrame::InvalidCallbackId);
+
+  auto findKnobNode = [&]() -> PrimeFrame::Node const* {
+    PrimeFrame::Node const* rootNode = frame.getNode(toggle.nodeId());
+    if (!rootNode) {
+      return nullptr;
+    }
+    for (PrimeFrame::NodeId childId : rootNode->children) {
+      PrimeFrame::Node const* child = frame.getNode(childId);
+      if (!child || !child->sizeHint.width.preferred.has_value() ||
+          !child->sizeHint.height.preferred.has_value()) {
+        continue;
+      }
+      float width = child->sizeHint.width.preferred.value();
+      float height = child->sizeHint.height.preferred.value();
+      if (width > 0.0f && width <= 20.0f && height > 0.0f && height <= 20.0f) {
+        return child;
+      }
+    }
+    return nullptr;
+  };
+
+  PrimeFrame::Node const* knobBefore = findKnobNode();
+  REQUIRE(knobBefore != nullptr);
+  CHECK(knobBefore->localX == doctest::Approx(2.0f));
+
+  PrimeFrame::Callback const* callback = frame.getCallback(toggleNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event pointerDown;
+  pointerDown.type = PrimeFrame::EventType::PointerDown;
+  CHECK(callback->onEvent(pointerDown));
+
+  PrimeFrame::Event pointerCancel;
+  pointerCancel.type = PrimeFrame::EventType::PointerCancel;
+  CHECK(callback->onEvent(pointerCancel));
+
+  PrimeFrame::Event pointerUp;
+  pointerUp.type = PrimeFrame::EventType::PointerUp;
+  pointerUp.localX = 10.0f;
+  pointerUp.localY = 10.0f;
+  pointerUp.targetW = 40.0f;
+  pointerUp.targetH = 20.0f;
+  CHECK(callback->onEvent(pointerUp));
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Node const* knobAfter = findKnobNode();
+  REQUIRE(knobAfter != nullptr);
+  CHECK(knobAfter->localX == doctest::Approx(2.0f));
+}
+
+TEST_CASE("PrimeStage checkbox binding overload uses bound state and label") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = true;
+  PrimeStage::UiNode checkbox = root.createCheckbox("BoundCheck", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  CHECK(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  CHECK(firstChildText(frame, checkbox.nodeId()) == "BoundCheck");
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNode = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNode != nullptr);
+  CHECK(checkNode->visible);
+  CHECK(state.value);
+}
+
+TEST_CASE("PrimeStage checkbox binding overload hides check when bound state is false") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode checkbox = root.createCheckbox("", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  CHECK(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  CHECK(firstChildText(frame, checkbox.nodeId()).empty());
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNode = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNode != nullptr);
+  CHECK_FALSE(checkNode->visible);
+  CHECK_FALSE(state.value);
+}
+
+TEST_CASE("PrimeStage checkbox binding overload key activation updates bound state and check visibility") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode checkbox = root.createCheckbox("Activate", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  REQUIRE(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNodeBefore = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeBefore != nullptr);
+  CHECK_FALSE(checkNodeBefore->visible);
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(rowNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Space);
+  CHECK(callback->onEvent(keyDown));
+  CHECK(state.value);
+
+  PrimeFrame::Node const* checkNodeAfter = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeAfter != nullptr);
+  CHECK(checkNodeAfter->visible);
+}
+
+TEST_CASE("PrimeStage checkbox binding overload ignores non-activation key events") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode checkbox = root.createCheckbox("Ignore", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  REQUIRE(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNodeBefore = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeBefore != nullptr);
+  CHECK_FALSE(checkNodeBefore->visible);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(rowNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event keyDown;
+  keyDown.type = PrimeFrame::EventType::KeyDown;
+  keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Left);
+  CHECK_FALSE(callback->onEvent(keyDown));
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Node const* checkNodeAfter = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeAfter != nullptr);
+  CHECK_FALSE(checkNodeAfter->visible);
+}
+
+TEST_CASE("PrimeStage checkbox binding overload pointer leave suppresses activation") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode checkbox = root.createCheckbox("Leave", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  REQUIRE(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNodeBefore = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeBefore != nullptr);
+  CHECK_FALSE(checkNodeBefore->visible);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(rowNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event pointerDown;
+  pointerDown.type = PrimeFrame::EventType::PointerDown;
+  CHECK(callback->onEvent(pointerDown));
+
+  PrimeFrame::Event pointerLeave;
+  pointerLeave.type = PrimeFrame::EventType::PointerLeave;
+  CHECK(callback->onEvent(pointerLeave));
+
+  PrimeFrame::Event pointerUp;
+  pointerUp.type = PrimeFrame::EventType::PointerUp;
+  pointerUp.localX = 8.0f;
+  pointerUp.localY = 8.0f;
+  pointerUp.targetW = 20.0f;
+  pointerUp.targetH = 20.0f;
+  CHECK(callback->onEvent(pointerUp));
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Node const* checkNodeAfter = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeAfter != nullptr);
+  CHECK_FALSE(checkNodeAfter->visible);
+}
+
+TEST_CASE("PrimeStage checkbox binding overload pointer cancel suppresses activation") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::State<bool> state;
+  state.value = false;
+  PrimeStage::UiNode checkbox = root.createCheckbox("Cancel", PrimeStage::bind(state));
+
+  PrimeFrame::Node const* rowNode = frame.getNode(checkbox.nodeId());
+  REQUIRE(rowNode != nullptr);
+  REQUIRE(rowNode->callbacks != PrimeFrame::InvalidCallbackId);
+  REQUIRE(!rowNode->children.empty());
+
+  PrimeFrame::Node const* boxNode = frame.getNode(rowNode->children.front());
+  REQUIRE(boxNode != nullptr);
+  REQUIRE(!boxNode->children.empty());
+  PrimeFrame::Node const* checkNodeBefore = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeBefore != nullptr);
+  CHECK_FALSE(checkNodeBefore->visible);
+
+  PrimeFrame::Callback const* callback = frame.getCallback(rowNode->callbacks);
+  REQUIRE(callback != nullptr);
+  REQUIRE(callback->onEvent);
+
+  PrimeFrame::Event pointerDown;
+  pointerDown.type = PrimeFrame::EventType::PointerDown;
+  CHECK(callback->onEvent(pointerDown));
+
+  PrimeFrame::Event pointerCancel;
+  pointerCancel.type = PrimeFrame::EventType::PointerCancel;
+  CHECK(callback->onEvent(pointerCancel));
+
+  PrimeFrame::Event pointerUp;
+  pointerUp.type = PrimeFrame::EventType::PointerUp;
+  pointerUp.localX = 8.0f;
+  pointerUp.localY = 8.0f;
+  pointerUp.targetW = 20.0f;
+  pointerUp.targetH = 20.0f;
+  CHECK(callback->onEvent(pointerUp));
+  CHECK_FALSE(state.value);
+
+  PrimeFrame::Node const* checkNodeAfter = frame.getNode(boxNode->children.front());
+  REQUIRE(checkNodeAfter != nullptr);
+  CHECK_FALSE(checkNodeAfter->visible);
+}
+
 TEST_CASE("PrimeStage interactive helper overloads build expected widgets") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
@@ -1171,6 +1695,49 @@ TEST_CASE("PrimeStage widget-spec sanitization regression corpus preserves invar
   for (auto const& run : corpus) {
     run();
   }
+}
+
+TEST_CASE("PrimeStage toggle and checkbox normalization prefer binding state and clamp geometry") {
+  PrimeStage::State<bool> toggleBinding;
+  toggleBinding.value = true;
+  PrimeStage::ToggleState toggleState;
+  toggleState.on = false;
+  PrimeStage::ToggleSpec toggleSpec;
+  toggleSpec.on = false;
+  toggleSpec.state = &toggleState;
+  toggleSpec.binding = PrimeStage::bind(toggleBinding);
+  toggleSpec.knobInset = -2.5f;
+  PrimeStage::ToggleSpec normalizedToggle = PrimeStage::Internal::normalizeToggleSpec(toggleSpec);
+  CHECK(normalizedToggle.on);
+  CHECK(normalizedToggle.knobInset == doctest::Approx(0.0f));
+  CHECK_FALSE(toggleState.on);
+  CHECK(toggleBinding.value);
+  CHECK(normalizedToggle.accessibility.role == PrimeStage::AccessibilityRole::Toggle);
+  REQUIRE(normalizedToggle.accessibility.state.checked.has_value());
+  CHECK(normalizedToggle.accessibility.state.checked.value());
+
+  PrimeStage::State<bool> checkboxBinding;
+  checkboxBinding.value = false;
+  PrimeStage::CheckboxState checkboxState;
+  checkboxState.checked = true;
+  PrimeStage::CheckboxSpec checkboxSpec;
+  checkboxSpec.checked = true;
+  checkboxSpec.state = &checkboxState;
+  checkboxSpec.binding = PrimeStage::bind(checkboxBinding);
+  checkboxSpec.boxSize = -4.0f;
+  checkboxSpec.checkInset = -3.0f;
+  checkboxSpec.gap = -8.0f;
+  PrimeStage::CheckboxSpec normalizedCheckbox =
+      PrimeStage::Internal::normalizeCheckboxSpec(checkboxSpec);
+  CHECK_FALSE(normalizedCheckbox.checked);
+  CHECK(normalizedCheckbox.boxSize == doctest::Approx(0.0f));
+  CHECK(normalizedCheckbox.checkInset == doctest::Approx(0.0f));
+  CHECK(normalizedCheckbox.gap == doctest::Approx(0.0f));
+  CHECK(checkboxState.checked);
+  CHECK_FALSE(checkboxBinding.value);
+  CHECK(normalizedCheckbox.accessibility.role == PrimeStage::AccessibilityRole::Checkbox);
+  REQUIRE(normalizedCheckbox.accessibility.state.checked.has_value());
+  CHECK_FALSE(normalizedCheckbox.accessibility.state.checked.value());
 }
 
 TEST_CASE("PrimeStage accessibility semantics export snapshot covers default disabled and selected contracts") {
