@@ -1582,6 +1582,7 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   std::filesystem::path internalsPath = repoRoot / "src" / "PrimeStageCollectionInternals.h";
   std::filesystem::path sourceCppPath = repoRoot / "src" / "PrimeStage.cpp";
   std::filesystem::path interactionPath = repoRoot / "tests" / "unit" / "test_interaction.cpp";
+  std::filesystem::path specValidationPath = repoRoot / "tests" / "unit" / "test_spec_validation.cpp";
   std::filesystem::path advancedPath = repoRoot / "docs" / "advanced-escape-hatches.md";
   std::filesystem::path guidelinesPath = repoRoot / "docs" / "api-ergonomics-guidelines.md";
   std::filesystem::path agentsPath = repoRoot / "AGENTS.md";
@@ -1589,6 +1590,7 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   REQUIRE(std::filesystem::exists(internalsPath));
   REQUIRE(std::filesystem::exists(sourceCppPath));
   REQUIRE(std::filesystem::exists(interactionPath));
+  REQUIRE(std::filesystem::exists(specValidationPath));
   REQUIRE(std::filesystem::exists(advancedPath));
   REQUIRE(std::filesystem::exists(guidelinesPath));
   REQUIRE(std::filesystem::exists(agentsPath));
@@ -1632,6 +1634,14 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(interaction.find("internal extension primitive seam supports typed callbacks and runtime gating") !=
         std::string::npos);
 
+  std::ifstream specValidationInput(specValidationPath);
+  REQUIRE(specValidationInput.good());
+  std::string specValidation((std::istreambuf_iterator<char>(specValidationInput)),
+                             std::istreambuf_iterator<char>());
+  REQUIRE(!specValidation.empty());
+  CHECK(specValidation.find("extension primitive seam clamps invalid layout sizing inputs") !=
+        std::string::npos);
+
   std::ifstream advancedInput(advancedPath);
   REQUIRE(advancedInput.good());
   std::string advanced((std::istreambuf_iterator<char>(advancedInput)),
@@ -1659,6 +1669,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(agents.find("PrimeStage::Internal::ExtensionPrimitiveSpec") != std::string::npos);
   CHECK(agents.find("createExtensionPrimitive(...)") != std::string::npos);
   CHECK(agents.find("runtime visibility + enablement") != std::string::npos);
+  CHECK(agents.find("extension-seam invalid-input sanitization regression coverage") !=
+        std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1668,6 +1680,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [118] Add an internal extension seam for custom widget primitives.") !=
         std::string::npos);
   CHECK(todo.find("☑ [121] Align extension-primitive interactivity with widget visibility gating.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [122] Add extension-seam sanitization regression coverage for invalid inputs.") !=
         std::string::npos);
 }
 

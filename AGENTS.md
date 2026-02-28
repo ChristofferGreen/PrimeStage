@@ -53,6 +53,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   `PrimeStage::Internal::ExtensionPrimitiveSpec` +
   `PrimeStage::Internal::createExtensionPrimitive(...)` over ad-hoc raw node/callback wiring,
   keep runtime visibility + enablement gating aligned with standard widgets for interactivity,
+  and keep extension-seam invalid-input sanitization regression coverage in
+  `tests/unit/test_spec_validation.cpp` when extension spec fields or runtime wiring change,
   and keep this seam out of canonical/public API examples.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.
 - For render-path failures, use `RenderStatus`/`RenderStatusCode` diagnostics (`docs/render-diagnostics.md`) instead of introducing new opaque `bool` failure paths.

@@ -265,6 +265,16 @@ Release Exit Criteria (for API-quality milestone):
   - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so visibility-aware
     extension interactivity constraints remain explicit and enforced
 
+- ☑ [122] Add extension-seam sanitization regression coverage for invalid inputs.
+  - added `tests/unit/test_spec_validation.cpp` coverage for
+    `PrimeStage::Internal::createExtensionPrimitive(...)` validating that invalid
+    `ExtensionPrimitiveSpec` size ranges, negative stretch factors, negative padding, and
+    negative gap values clamp to safe runtime fallbacks on the built node
+  - expanded assertions to keep positive extension-seam contracts visible in the same test
+    (interactive root state and style token primitive presence)
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    sanitization coverage remains required when internal extension spec/runtime wiring evolves
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

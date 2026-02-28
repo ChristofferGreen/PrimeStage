@@ -398,6 +398,70 @@ TEST_CASE("PrimeStage size validation clamps invalid ranges and negative values"
   CHECK(panelNode->gap == doctest::Approx(0.0f));
 }
 
+TEST_CASE("PrimeStage extension primitive seam clamps invalid layout sizing inputs") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame);
+
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          7);
+
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.layout = PrimeFrame::LayoutType::VerticalStack;
+  spec.rectStyle = 944u;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.size.minWidth = 80.0f;
+  spec.size.maxWidth = 40.0f;
+  spec.size.preferredWidth = 12.0f;
+  spec.size.stretchX = -1.0f;
+  spec.size.minHeight = -10.0f;
+  spec.size.maxHeight = 24.0f;
+  spec.size.preferredHeight = 50.0f;
+  spec.size.stretchY = -2.0f;
+  spec.padding.left = -4.0f;
+  spec.padding.top = -3.0f;
+  spec.padding.right = -2.0f;
+  spec.padding.bottom = -1.0f;
+  spec.gap = -5.0f;
+
+  PrimeStage::UiNode extension = PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+  PrimeFrame::Node const* extensionNode = frame.getNode(extension.nodeId());
+  REQUIRE(extensionNode != nullptr);
+  REQUIRE(extensionNode->sizeHint.width.min.has_value());
+  REQUIRE(extensionNode->sizeHint.width.max.has_value());
+  REQUIRE(extensionNode->sizeHint.width.preferred.has_value());
+  REQUIRE(extensionNode->sizeHint.height.min.has_value());
+  REQUIRE(extensionNode->sizeHint.height.max.has_value());
+  REQUIRE(extensionNode->sizeHint.height.preferred.has_value());
+
+  CHECK(extensionNode->layout == PrimeFrame::LayoutType::VerticalStack);
+  CHECK(extensionNode->sizeHint.width.min.value() == doctest::Approx(80.0f));
+  CHECK(extensionNode->sizeHint.width.max.value() == doctest::Approx(80.0f));
+  CHECK(extensionNode->sizeHint.width.preferred.value() == doctest::Approx(80.0f));
+  CHECK(extensionNode->sizeHint.width.stretch == doctest::Approx(0.0f));
+  CHECK(extensionNode->sizeHint.height.min.value() == doctest::Approx(0.0f));
+  CHECK(extensionNode->sizeHint.height.max.value() == doctest::Approx(24.0f));
+  CHECK(extensionNode->sizeHint.height.preferred.value() == doctest::Approx(24.0f));
+  CHECK(extensionNode->sizeHint.height.stretch == doctest::Approx(0.0f));
+  CHECK(extensionNode->padding.left == doctest::Approx(0.0f));
+  CHECK(extensionNode->padding.top == doctest::Approx(0.0f));
+  CHECK(extensionNode->padding.right == doctest::Approx(0.0f));
+  CHECK(extensionNode->padding.bottom == doctest::Approx(0.0f));
+  CHECK(extensionNode->gap == doctest::Approx(0.0f));
+  CHECK(extensionNode->focusable);
+  CHECK(extensionNode->hitTestVisible);
+  CHECK(extensionNode->tabIndex == 7);
+
+  PrimeFrame::Primitive const* rect = findRectPrimitiveByToken(frame, extension.nodeId(), 944u);
+  REQUIRE(rect != nullptr);
+}
+
 TEST_CASE("PrimeStage helper widgets clamp invalid helper spec inputs") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame);
