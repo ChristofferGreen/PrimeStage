@@ -256,6 +256,15 @@ Release Exit Criteria (for API-quality milestone):
   - added guardrail checks in `tests/unit/test_api_ergonomics.cpp` to keep seam API/docs/TODO
     completion aligned
 
+- ☑ [121] Align extension-primitive interactivity with widget visibility gating.
+  - updated `PrimeStage::Internal::createExtensionPrimitive(...)` in `src/PrimeStage.cpp` to
+    gate focusability, hit-testing, and callback wiring on both runtime visibility and enablement
+  - expanded `tests/unit/test_interaction.cpp` with hidden-runtime extension coverage that
+    verifies hidden extension primitives do not become focusable/hit-testable and do not install
+    active event/focus/blur callbacks even when callback fields are populated
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so visibility-aware
+    extension interactivity constraints remain explicit and enforced
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

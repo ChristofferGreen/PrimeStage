@@ -1611,6 +1611,12 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   REQUIRE(!source.empty());
   CHECK(source.find("UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,") !=
         std::string::npos);
+  CHECK(source.find("bool interactive = runtime.visible && runtime.enabled;") !=
+        std::string::npos);
+  CHECK(source.find("builtNode->focusable = interactive && spec.focusable;") !=
+        std::string::npos);
+  CHECK(source.find("builtNode->hitTestVisible = interactive && spec.hitTestVisible;") !=
+        std::string::npos);
   CHECK(source.find("appendNodeOnEvent(runtime, nodeId, spec.callbacks.onEvent)") !=
         std::string::npos);
   CHECK(source.find("LowLevel::appendNodeOnFocus(frame, nodeId, spec.callbacks.onFocus)") !=
@@ -1652,6 +1658,7 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   REQUIRE(!agents.empty());
   CHECK(agents.find("PrimeStage::Internal::ExtensionPrimitiveSpec") != std::string::npos);
   CHECK(agents.find("createExtensionPrimitive(...)") != std::string::npos);
+  CHECK(agents.find("runtime visibility + enablement") != std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1659,6 +1666,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
                    std::istreambuf_iterator<char>());
   REQUIRE(!todo.empty());
   CHECK(todo.find("☑ [118] Add an internal extension seam for custom widget primitives.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [121] Align extension-primitive interactivity with widget visibility gating.") !=
         std::string::npos);
 }
 

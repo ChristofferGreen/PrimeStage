@@ -1074,6 +1074,7 @@ UiNode makeParentNode(WidgetRuntimeContext const& runtime) {
 UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
                                 ExtensionPrimitiveSpec const& spec) {
   PrimeFrame::Frame& frame = runtimeFrame(runtime);
+  bool interactive = runtime.visible && runtime.enabled;
   PrimeFrame::NodeId nodeId = createNode(frame,
                                          runtime.parentId,
                                          spec.rect,
@@ -1090,8 +1091,8 @@ UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
     return node;
   }
 
-  builtNode->focusable = runtime.enabled && spec.focusable;
-  builtNode->hitTestVisible = runtime.enabled && spec.hitTestVisible;
+  builtNode->focusable = interactive && spec.focusable;
+  builtNode->hitTestVisible = interactive && spec.hitTestVisible;
   builtNode->tabIndex = builtNode->focusable ? runtime.tabIndex : -1;
 
   (void)createRectNode(frame,
@@ -1102,13 +1103,13 @@ UiNode createExtensionPrimitive(WidgetRuntimeContext const& runtime,
                        false,
                        runtime.visible);
 
-  if (runtime.enabled && spec.callbacks.onEvent) {
+  if (interactive && spec.callbacks.onEvent) {
     (void)appendNodeOnEvent(runtime, nodeId, spec.callbacks.onEvent);
   }
-  if (runtime.enabled && spec.callbacks.onFocus) {
+  if (interactive && spec.callbacks.onFocus) {
     (void)LowLevel::appendNodeOnFocus(frame, nodeId, spec.callbacks.onFocus);
   }
-  if (runtime.enabled && spec.callbacks.onBlur) {
+  if (interactive && spec.callbacks.onBlur) {
     (void)LowLevel::appendNodeOnBlur(frame, nodeId, spec.callbacks.onBlur);
   }
 

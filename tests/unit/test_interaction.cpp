@@ -825,23 +825,57 @@ TEST_CASE("PrimeStage internal extension primitive seam supports typed callbacks
   PrimeStage::UiNode disabledExtension =
       PrimeStage::Internal::createExtensionPrimitive(disabledRuntime, disabledSpec);
 
+  int hiddenEventCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext hiddenRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          false,
+          12);
+  PrimeStage::Internal::ExtensionPrimitiveSpec hiddenSpec;
+  hiddenSpec.rect = {0.0f, 0.0f, 120.0f, 28.0f};
+  hiddenSpec.size.preferredWidth = 120.0f;
+  hiddenSpec.size.preferredHeight = 28.0f;
+  hiddenSpec.focusable = true;
+  hiddenSpec.hitTestVisible = true;
+  hiddenSpec.rectStyle = 943u;
+  hiddenSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      hiddenEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode hiddenExtension =
+      PrimeStage::Internal::createExtensionPrimitive(hiddenRuntime, hiddenSpec);
+
   PrimeFrame::Node const* enabledNode = frame.getNode(enabledExtension.nodeId());
   PrimeFrame::Node const* disabledNode = frame.getNode(disabledExtension.nodeId());
+  PrimeFrame::Node const* hiddenNode = frame.getNode(hiddenExtension.nodeId());
   REQUIRE(enabledNode != nullptr);
   REQUIRE(disabledNode != nullptr);
+  REQUIRE(hiddenNode != nullptr);
   CHECK(enabledNode->focusable);
   CHECK(enabledNode->hitTestVisible);
   CHECK(enabledNode->tabIndex == 4);
   CHECK_FALSE(disabledNode->focusable);
   CHECK_FALSE(disabledNode->hitTestVisible);
   CHECK(disabledNode->tabIndex == -1);
+  CHECK_FALSE(hiddenNode->focusable);
+  CHECK_FALSE(hiddenNode->hitTestVisible);
+  CHECK(hiddenNode->tabIndex == -1);
 
   PrimeFrame::Primitive const* enabledRect =
       findRectPrimitiveByTokenInSubtree(frame, enabledExtension.nodeId(), 941u);
   PrimeFrame::Primitive const* disabledRect =
       findRectPrimitiveByTokenInSubtree(frame, disabledExtension.nodeId(), 942u);
+  PrimeFrame::Primitive const* hiddenRect =
+      findRectPrimitiveByTokenInSubtree(frame, hiddenExtension.nodeId(), 943u);
   REQUIRE(enabledRect != nullptr);
   REQUIRE(disabledRect != nullptr);
+  REQUIRE(hiddenRect != nullptr);
 
   REQUIRE(enabledNode->callbacks != PrimeFrame::InvalidCallbackId);
   PrimeFrame::Callback const* enabledCallback = frame.getCallback(enabledNode->callbacks);
@@ -872,7 +906,15 @@ TEST_CASE("PrimeStage internal extension primitive seam supports typed callbacks
     CHECK_FALSE(disabledCallback->onFocus);
     CHECK_FALSE(disabledCallback->onBlur);
   }
+  if (hiddenNode->callbacks != PrimeFrame::InvalidCallbackId) {
+    PrimeFrame::Callback const* hiddenCallback = frame.getCallback(hiddenNode->callbacks);
+    REQUIRE(hiddenCallback != nullptr);
+    CHECK_FALSE(hiddenCallback->onEvent);
+    CHECK_FALSE(hiddenCallback->onFocus);
+    CHECK_FALSE(hiddenCallback->onBlur);
+  }
   CHECK(disabledEventCount == 0);
+  CHECK(hiddenEventCount == 0);
 }
 
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
