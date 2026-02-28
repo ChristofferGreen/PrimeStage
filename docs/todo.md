@@ -296,6 +296,16 @@ Release Exit Criteria (for API-quality milestone):
   - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
     callback composition-ordering regression coverage remains required as callback layering evolves
 
+- ☑ [125] Add extension-seam routed reentrancy suppression coverage.
+  - added `tests/unit/test_interaction.cpp` routed interaction coverage for
+    `PrimeStage::Internal::createExtensionPrimitive(...)` validating that extension callback
+    handlers attempting to re-enter node callbacks (`onEvent`, `onFocus`, `onBlur`) are
+    suppressed and do not recurse
+  - verified the same test through `EventRouter` + `FocusManager` pointer/focus transitions so
+    reentrancy guards are exercised in routed runtime flow (not only direct callback invocation)
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    routed reentrancy suppression coverage remains required as callback wiring evolves
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

@@ -1202,6 +1202,127 @@ TEST_CASE("PrimeStage internal extension primitive seam composes appended callba
   REQUIRE(blurRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam suppresses routed reentrant callback recursion") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 360.0f, 220.0f);
+
+  PrimeFrame::NodeId guardedId{};
+  bool nestedEventHandled = true;
+  int guardedEventCalls = 0;
+  int guardedFocusCalls = 0;
+  int guardedBlurCalls = 0;
+
+  PrimeStage::Internal::WidgetRuntimeContext guardedRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec guardedSpec;
+  guardedSpec.rect = {20.0f, 20.0f, 140.0f, 30.0f};
+  guardedSpec.size.preferredWidth = 140.0f;
+  guardedSpec.size.preferredHeight = 30.0f;
+  guardedSpec.focusable = true;
+  guardedSpec.hitTestVisible = true;
+  guardedSpec.rectStyle = 971u;
+  guardedSpec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type != PrimeFrame::EventType::PointerDown) {
+      return false;
+    }
+    guardedEventCalls += 1;
+    if (guardedEventCalls == 1) {
+      PrimeFrame::Node const* node = frame.getNode(guardedId);
+      REQUIRE(node != nullptr);
+      PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+      REQUIRE(callback != nullptr);
+      REQUIRE(callback->onEvent);
+      nestedEventHandled = callback->onEvent(event);
+    }
+    return true;
+  };
+  guardedSpec.callbacks.onFocus = [&]() {
+    guardedFocusCalls += 1;
+    if (guardedFocusCalls == 1) {
+      PrimeFrame::Node const* node = frame.getNode(guardedId);
+      REQUIRE(node != nullptr);
+      PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+      REQUIRE(callback != nullptr);
+      REQUIRE(callback->onFocus);
+      callback->onFocus();
+    }
+  };
+  guardedSpec.callbacks.onBlur = [&]() {
+    guardedBlurCalls += 1;
+    if (guardedBlurCalls == 1) {
+      PrimeFrame::Node const* node = frame.getNode(guardedId);
+      REQUIRE(node != nullptr);
+      PrimeFrame::Callback const* callback = frame.getCallback(node->callbacks);
+      REQUIRE(callback != nullptr);
+      REQUIRE(callback->onBlur);
+      callback->onBlur();
+    }
+  };
+  PrimeStage::UiNode guarded =
+      PrimeStage::Internal::createExtensionPrimitive(guardedRuntime, guardedSpec);
+  guardedId = guarded.nodeId();
+
+  PrimeStage::Internal::WidgetRuntimeContext blurRuntime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          3);
+  PrimeStage::Internal::ExtensionPrimitiveSpec blurSpec;
+  blurSpec.rect = {20.0f, 70.0f, 140.0f, 30.0f};
+  blurSpec.size.preferredWidth = 140.0f;
+  blurSpec.size.preferredHeight = 30.0f;
+  blurSpec.focusable = true;
+  blurSpec.hitTestVisible = true;
+  blurSpec.rectStyle = 972u;
+  PrimeStage::UiNode blurTarget =
+      PrimeStage::Internal::createExtensionPrimitive(blurRuntime, blurSpec);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 360.0f, 220.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  auto clickCenter = [&](PrimeFrame::NodeId nodeId, int pointerId) {
+    PrimeFrame::LayoutOut const* out = layout.get(nodeId);
+    REQUIRE(out != nullptr);
+    float x = out->absX + out->absW * 0.5f;
+    float y = out->absY + out->absH * 0.5f;
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+    router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, pointerId, x, y),
+                    frame,
+                    layout,
+                    &focus);
+  };
+
+  clickCenter(guarded.nodeId(), 1);
+  CHECK(focus.focusedNode() == guarded.nodeId());
+  CHECK(guardedEventCalls == 1);
+  CHECK_FALSE(nestedEventHandled);
+  CHECK(guardedFocusCalls == 1);
+
+  clickCenter(blurTarget.nodeId(), 2);
+  CHECK(focus.focusedNode() == blurTarget.nodeId());
+  CHECK(guardedBlurCalls == 1);
+
+  PrimeFrame::Primitive const* guardedRect =
+      findRectPrimitiveByTokenInSubtree(frame, guarded.nodeId(), 971u);
+  PrimeFrame::Primitive const* blurRect =
+      findRectPrimitiveByTokenInSubtree(frame, blurTarget.nodeId(), 972u);
+  REQUIRE(guardedRect != nullptr);
+  REQUIRE(blurRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);
