@@ -336,6 +336,16 @@ Release Exit Criteria (for API-quality milestone):
     visibility-toggle callback lifecycle coverage remains required when post-build visibility
     behavior evolves
 
+- ☑ [129] Add extension-seam hit-test-toggle callback lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that toggles extension node hit-testing with
+    `UiNode::setHitTestVisible(...)` after callback wiring and validates routed pointer callbacks
+    are suppressed while hit-testing is disabled and resume when re-enabled
+  - verified callback-table lifecycle stability across hit-test toggles by asserting callback id
+    continuity while hit-testing is disabled and after re-enabling
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    hit-test-toggle callback lifecycle coverage remains required when post-build hit-testing
+    behavior evolves
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

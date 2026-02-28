@@ -1588,6 +1588,90 @@ TEST_CASE("PrimeStage internal extension primitive seam respects visibility togg
   REQUIRE(extensionRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam respects hit-test toggles for routed callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 200.0f);
+
+  int pointerCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 984u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      pointerCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode extension =
+      PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  PrimeFrame::Node* extensionNode = frame.getNode(extension.nodeId());
+  REQUIRE(extensionNode != nullptr);
+  PrimeFrame::CallbackId callbackId = extensionNode->callbacks;
+  REQUIRE(callbackId != PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 200.0f);
+  PrimeFrame::LayoutOut const* out = layout.get(extension.nodeId());
+  REQUIRE(out != nullptr);
+  float x = out->absX + out->absW * 0.5f;
+  float y = out->absY + out->absH * 0.5f;
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(pointerCount == 1);
+
+  extension.setHitTestVisible(false);
+  CHECK_FALSE(extensionNode->hitTestVisible);
+  CHECK(extensionNode->callbacks == callbackId);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(pointerCount == 1);
+
+  extension.setHitTestVisible(true);
+  CHECK(extensionNode->hitTestVisible);
+  CHECK(extensionNode->callbacks == callbackId);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 3, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 3, x, y),
+                  frame,
+                  layout,
+                  &focus);
+  CHECK(pointerCount == 2);
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 984u);
+  REQUIRE(extensionRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);
