@@ -1649,6 +1649,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(interaction.find("internal extension primitive seam preserves focus callback lifecycle across visibility toggles") !=
         std::string::npos);
+  CHECK(interaction.find("internal extension primitive seam preserves keyboard callbacks across visibility and hit-test toggles") !=
+        std::string::npos);
 
   std::ifstream specValidationInput(specValidationPath);
   REQUIRE(specValidationInput.good());
@@ -1703,6 +1705,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(agents.find("extension-seam focus-callback lifecycle coverage across visibility toggles") !=
         std::string::npos);
+  CHECK(agents.find("extension-seam keyboard callback lifecycle coverage across visibility/hit-test toggles") !=
+        std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1730,6 +1734,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [129] Add extension-seam hit-test-toggle callback lifecycle coverage.") !=
         std::string::npos);
   CHECK(todo.find("☑ [130] Add extension-seam visibility-toggle focus callback lifecycle coverage.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [131] Add extension-seam keyboard callback lifecycle coverage under toggles.") !=
         std::string::npos);
 }
 

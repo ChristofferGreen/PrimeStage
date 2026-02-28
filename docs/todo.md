@@ -356,6 +356,16 @@ Release Exit Criteria (for API-quality milestone):
     focus-callback lifecycle coverage remains required when visibility transitions can occur after
     callback wiring
 
+- ☑ [131] Add extension-seam keyboard callback lifecycle coverage under toggles.
+  - added `tests/unit/test_interaction.cpp` coverage that validates extension keyboard callbacks
+    continue across post-build visibility and hit-test state transitions by refocusing via routed
+    pointer events and dispatching `KeyDown` events before/after each toggle
+  - included negative lifecycle cases in the same test to verify keyboard callback retriggers are
+    suppressed while hit-testing is disabled and focus is cleared, then resume after re-enabling
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    keyboard callback lifecycle coverage remains required when post-build interactivity toggles are
+    changed
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
