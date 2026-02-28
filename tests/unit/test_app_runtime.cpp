@@ -338,6 +338,7 @@ TEST_CASE("App typed widget handles drive focus visibility and imperative action
 
   CHECK_FALSE(app.focusWidget(PrimeStage::WidgetFocusHandle{}));
   CHECK_FALSE(app.setWidgetVisible(PrimeStage::WidgetVisibilityHandle{}, true));
+  CHECK_FALSE(app.setWidgetHitTestVisible(PrimeStage::WidgetVisibilityHandle{}, true));
   CHECK_FALSE(app.setWidgetSize(PrimeStage::WidgetActionHandle{}, PrimeStage::SizeSpec{}));
   CHECK_FALSE(app.dispatchWidgetEvent(PrimeStage::WidgetActionHandle{}, event));
 }
@@ -469,6 +470,35 @@ TEST_CASE("App dispatchWidgetEvent returns false when widget has no callbacks") 
   keyDown.key = PrimeStage::keyCodeInt(PrimeStage::KeyCode::Enter);
   CHECK_FALSE(app.dispatchWidgetEvent(actionHandle, keyDown));
   CHECK_FALSE(app.lifecycle().framePending());
+}
+
+TEST_CASE("App render wrappers return target and path diagnostics") {
+  PrimeStage::App app;
+
+  CHECK(app.runRebuildIfNeeded([](PrimeStage::UiNode root) {
+    PrimeStage::ButtonSpec button;
+    button.label = "Render";
+    button.size.preferredWidth = 80.0f;
+    button.size.preferredHeight = 24.0f;
+    root.createButton(button);
+  }));
+  app.setRenderMetrics(320u, 200u, 1.0f);
+
+  std::array<uint8_t, 4> pixels{};
+  PrimeStage::RenderTarget target;
+  target.pixels = std::span<uint8_t>(pixels);
+  target.width = 0u;
+  target.height = 16u;
+  target.stride = 0u;
+  target.scale = 1.0f;
+
+  PrimeStage::RenderStatus targetStatus = app.renderToTarget(target);
+  CHECK(targetStatus.code == PrimeStage::RenderStatusCode::InvalidTargetDimensions);
+  CHECK(targetStatus.targetWidth == 0u);
+  CHECK(targetStatus.targetHeight == 16u);
+
+  PrimeStage::RenderStatus pngStatus = app.renderToPng("");
+  CHECK(pngStatus.code == PrimeStage::RenderStatusCode::PngPathEmpty);
 }
 
 TEST_CASE("App action routing unifies widget and shortcut entrypoints") {
