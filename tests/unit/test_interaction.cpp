@@ -1323,6 +1323,111 @@ TEST_CASE("PrimeStage internal extension primitive seam suppresses routed reentr
   REQUIRE(blurRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam restores callbacks after NodeCallbackHandle override") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 200.0f);
+
+  int extensionEventCount = 0;
+  int extensionFocusCount = 0;
+  int extensionBlurCount = 0;
+
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 981u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      extensionEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  spec.callbacks.onFocus = [&]() { extensionFocusCount += 1; };
+  spec.callbacks.onBlur = [&]() { extensionBlurCount += 1; };
+  PrimeStage::UiNode extension =
+      PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  PrimeFrame::Node* extensionNode = frame.getNode(extension.nodeId());
+  REQUIRE(extensionNode != nullptr);
+  PrimeFrame::CallbackId originalCallbackId = extensionNode->callbacks;
+  REQUIRE(originalCallbackId != PrimeFrame::InvalidCallbackId);
+
+  int overrideEventCount = 0;
+  int overrideFocusCount = 0;
+  int overrideBlurCount = 0;
+  PrimeStage::LowLevel::NodeCallbackTable overrideTable;
+  overrideTable.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      overrideEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  overrideTable.onFocus = [&]() { overrideFocusCount += 1; };
+  overrideTable.onBlur = [&]() { overrideBlurCount += 1; };
+
+  PrimeStage::LowLevel::NodeCallbackHandle handle(frame, extension.nodeId(), std::move(overrideTable));
+  CHECK(handle.active());
+  REQUIRE(extensionNode->callbacks != PrimeFrame::InvalidCallbackId);
+  CHECK(extensionNode->callbacks != originalCallbackId);
+
+  PrimeFrame::Callback const* overrideCallbacks = frame.getCallback(extensionNode->callbacks);
+  REQUIRE(overrideCallbacks != nullptr);
+  REQUIRE(overrideCallbacks->onEvent);
+  REQUIRE(overrideCallbacks->onFocus);
+  REQUIRE(overrideCallbacks->onBlur);
+
+  PrimeFrame::Event pointerDown;
+  pointerDown.type = PrimeFrame::EventType::PointerDown;
+  pointerDown.pointerId = 1;
+  CHECK(overrideCallbacks->onEvent(pointerDown));
+  overrideCallbacks->onFocus();
+  overrideCallbacks->onBlur();
+
+  CHECK(overrideEventCount == 1);
+  CHECK(overrideFocusCount == 1);
+  CHECK(overrideBlurCount == 1);
+  CHECK(extensionEventCount == 0);
+  CHECK(extensionFocusCount == 0);
+  CHECK(extensionBlurCount == 0);
+
+  handle.reset();
+  CHECK_FALSE(handle.active());
+  CHECK(extensionNode->callbacks == originalCallbackId);
+
+  PrimeFrame::Callback const* restoredCallbacks = frame.getCallback(extensionNode->callbacks);
+  REQUIRE(restoredCallbacks != nullptr);
+  REQUIRE(restoredCallbacks->onEvent);
+  REQUIRE(restoredCallbacks->onFocus);
+  REQUIRE(restoredCallbacks->onBlur);
+
+  CHECK(restoredCallbacks->onEvent(pointerDown));
+  restoredCallbacks->onFocus();
+  restoredCallbacks->onBlur();
+
+  CHECK(extensionEventCount == 1);
+  CHECK(extensionFocusCount == 1);
+  CHECK(extensionBlurCount == 1);
+  CHECK(overrideEventCount == 1);
+  CHECK(overrideFocusCount == 1);
+  CHECK(overrideBlurCount == 1);
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 981u);
+  REQUIRE(extensionRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);

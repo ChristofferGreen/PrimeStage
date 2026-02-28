@@ -1639,6 +1639,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(interaction.find("internal extension primitive seam suppresses routed reentrant callback recursion") !=
         std::string::npos);
+  CHECK(interaction.find("internal extension primitive seam restores callbacks after NodeCallbackHandle override") !=
+        std::string::npos);
 
   std::ifstream specValidationInput(specValidationPath);
   REQUIRE(specValidationInput.good());
@@ -1683,6 +1685,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(agents.find("extension-seam routed reentrancy suppression regression coverage") !=
         std::string::npos);
+  CHECK(agents.find("extension-seam NodeCallbackHandle interop restoration coverage") !=
+        std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1700,6 +1704,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [124] Add extension-seam callback composition ordering coverage.") !=
         std::string::npos);
   CHECK(todo.find("☑ [125] Add extension-seam routed reentrancy suppression coverage.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [126] Add extension-seam NodeCallbackHandle interop restore coverage.") !=
         std::string::npos);
 }
 

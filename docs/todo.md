@@ -306,6 +306,16 @@ Release Exit Criteria (for API-quality milestone):
   - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
     routed reentrancy suppression coverage remains required as callback wiring evolves
 
+- ☑ [126] Add extension-seam NodeCallbackHandle interop restore coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that wraps an extension primitive node with
+    `PrimeStage::LowLevel::NodeCallbackHandle`, verifies active override callbacks intercept
+    event/focus/blur invocation, and confirms extension callbacks are temporarily suppressed
+  - verified `NodeCallbackHandle::reset()` restores the original extension callback table and that
+    extension callbacks resume firing after restoration
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    callback override/restore interop coverage remains required when low-level callback-table
+    integration paths evolve
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

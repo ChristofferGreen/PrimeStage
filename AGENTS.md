@@ -61,6 +61,8 @@ Defines naming and coding rules plus build/test entrypoints for contributors wor
   `tests/unit/test_interaction.cpp` when layering extra low-level callbacks onto extension nodes,
   keep extension-seam routed reentrancy suppression regression coverage in
   `tests/unit/test_interaction.cpp` when extension callback handlers can invoke node callbacks,
+  keep extension-seam NodeCallbackHandle interop restoration coverage in
+  `tests/unit/test_interaction.cpp` when callback-table override/restore paths are touched,
   and keep this seam out of canonical/public API examples.
 - For `std::string_view` and callback-capture lifetime safety, follow `docs/data-ownership-lifetime.md` and prefer owned captures/state for post-build callback use.
 - For render-path failures, use `RenderStatus`/`RenderStatusCode` diagnostics (`docs/render-diagnostics.md`) instead of introducing new opaque `bool` failure paths.
