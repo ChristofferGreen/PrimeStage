@@ -1635,6 +1635,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(interaction.find("internal extension primitive seam keeps disabled and hidden runtime gating under post-build toggles") !=
         std::string::npos);
+  CHECK(interaction.find("internal extension primitive seam supports non-focusable pointer interactivity without keyboard routing") !=
+        std::string::npos);
   CHECK(interaction.find("internal extension primitive seam routes pointer and focus callbacks through event router") !=
         std::string::npos);
   CHECK(interaction.find("internal extension primitive seam composes appended callbacks predictably") !=
@@ -1713,6 +1715,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(agents.find("extension-seam disabled/hidden runtime-gating lifecycle coverage under post-build toggles") !=
         std::string::npos);
+  CHECK(agents.find("extension-seam non-focusable pointer interactivity coverage") !=
+        std::string::npos);
   CHECK(agents.find("extension-seam keyboard callback lifecycle coverage across visibility/hit-test toggles") !=
         std::string::npos);
 
@@ -1748,6 +1752,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [132] Add extension-seam hit-test-toggle focus callback lifecycle coverage.") !=
         std::string::npos);
   CHECK(todo.find("☑ [133] Add extension-seam post-build runtime-gating lifecycle coverage.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [134] Add extension-seam non-focusable interactivity lifecycle coverage.") !=
         std::string::npos);
 }
 

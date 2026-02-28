@@ -386,6 +386,15 @@ Release Exit Criteria (for API-quality milestone):
     runtime-gating lifecycle coverage remains required when extension interactivity lifecycle paths
     change
 
+- ☑ [134] Add extension-seam non-focusable interactivity lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage for extension nodes with `focusable=false`
+    and `hitTestVisible=true`, validating pointer callbacks still route while focus and keyboard
+    callback paths remain inactive without focus
+  - included a negative lifecycle check that pointer callbacks stop after post-build
+    `setHitTestVisible(false)` while focus callbacks remain inactive throughout
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so non-focusable
+    pointer interactivity coverage remains required when extension focus/hit-test semantics change
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
