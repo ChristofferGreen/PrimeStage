@@ -1643,6 +1643,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(interaction.find("internal extension primitive seam tolerates NodeCallbackHandle move and destroyed node reset") !=
         std::string::npos);
+  CHECK(interaction.find("internal extension primitive seam respects visibility toggles for routed callbacks") !=
+        std::string::npos);
 
   std::ifstream specValidationInput(specValidationPath);
   REQUIRE(specValidationInput.good());
@@ -1691,6 +1693,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
         std::string::npos);
   CHECK(agents.find("extension-seam NodeCallbackHandle move/destroy regression coverage") !=
         std::string::npos);
+  CHECK(agents.find("extension-seam visibility-toggle callback lifecycle coverage") !=
+        std::string::npos);
 
   std::ifstream todoInput(todoPath);
   REQUIRE(todoInput.good());
@@ -1712,6 +1716,8 @@ TEST_CASE("PrimeStage internal custom-primitive extension seam stays typed and c
   CHECK(todo.find("☑ [126] Add extension-seam NodeCallbackHandle interop restore coverage.") !=
         std::string::npos);
   CHECK(todo.find("☑ [127] Add extension-seam NodeCallbackHandle move/destroy coverage.") !=
+        std::string::npos);
+  CHECK(todo.find("☑ [128] Add extension-seam visibility-toggle callback lifecycle coverage.") !=
         std::string::npos);
 }
 

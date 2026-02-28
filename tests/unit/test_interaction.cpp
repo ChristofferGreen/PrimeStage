@@ -1498,6 +1498,96 @@ TEST_CASE("PrimeStage internal extension primitive seam tolerates NodeCallbackHa
   CHECK_FALSE(second.active());
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam respects visibility toggles for routed callbacks") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 200.0f);
+
+  int pointerCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 983u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      pointerCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode extension =
+      PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  PrimeFrame::Node* extensionNode = frame.getNode(extension.nodeId());
+  REQUIRE(extensionNode != nullptr);
+  PrimeFrame::CallbackId callbackId = extensionNode->callbacks;
+  REQUIRE(callbackId != PrimeFrame::InvalidCallbackId);
+
+  PrimeFrame::LayoutOutput visibleLayout = layoutFrame(frame, 320.0f, 200.0f);
+  PrimeFrame::LayoutOut const* visibleOut = visibleLayout.get(extension.nodeId());
+  REQUIRE(visibleOut != nullptr);
+  float hiddenProbeX = visibleOut->absX + visibleOut->absW * 0.5f;
+  float hiddenProbeY = visibleOut->absY + visibleOut->absH * 0.5f;
+
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, hiddenProbeX, hiddenProbeY),
+                  frame,
+                  visibleLayout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 1, hiddenProbeX, hiddenProbeY),
+                  frame,
+                  visibleLayout,
+                  &focus);
+  CHECK(pointerCount == 1);
+
+  extension.setVisible(false);
+  CHECK_FALSE(extensionNode->visible);
+  CHECK(extensionNode->callbacks == callbackId);
+  PrimeFrame::LayoutOutput hiddenLayout = layoutFrame(frame, 320.0f, 200.0f);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 2, hiddenProbeX, hiddenProbeY),
+                  frame,
+                  hiddenLayout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 2, hiddenProbeX, hiddenProbeY),
+                  frame,
+                  hiddenLayout,
+                  &focus);
+  CHECK(pointerCount == 1);
+
+  extension.setVisible(true);
+  CHECK(extensionNode->visible);
+  CHECK(extensionNode->callbacks == callbackId);
+  PrimeFrame::LayoutOutput reshownLayout = layoutFrame(frame, 320.0f, 200.0f);
+  PrimeFrame::LayoutOut const* reshownOut = reshownLayout.get(extension.nodeId());
+  REQUIRE(reshownOut != nullptr);
+  float reshownX = reshownOut->absX + reshownOut->absW * 0.5f;
+  float reshownY = reshownOut->absY + reshownOut->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 3, reshownX, reshownY),
+                  frame,
+                  reshownLayout,
+                  &focus);
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerUp, 3, reshownX, reshownY),
+                  frame,
+                  reshownLayout,
+                  &focus);
+  CHECK(pointerCount == 2);
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 983u);
+  REQUIRE(extensionRect != nullptr);
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);

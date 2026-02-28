@@ -326,6 +326,16 @@ Release Exit Criteria (for API-quality milestone):
     callback-handle ownership/lifetime regression coverage remains required as low-level callback
     handle paths evolve
 
+- ☑ [128] Add extension-seam visibility-toggle callback lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that toggles extension node visibility with
+    `UiNode::setVisible(...)` after callback wiring and validates routed pointer callbacks are
+    suppressed while hidden and resume after re-showing
+  - verified callback-table lifecycle stability across visibility flips by asserting callback id
+    continuity while hidden and after becoming visible again
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    visibility-toggle callback lifecycle coverage remains required when post-build visibility
+    behavior evolves
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
