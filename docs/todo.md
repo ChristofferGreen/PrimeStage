@@ -366,6 +366,16 @@ Release Exit Criteria (for API-quality milestone):
     keyboard callback lifecycle coverage remains required when post-build interactivity toggles are
     changed
 
+- ☑ [132] Add extension-seam hit-test-toggle focus callback lifecycle coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that validates extension focus/blur callbacks
+    remain wired across post-build hit-test toggles by moving focus between two extension nodes,
+    disabling hit-testing on the first node, and re-enabling it before refocusing
+  - included diagnostic checks to verify callback-table wiring remains stable while hit-testing
+    is toggled off/on before explicit refocus actions
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    focus-callback lifecycle coverage across hit-test toggles remains required when extension
+    interactivity toggles are modified
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.
