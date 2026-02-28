@@ -316,6 +316,16 @@ Release Exit Criteria (for API-quality milestone):
     callback override/restore interop coverage remains required when low-level callback-table
     integration paths evolve
 
+- ☑ [127] Add extension-seam NodeCallbackHandle move/destroy coverage.
+  - added `tests/unit/test_interaction.cpp` coverage that creates an extension primitive node,
+    moves an active `PrimeStage::LowLevel::NodeCallbackHandle`, and verifies routed pointer
+    interaction remains intercepted by the moved handle without invoking extension `onEvent`
+  - verified destroyed-node tolerance by destroying the extension node while the moved handle is
+    active and asserting `NodeCallbackHandle::reset()` remains safe and leaves the handle inactive
+  - updated `tests/unit/test_api_ergonomics.cpp` and `AGENTS.md` guardrails so extension-seam
+    callback-handle ownership/lifetime regression coverage remains required as low-level callback
+    handle paths evolve
+
 ## Archive (Completed)
 
 Completed items moved here to keep active backlog focused.

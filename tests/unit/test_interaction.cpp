@@ -1428,6 +1428,76 @@ TEST_CASE("PrimeStage internal extension primitive seam restores callbacks after
   REQUIRE(extensionRect != nullptr);
 }
 
+TEST_CASE("PrimeStage internal extension primitive seam tolerates NodeCallbackHandle move and destroyed node reset") {
+  PrimeFrame::Frame frame;
+  PrimeStage::UiNode root = createRoot(frame, 320.0f, 200.0f);
+
+  int extensionEventCount = 0;
+  PrimeStage::Internal::WidgetRuntimeContext runtime =
+      PrimeStage::Internal::makeWidgetRuntimeContext(
+          frame,
+          root.nodeId(),
+          true,
+          true,
+          true,
+          2);
+  PrimeStage::Internal::ExtensionPrimitiveSpec spec;
+  spec.rect = {16.0f, 16.0f, 120.0f, 30.0f};
+  spec.size.preferredWidth = 120.0f;
+  spec.size.preferredHeight = 30.0f;
+  spec.focusable = true;
+  spec.hitTestVisible = true;
+  spec.rectStyle = 982u;
+  spec.callbacks.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      extensionEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+  PrimeStage::UiNode extension =
+      PrimeStage::Internal::createExtensionPrimitive(runtime, spec);
+
+  int overrideEventCount = 0;
+  PrimeStage::LowLevel::NodeCallbackTable overrideTable;
+  overrideTable.onEvent = [&](PrimeFrame::Event const& event) {
+    if (event.type == PrimeFrame::EventType::PointerDown) {
+      overrideEventCount += 1;
+      return true;
+    }
+    return false;
+  };
+
+  PrimeStage::LowLevel::NodeCallbackHandle first(frame, extension.nodeId(), std::move(overrideTable));
+  CHECK(first.active());
+  PrimeStage::LowLevel::NodeCallbackHandle second(std::move(first));
+  CHECK_FALSE(first.active());
+  CHECK(second.active());
+
+  PrimeFrame::LayoutOutput layout = layoutFrame(frame, 320.0f, 200.0f);
+  PrimeFrame::EventRouter router;
+  PrimeFrame::FocusManager focus;
+  PrimeFrame::LayoutOut const* out = layout.get(extension.nodeId());
+  REQUIRE(out != nullptr);
+  float x = out->absX + out->absW * 0.5f;
+  float y = out->absY + out->absH * 0.5f;
+  router.dispatch(makePointerEvent(PrimeFrame::EventType::PointerDown, 1, x, y),
+                  frame,
+                  layout,
+                  &focus);
+
+  CHECK(overrideEventCount == 1);
+  CHECK(extensionEventCount == 0);
+
+  PrimeFrame::Primitive const* extensionRect =
+      findRectPrimitiveByTokenInSubtree(frame, extension.nodeId(), 982u);
+  REQUIRE(extensionRect != nullptr);
+
+  REQUIRE(frame.destroyNode(extension.nodeId()));
+  second.reset();
+  CHECK_FALSE(second.active());
+}
+
 TEST_CASE("PrimeStage slider drag clamps and updates hover/press styles") {
   PrimeFrame::Frame frame;
   PrimeStage::UiNode root = createRoot(frame, 200.0f, 60.0f);
